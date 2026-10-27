@@ -19,7 +19,7 @@ export const useProfileStore = defineStore('profile', () => {
   // Actual fields which update when you change profiles
   const darkTheme = useLocalStorage('darkTheme', false)
   const language = useLocalStorage('language', 'en')
-  const startingPage = useLocalStorage('startingPage', Page.types.transactionNew)
+  const startingPage = useLocalStorage('startingPage', Page.types.dashboard)
   const showAnimations = useLocalStorage('showAnimations', true)
   const resetFormOnCreate = useLocalStorage('resetFormOnCreate', false)
 

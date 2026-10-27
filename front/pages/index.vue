@@ -20,6 +20,6 @@ const startingPage = computed(() => {
       return markRaw(Dashboard)
   }
 
-  return markRaw(TransactionCreate)
+  return markRaw(Dashboard)
 })
 </script>
