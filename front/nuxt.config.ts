@@ -28,6 +28,15 @@ export default defineNuxtConfig({
       brotli: true,
     },
   },
+
+  // Local dev: forward API calls to `php artisan serve` (see scripts/dev.sh)
+  $development: {
+    nitro: {
+      devProxy: {
+        '/api': { target: 'http://localhost:8000/api', changeOrigin: true },
+      },
+    },
+  },
   runtimeConfig: {
     public: {
       version: process.env.NUXT_PUBLIC_VERSION ?? pkg.version,

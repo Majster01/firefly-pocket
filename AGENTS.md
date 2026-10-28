@@ -123,6 +123,21 @@ Every entity screen follows the same two-page shape. Copy an existing entity (e.
 1. `back/`: model in `app/Models`, controller extending `BaseControllerFirefly` (constructor calls `parent::__construct('/api/v1/{firefly-endpoint}', Model::class)` — often the whole class), `RouteUtils::makeCRUD('{entities}', Controller::class)` in `routes/api.php`, migration if Pico stores extra fields.
 2. `front/`: model extending `BaseModel` (with `getTransformer()`, `getRepository()`, `getEmpty()`, static display helpers), repository extending `BaseRepository`, transformer extending `ApiTransformer` (`transformFromApi` / `transformToApi`), store following the store pattern below, the two pages above, routes in `RouteConstants.js`, i18n keys in all 12 locale files, an entry point (menu/extras page) for navigation.
 
+## Local Dev Environment
+
+Runs the local front + back against the deployed Firefly III from `../fireflyx` (`https://firefly.bankparse.dev`). Requires Homebrew `node`, `php@8.4` (the lockfile rejects PHP 8.5), `composer`, and `npm i -g @playwright/cli`.
+
+```bash
+scripts/dev-setup.sh   # once: composer/npm install, back/.env (FIREFLY_URL), SQLite DB + migrations, .dev.env
+scripts/dev.sh         # Laravel on :8000 + Nuxt on :3000; Nuxt proxies /api/* to :8000
+```
+
+Open `http://localhost:3000`. The "Pico backend URL" defaults to the page origin, which works because of the `/api` dev proxy. Paste a Firefly Personal Access Token in Settings → Setup.
+
+**Self-verification (agents):** start `scripts/dev.sh` in the background, then `scripts/dev-login.sh [--mobile] [--headed]`. It opens a `playwright-cli` browser at `:3000` with `authToken` set from `PICO_DEV_TOKEN` in the gitignored `.dev.env`. Then use `playwright-cli snapshot` / `click` / `fill` / `screenshot` / `console` / `requests` (see `.claude/skills/playwright-cli`). Check both `--mobile` (390×844) and desktop width (> 800px, which switches to `appStore.isDesktopLayout`).
+
+**This is real financial data.** Verify by reading and navigating. Do not save, delete or sync-modify Firefly entities unless the user asked for it in this session.
+
 ## Common Commands
 
 Front end:
