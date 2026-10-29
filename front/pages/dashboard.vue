@@ -9,6 +9,8 @@
     <van-pull-refresh v-model="isRefreshing" @refresh="onRefresh">
       <dashboard-control v-if="!appStore.isDesktopLayout" />
 
+      <dashboard-rule-suggestions />
+
       <div ref="dashboard" class="dashboard-cards-frame" :class="{ 'dashboard-cards-back': isDashboardCardsBack }">
         <transition :name="profileStore.showAnimations ? 'dashboard-cards' : ''" mode="out-in">
           <div :key="+dashboardStore.month" class="dynamic-masonry">

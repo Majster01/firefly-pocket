@@ -5,6 +5,9 @@
         <app-icon v-if="props.icon" :icon="props.icon" :size="props.size" />
       </slot>
     </template>
+    <template v-if="props.badge" #button>
+      <van-badge :content="props.badge" class="app-count-badge" />
+    </template>
   </van-field>
 </template>
 
@@ -18,6 +21,7 @@ const props = defineProps({
   isLink: {
     default: true,
   },
+  badge: {},
 })
 
 const binding = computed(() => ({

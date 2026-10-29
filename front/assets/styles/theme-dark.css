@@ -514,3 +514,9 @@
         color: #64b5f6; /* Lighter blue for dark theme */
     }
 }
+
+.van-theme-dark .rule-suggestion-low-confidence {
+    border-color: #ffb74d;
+    background: #2a1f12;
+    color: #ffb74d;
+}

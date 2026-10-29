@@ -9,6 +9,7 @@
         <app-boolean v-model="tagsEnabled" :label="$t('settings.setup.enable_tags')" />
         <app-boolean v-model="piggyBanksEnabled" :label="$t('settings.setup.enable_piggy_banks')" />
         <app-boolean v-model="recurringTransactionsEnabled" :label="$t('settings.setup.enable_recurring_transactions')" />
+        <app-boolean v-model="ruleSuggestionsEnabled" :label="$t('settings.setup.enable_rule_suggestions')" />
       </van-cell-group>
 
       <app-button-form-save />
@@ -34,6 +35,7 @@ const categoriesEnabled = ref(true)
 const tagsEnabled = ref(true)
 const piggyBanksEnabled = ref(true)
 const recurringTransactionsEnabled = ref(true)
+const ruleSuggestionsEnabled = ref(true)
 
 const syncedSettings = [
   { store: profileStore, path: 'budgetsEnabled', ref: budgetsEnabled },
@@ -41,6 +43,7 @@ const syncedSettings = [
   { store: profileStore, path: 'tagsEnabled', ref: tagsEnabled },
   { store: profileStore, path: 'piggyBanksEnabled', ref: piggyBanksEnabled },
   { store: profileStore, path: 'recurringTransactionsEnabled', ref: recurringTransactionsEnabled },
+  { store: profileStore, path: 'ruleSuggestionsEnabled', ref: ruleSuggestionsEnabled },
 ]
 
 watchSettingsStore(syncedSettings)

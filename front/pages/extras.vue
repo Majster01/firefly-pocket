@@ -11,10 +11,17 @@
       <app-field-link v-if="profileStore.recurringTransactionsEnabled" :label="$t('recurring_transactions')" :icon="TablerIconConstants.recurringTransaction" @click="onGoToRecurringTransactionsList" />
     </van-cell-group>
 
-    <van-cell-group v-if="profileStore.tagsEnabled || profileStore.categoriesEnabled" inset style="overflow: auto">
+    <van-cell-group v-if="profileStore.tagsEnabled || profileStore.categoriesEnabled || profileStore.ruleSuggestionsEnabled" inset style="overflow: auto">
       <div class="van-cell-group-title">{{ $t('classification') }}:</div>
       <app-field-link v-if="profileStore.tagsEnabled" :label="$t('tags')" :icon="TablerIconConstants.tag" @click="onGoToTagsList" />
       <app-field-link v-if="profileStore.categoriesEnabled" :label="$t('categories')" :icon="TablerIconConstants.category" @click="onGoToCategoriesList" />
+      <app-field-link
+        v-if="profileStore.ruleSuggestionsEnabled"
+        :label="$t('rule_suggestions')"
+        :icon="TablerIconConstants.ruleSuggestion"
+        :badge="ruleSuggestionStore.ruleSuggestionList.length || null"
+        @click="onGoToRuleSuggestionsList"
+      />
     </van-cell-group>
 
     <van-cell-group inset style="overflow: auto">
@@ -33,9 +40,11 @@ import TablerIconConstants from '~/constants/TablerIconConstants'
 import { onMounted } from 'vue'
 
 const profileStore = useProfileStore()
+const ruleSuggestionStore = useRuleSuggestionStore()
 
 const onGoToAccountsList = async () => await navigateTo(RouteConstants.ROUTE_ACCOUNT_LIST)
 const onGoToCategoriesList = async () => await navigateTo(RouteConstants.ROUTE_CATEGORY_LIST)
+const onGoToRuleSuggestionsList = async () => await navigateTo(RouteConstants.ROUTE_RULE_SUGGESTION_LIST)
 const onGoToTagsList = async () => await navigateTo(RouteConstants.ROUTE_TAG_LIST)
 const onGoToCurrenciesList = async () => await navigateTo(RouteConstants.ROUTE_CURRENCY_LIST)
 const onGoToTransactionTemplatesList = async () => await navigateTo(RouteConstants.ROUTE_TRANSACTION_TEMPLATE_LIST)

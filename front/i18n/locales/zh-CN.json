@@ -150,7 +150,8 @@
       "verifying": "验证中...",
       "invalid_endpoint": "提供的端点不正确。",
       "invalid_token": "提供的令牌不正确或已过期。",
-      "fetching": "获取中..."
+      "fetching": "获取中...",
+      "enable_rule_suggestions": "启用规则建议"
     },
     "ui_entry": "用户界面",
     "ui": {
@@ -397,6 +398,28 @@
     "title_add": "添加类别",
     "title_edit": "编辑类别"
   },
+  "rule_suggestion_page": {
+    "title": "审核建议",
+    "transactions": "交易",
+    "low_confidence": "低置信度",
+    "conditions": "匹配条件",
+    "field": "字段",
+    "value": "值",
+    "trigger_description_contains": "描述包含",
+    "trigger_destination_contains": "目标包含",
+    "trigger_destination_is": "目标为",
+    "trigger_destination_account_id": "目标账户",
+    "preview_uncategorized": "将为 {count} 笔未分类交易分类",
+    "preview_categorized": "{count} 笔已分类交易也匹配，但保持不变",
+    "approve": "批准规则",
+    "set_category_only": "仅设置分类",
+    "reject": "拒绝",
+    "approved": "规则已保存，1 笔交易已分类 | 规则已保存，{count} 笔交易已分类",
+    "categorized": "1 笔交易已分类 | {count} 笔交易已分类",
+    "more_transactions": "还有 {count} 笔",
+    "list_empty": "没有待审核的建议",
+    "list_empty_subtitle": "每晚运行后，新的分类建议会显示在这里。"
+  },
   "currency_page": {
     "title_add": "添加货币",
     "title_edit": "编辑货币",
@@ -460,5 +483,7 @@
   "general": {
     "list_empty": "暂无项目",
     "list_empty_subtitle": "使用右上角的按钮添加一些条目。"
-  }
+  },
+  "rule_suggestions": "规则建议",
+  "rule_suggestions_to_review": "1 条建议待审核 | {count} 条建议待审核"
 }

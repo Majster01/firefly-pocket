@@ -131,6 +131,7 @@ export const useAppStore = defineStore('app', () => {
     const budgetStore = useBudgetStore()
     const piggyBankStore = usePiggyBankStore()
     const recurringTransactionStore = useRecurringTransactionStore()
+    const ruleSuggestionStore = useRuleSuggestionStore()
     const iconStore = useIconStore()
     const profileStore = useProfileStore()
 
@@ -143,6 +144,7 @@ export const useAppStore = defineStore('app', () => {
       budgetStore.fetchBudgets(),
       piggyBankStore.fetchPiggyBanks(),
       recurringTransactionStore.fetchRecurringTransactions(),
+      ruleSuggestionStore.fetchRuleSuggestions(),
       iconStore.fetchCustomIcons(),
       currencyStore.fetchExchangeRate(),
       profileStore.getProfiles(),
