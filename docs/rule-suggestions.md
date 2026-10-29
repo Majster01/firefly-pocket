@@ -73,11 +73,13 @@ The trigger/strict/stop_processing settings match the `Category:` rules, so trig
 
 | Action (Pico) | Effect in Firefly |
 | --- | --- |
-| **Approve** `{category, triggers[]}` | Append triggers (deduplicated) to `Category: {category}` in `Categorization`, creating that rule if missing. Delete the suggestion. Set the category on its `transactions`. Run `POST /rule-groups/{categorization}/trigger` over all time, so the guard rule keeps existing categories. |
+| **Approve** `{category, triggers[]}` | Append triggers (deduplicated) to `Category: {category}` in `Categorization`, creating that rule if missing (above the generic `Category: Bills`, `Category: Shopping`, `Category: Other`). Set the category on its `transactions` and on every **uncategorized** transaction the triggers match over all time. Delete the suggestion. Already categorized transactions are never changed. |
 | **Set category only** `{category}` | Set the category on its `transactions`. Delete the suggestion. No rule is written. |
 | **Reject** | Delete the suggestion. Transactions stay uncategorized. |
 
 No tags or other actions are added in v1.
+
+Pico does not run the `Categorization` group after approving: Firefly 6.6.6's `POST /rule-groups/{id}/trigger` fires each active rule on its own (`RuleEngine::setRules`), so `stop_processing` on the `Stop: already categorized` guard is ignored and every `Category:` rule would overwrite existing categories. The guard only applies to `store-journal` events (new transactions).
 
 ## Reconcile (suggester, start of every run)
 
