@@ -9,16 +9,42 @@ use Illuminate\Support\Facades\Http;
 
 /**
  * Bank connections (Enable Banking consents) live in the FireflyX fork of the Firefly III Data Importer.
- * Pico only displays them and starts re-authentication; the contract is the fork's /api/fireflyx/v1.
+ * Pico lists them, adds new ones, maps their accounts and starts re-authentication; the contract is the fork's /api/fireflyx/v1.
  */
 class BankConnectionService
 {
-    // Where the bank sends the user back to, via the importer
+    // Where the bank sends the user back to, via the importer. A new connection continues on the setup page.
     const RETURN_PATH = '/bank-connections/list';
 
     public function getAll()
     {
         return $this->importer('get', 'connections')['data'];
+    }
+
+    public function getOne($name)
+    {
+        return $this->importer('get', "connections/$name")['data'];
+    }
+
+    public function getBanks($country)
+    {
+        return $this->importer('get', 'banks', ['country' => $country])['data'];
+    }
+
+    /**
+     * Starts the consent for a bank without a connection yet and returns the connection name and the URL to send the user to.
+     */
+    public function create($country, $bank, $psuType)
+    {
+        return $this->importer('post', 'connections', ['country' => $country, 'bank' => $bank, 'psu_type' => $psuType, 'return_path' => self::RETURN_PATH])['data'];
+    }
+
+    /**
+     * Which Firefly account each bank account feeds ({id, firefly_account_id}, null = not imported) and how far back the first import reaches.
+     */
+    public function saveAccounts($name, $accounts, $importSince)
+    {
+        return $this->importer('put', "connections/$name/accounts", ['accounts' => $accounts, 'import_since' => $importSince])['data'];
     }
 
     /**
@@ -40,7 +66,7 @@ class BankConnectionService
             throw new GeneralException('Bank connections are not configured (IMPORTER_API_URL, IMPORTER_API_TOKEN)', BaseController::HTTP_CODE_INTERNAL_SERVER_ERROR);
         }
         try {
-            // Re-authentication asks the bank for its consent limit first => allow more than a quick call
+            // Listing banks and starting a consent call the bank's API => allow more than a quick call
             $response = Http::withToken(config('app.importer_api_token'))->acceptJson()->timeout(60)
                 ->$method(rtrim(config('app.importer_api_url'), '/') . "/$path", $data);
         } catch (ConnectionException $e) {

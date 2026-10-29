@@ -81,6 +81,10 @@ Route::post('rule-suggestions/{id}/categorize', [RuleSuggestionController::class
 Route::delete('rule-suggestions/{id}', [RuleSuggestionController::class, 'delete'])->where('id', '[0-9]+');
 
 Route::get('bank-connections', [BankConnectionController::class, 'getAll']);
+Route::get('bank-connections/banks', [BankConnectionController::class, 'getBanks']);
+Route::post('bank-connections', [BankConnectionController::class, 'create']);
+Route::get('bank-connections/{name}', [BankConnectionController::class, 'getOne'])->where('name', '[a-z0-9-]+');
+Route::put('bank-connections/{name}/accounts', [BankConnectionController::class, 'saveAccounts'])->where('name', '[a-z0-9-]+');
 Route::post('bank-connections/{name}/reauthenticate', [BankConnectionController::class, 'reauthenticate'])->where('name', '[a-z0-9-]+');
 Route::delete('bank-connections/{name}', [BankConnectionController::class, 'delete'])->where('name', '[a-z0-9-]+');
 
