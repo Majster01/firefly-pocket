@@ -50,6 +50,7 @@ export default {
 
   ROUTE_RULE_SUGGESTION_LIST: '/rule-suggestions/list',
   ROUTE_RULE_SUGGESTION_ID: '/rule-suggestions',
+  ROUTE_BANK_CONNECTION_LIST: '/bank-connections/list',
 
   isForm(routeForm, currentForm) {
     let regex = new RegExp(`${routeForm}/[0-9]+`)

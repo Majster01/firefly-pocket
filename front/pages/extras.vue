@@ -26,6 +26,12 @@
 
     <van-cell-group inset style="overflow: auto">
       <div class="van-cell-group-title">{{ $t('extra') }}:</div>
+      <app-field-link
+        :label="$t('bank_connections')"
+        :icon="TablerIconConstants.bankConnection"
+        :badge="bankConnectionStore.attentionCount || null"
+        @click="navigateTo(RouteConstants.ROUTE_BANK_CONNECTION_LIST)"
+      />
       <app-field-link :label="$t('exchange_rates')" :icon="TablerIconConstants.exchangeRates" @click="navigateTo(RouteConstants.ROUTE_EXCHANGE_RATES)" />
       <app-field-link :label="$t('currencies')" :icon="TablerIconConstants.currency" @click="onGoToCurrenciesList" />
     </van-cell-group>
@@ -41,6 +47,7 @@ import { onMounted } from 'vue'
 
 const profileStore = useProfileStore()
 const ruleSuggestionStore = useRuleSuggestionStore()
+const bankConnectionStore = useBankConnectionStore()
 
 const onGoToAccountsList = async () => await navigateTo(RouteConstants.ROUTE_ACCOUNT_LIST)
 const onGoToCategoriesList = async () => await navigateTo(RouteConstants.ROUTE_CATEGORY_LIST)
@@ -59,5 +66,7 @@ toolbar.init({ title: t('toolbar.extras') })
 
 onMounted(() => {
   animateSettings()
+  // Only for the badge: quietly, an importer without bank connections is not an error here
+  bankConnectionStore.fetchBankConnections({ showLoading: false, showErrorToast: false }).catch(() => {})
 })
 </script>

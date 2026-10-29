@@ -20,6 +20,7 @@ export const icons = {
   ruleSuggestion: 'IconBulb',
   ruleSuggestionCompany: 'IconBuildingStore',
   ruleSuggestionPreview: 'IconListSearch',
+  bankConnection: 'IconBuildingBank',
 
   settingsAppConfig: 'IconTool',
   settingsUserPreferences: 'IconMoodCog',
