@@ -57,6 +57,9 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
     'firefly_url' => env('FIREFLY_URL', ''),
+    // Firefly rule groups (looked up by title) used by rule suggestions, see docs/rule-suggestions.md
+    'rule_group_suggestions' => env('RULE_GROUP_SUGGESTIONS', 'Suggestions'),
+    'rule_group_categorization' => env('RULE_GROUP_CATEGORIZATION', 'Categorization'),
     // Folder with admin provided icons (svg, png, ...). In Docker, mount a volume here.
     'custom_icons_path' => env('CUSTOM_ICONS_PATH', storage_path('app/custom-icons')),
     'asset_url' => env('ASSET_URL'),

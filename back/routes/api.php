@@ -10,6 +10,7 @@ use App\Http\Controllers\FireflyProxyController;
 use App\Http\Controllers\PiggyBankController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RecurrenceController;
+use App\Http\Controllers\RuleSuggestionController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionTemplateController;
@@ -70,6 +71,13 @@ Route::get('search/transactions/total', [TransactionController::class, 'computeS
 
 
 RouteUtils::makeCRUD("profiles", ProfileController::class);
+
+Route::get('rule-suggestions', [RuleSuggestionController::class, 'getAll']);
+Route::get('rule-suggestions/{id}', [RuleSuggestionController::class, 'getOne'])->where('id', '[0-9]+');
+Route::post('rule-suggestions/preview', [RuleSuggestionController::class, 'preview']);
+Route::post('rule-suggestions/{id}/approve', [RuleSuggestionController::class, 'approve'])->where('id', '[0-9]+');
+Route::post('rule-suggestions/{id}/categorize', [RuleSuggestionController::class, 'categorize'])->where('id', '[0-9]+');
+Route::delete('rule-suggestions/{id}', [RuleSuggestionController::class, 'delete'])->where('id', '[0-9]+');
 
 Route::post('assistant/rambles', [AssistantController::class, 'create']);
 Route::get('assistant/rambles/count', [AssistantController::class, 'getCount']);
