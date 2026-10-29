@@ -4,6 +4,14 @@
 
     <empty-list v-if="notFound" :title="$t('bank_connection_page.setup.no_connection')" />
 
+    <van-empty
+      v-else-if="connection && connection.accounts.length === 0"
+      image="error"
+      :description="`${$t('bank_connection_page.setup.no_accounts')}. ${$t('bank_connection_page.setup.no_accounts_subtitle', { bank: connection.bank.name })}`"
+    >
+      <van-button type="primary" :loading="isReauthenticating" @click="onReauthenticate">{{ $t('bank_connection_page.reauthenticate') }}</van-button>
+    </van-empty>
+
     <template v-else-if="connection">
       <div class="p-1 text-size-12 text-muted">{{ $t('bank_connection_page.setup.intro') }}</div>
 
@@ -57,6 +65,7 @@ const importSince = ref('')
 const chooseFor = ref(null) // the bank account being chosen for; kept after the sheet closes, which happens before select
 const isChooserVisible = ref(false)
 const isSaving = ref(false)
+const isReauthenticating = ref(false)
 const createdIds = {} // bank account id → Firefly account created for it, kept so a retried save does not create it twice
 
 const today = format(new Date(), 'yyyy-MM-dd')
@@ -141,6 +150,17 @@ const onSave = async () => {
     // The error toast comes from the axios interceptor
   } finally {
     isSaving.value = false
+  }
+}
+
+// The bank shared no account (none was ticked on its consent screen): ask for the consent again
+const onReauthenticate = async () => {
+  isReauthenticating.value = true
+  try {
+    window.location.assign(await new BankConnectionRepository().reauthenticate(connection.value.name))
+  } catch {
+    // The error toast comes from the axios interceptor
+    isReauthenticating.value = false
   }
 }
 

@@ -38,6 +38,21 @@
           </template>
         </van-cell>
 
+        <van-cell v-if="connection.manual_import" :title="$t('bank_connection_page.import.manual')" :label="manualImportDetail(connection.manual_import)">
+          <template #value>
+            <div class="flex-center-vertical gap-1" style="justify-content: flex-end">
+              <van-loading v-if="isImportActive(connection.manual_import)" size="14" />
+              <span :class="manualImportClass(connection.manual_import)">{{ manualImportText(connection.manual_import) }}</span>
+            </div>
+          </template>
+        </van-cell>
+        <van-cell
+          v-if="manualImportSuggestions(connection.manual_import) > 0 && profileStore.ruleSuggestionsEnabled"
+          is-link
+          :title="$t('bank_connection_page.import.review')"
+          @click="navigateTo(RouteConstants.ROUTE_RULE_SUGGESTION_LIST)"
+        />
+
         <div class="display-flex gap-1 p-1">
           <van-button v-if="connection.status === 'needs_mapping'" class="flex-1" size="small" type="primary" @click="onSetUp(connection)">
             {{ $t('bank_connection_page.set_up_accounts') }}
@@ -52,16 +67,40 @@
           >
             {{ $t('bank_connection_page.reauthenticate') }}
           </van-button>
+          <van-button v-if="canImport(connection)" size="small" :disabled="isAnyImportActive" @click="onOpenImport(connection)">{{ $t('bank_connection_page.import_now') }}</van-button>
           <van-button size="small" type="danger" plain @click="onRemove(connection)">{{ $t('bank_connection_page.remove') }}</van-button>
         </div>
       </van-cell-group>
     </van-pull-refresh>
+
+    <van-popup v-model:show="isImportVisible" round position="bottom" class="p-1">
+      <div class="text-center font-weight-600 text-size-18 mb-1">{{ $t('bank_connection_page.import.title', { bank: importing?.bank.name }) }}</div>
+      <van-cell-group inset>
+        <van-field :label="$t('bank_connection_page.import.from')" input-align="right">
+          <template #input>
+            <input v-model="importFrom" type="date" :max="importTo || today" class="date-input" />
+          </template>
+        </van-field>
+        <van-field :label="$t('bank_connection_page.import.to')" input-align="right">
+          <template #input>
+            <input v-model="importTo" type="date" :min="importFrom" :max="today" class="date-input" />
+          </template>
+        </van-field>
+      </van-cell-group>
+      <div class="p-1 text-size-12 text-muted">{{ $t('bank_connection_page.import.hint') }}</div>
+      <div style="margin: 0 16px 16px">
+        <van-button block type="primary" :disabled="!importFrom || !importTo || importFrom > importTo" :loading="isStartingImport" @click="onStartImport">
+          {{ $t('bank_connection_page.import.start') }}
+        </van-button>
+      </div>
+    </van-popup>
   </div>
 </template>
 
 <script setup>
 import { capitalize, get } from 'lodash-es'
-import { formatTimeAgo } from '@vueuse/core'
+import { addDays, format } from 'date-fns'
+import { formatTimeAgo, useDocumentVisibility, useIntervalFn } from '@vueuse/core'
 import RouteConstants from '~/constants/RouteConstants'
 import TablerIconConstants from '~/constants/TablerIconConstants'
 import BankConnectionRepository from '~/repository/BankConnectionRepository'
@@ -69,15 +108,30 @@ import Account from '~/models/Account'
 import DateUtils from '~/utils/DateUtils'
 import UIUtils from '~/utils/UIUtils'
 import { useToolbar } from '~/composables/useToolbar'
+import { useProfileStore } from '~/stores/profileStore'
+
+// How often the progress of a running import is fetched
+const IMPORT_POLL_MS = 4000
+// The time frame offered when the import popup opens
+const DEFAULT_IMPORT_DAYS = 30
+const IMPORT_ACTIVE_STATUSES = ['queued', 'importing', 'suggesting']
 
 const bankConnectionStore = useBankConnectionStore()
 const accountStore = useAccountStore()
+const profileStore = useProfileStore()
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
 
 const isRefreshing = ref(false)
 const reauthenticating = ref(null)
+const importing = ref(null) // the connection the import popup is open for
+const isImportVisible = ref(false)
+const isStartingImport = ref(false)
+const importFrom = ref('')
+const importTo = ref('')
+
+const today = format(new Date(), 'yyyy-MM-dd')
 
 const isEmpty = computed(() => !bankConnectionStore.isLoadingBankConnections && bankConnectionStore.bankConnectionList.length === 0)
 const formClass = computed(() => ({ 'app-form': true, empty: isEmpty.value }))
@@ -118,6 +172,56 @@ const lastImportText = (connection) => {
 const lastImportDetail = (connection) => {
   const summary = get(connection, 'last_import.summary') ?? {}
   return connection.last_import.ok ? t('bank_connection_page.import_messages', summary.messages ?? 0) : summary.first_error
+}
+
+// Only a connection the nightly import would also use can be imported by hand
+const canImport = (connection) => ['active', 'expiring', 'error'].includes(connection.status)
+const isImportActive = (manualImport) => IMPORT_ACTIVE_STATUSES.includes(manualImport?.status)
+// The importer runs one manual import at a time, for all connections
+const isAnyImportActive = computed(() => bankConnectionStore.bankConnectionList.some((item) => isImportActive(item.manual_import)))
+
+const manualImportSuggestions = (manualImport) => get(manualImport, 'suggestions.written') ?? 0
+
+const manualImportText = (manualImport) => t(`bank_connection_page.import.${manualImport.status}`)
+const manualImportClass = (manualImport) => (manualImport.status === 'failed' ? 'text-danger' : manualImport.status === 'done' ? 'amount-income' : '')
+
+const manualImportDetail = (manualImport) => {
+  const range = t('bank_connection_page.import.range', {
+    from: DateUtils.dateToUI(DateUtils.autoToDate(manualImport.date_from)),
+    to: DateUtils.dateToUI(DateUtils.autoToDate(manualImport.date_to)),
+  })
+  if (manualImport.status === 'failed') {
+    return `${range} · ${manualImport.error}`
+  }
+  if (manualImport.status !== 'done') {
+    return range
+  }
+  if (manualImport.suggest_error) {
+    return `${range} · ${t('bank_connection_page.import.suggest_failed', { error: manualImport.suggest_error })}`
+  }
+  const messages = t('bank_connection_page.import.result', get(manualImport, 'summary.messages') ?? 0)
+  return `${range} · ${messages} · ${t('bank_connection_page.import.suggestions', manualImportSuggestions(manualImport))}`
+}
+
+const onOpenImport = (connection) => {
+  importing.value = connection
+  importFrom.value = format(addDays(new Date(), -DEFAULT_IMPORT_DAYS), 'yyyy-MM-dd')
+  importTo.value = today
+  isImportVisible.value = true
+}
+
+const onStartImport = async () => {
+  isStartingImport.value = true
+  try {
+    await new BankConnectionRepository().startImport(importing.value.name, importFrom.value, importTo.value)
+    isImportVisible.value = false
+    UIUtils.showToastSuccess(t('bank_connection_page.import.started'), 1500)
+    await onRefresh()
+  } catch {
+    // The error toast comes from the axios interceptor
+  } finally {
+    isStartingImport.value = false
+  }
 }
 
 const onGoToAccount = async (account) => {
@@ -173,6 +277,14 @@ const showReturnResult = () => {
   router.replace({ query: {} })
 }
 
+// Follow a running import until it is over
+const { pause: stopPolling, resume: startPolling } = useIntervalFn(() => bankConnectionStore.fetchBankConnections({ showLoading: false, showErrorToast: false }), IMPORT_POLL_MS, { immediate: false })
+watch(isAnyImportActive, (active) => (active ? startPolling() : stopPolling()), { immediate: true })
+
+// A re-authentication may have finished in another browser: pick it up when the app is back
+const visibility = useDocumentVisibility()
+watch(visibility, (state) => state === 'visible' && onRefresh())
+
 onMounted(async () => {
   showReturnResult()
   await onRefresh()
@@ -194,5 +306,13 @@ toolbar.init({
 <style scoped>
 .bank-connection {
   margin-bottom: 12px;
+}
+
+.date-input {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: right;
 }
 </style>

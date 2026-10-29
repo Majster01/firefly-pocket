@@ -34,6 +34,12 @@ class BankConnectionTest extends TestCase
             if ($method === 'PUT' && $path === '/api/fireflyx/v1/connections/nlb/accounts') {
                 return Http::response(['data' => ['name' => 'nlb', 'status' => 'active']]);
             }
+            if ($method === 'POST' && $path === '/api/fireflyx/v1/connections/nlb/imports') {
+                return Http::response(['data' => ['id' => 5, 'status' => 'queued', 'date_from' => '2026-09-01', 'date_to' => '2026-09-30']], 202);
+            }
+            if ($method === 'POST' && $path === '/api/fireflyx/v1/connections/busy/imports') {
+                return Http::response(['error' => 'Another manual import is still running'], 409);
+            }
             if ($method === 'POST' && $path === '/api/fireflyx/v1/connections/unknown/reauth') {
                 return Http::response(['error' => 'No query results'], 404);
             }
@@ -83,6 +89,22 @@ class BankConnectionTest extends TestCase
         $this->assertSame(['accounts' => $accounts, 'import_since' => '2026-10-01'], $this->importerRequests()->first()->data());
     }
 
+    public function test_an_import_is_started_over_the_chosen_time_frame()
+    {
+        $this->postJson('api/bank-connections/nlb/import', ['date_from' => '2026-09-01', 'date_to' => '2026-09-30', 'ignored' => 'x'], $this->headers())
+            ->assertOk()
+            ->assertJsonPath('data.status', 'queued');
+
+        $this->assertSame(['date_from' => '2026-09-01', 'date_to' => '2026-09-30'], $this->importerRequests()->first()->data());
+    }
+
+    public function test_an_import_the_importer_refuses_says_why()
+    {
+        $this->postJson('api/bank-connections/busy/import', ['date_from' => '2026-09-01', 'date_to' => '2026-09-30'], $this->headers())
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Another manual import is still running');
+    }
+
     public function test_one_connection_can_be_read()
     {
         $this->getJson('api/bank-connections/nlb', $this->headers())->assertOk()->assertJsonPath('data.status', 'needs_mapping');
@@ -93,6 +115,7 @@ class BankConnectionTest extends TestCase
         $this->getJson('api/bank-connections/banks?country=SI', $this->headers('wrong'))->assertUnauthorized();
         $this->postJson('api/bank-connections', ['country' => 'SI', 'bank' => 'NLB'], $this->headers('wrong'))->assertUnauthorized();
         $this->putJson('api/bank-connections/nlb/accounts', ['accounts' => []], $this->headers('wrong'))->assertUnauthorized();
+        $this->postJson('api/bank-connections/nlb/import', ['date_from' => '2026-09-01', 'date_to' => '2026-09-30'], $this->headers('wrong'))->assertUnauthorized();
 
         $this->assertCount(0, $this->importerRequests());
     }

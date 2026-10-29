@@ -27,9 +27,13 @@ useHead({
 
 useResize()
 
+const route = useRoute()
+
 onMounted(async () => {
   if (!appStore.authToken) {
-    navigateTo(`${RouteConstants.ROUTE_SETTINGS_SETUP}`)
+    // The bank may send the user back to a browser that is not signed in (not the installed app): explain, do not ask for a login
+    const isBankReturn = route.path.startsWith('/bank-connections') && route.query.result
+    navigateTo(isBankReturn ? { path: RouteConstants.ROUTE_BANK_CONNECTION_DONE, query: route.query } : RouteConstants.ROUTE_SETTINGS_SETUP)
     return
   }
   await dashboardStore.init()

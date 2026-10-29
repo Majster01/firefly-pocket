@@ -40,7 +40,7 @@
 </template>
 
 <script setup>
-import { useLocalStorage } from '@vueuse/core'
+import { useIntervalFn, useLocalStorage } from '@vueuse/core'
 import RouteConstants from '~/constants/RouteConstants'
 import TablerIconConstants from '~/constants/TablerIconConstants'
 import BankConnectionRepository from '~/repository/BankConnectionRepository'
@@ -94,6 +94,7 @@ const psuType = ref('personal')
 const isLoading = ref(false)
 const isConnecting = ref(false)
 const isCountryVisible = ref(false)
+const pendingName = ref(null) // the connection whose consent is open at the bank
 
 const countryName = (code) => new Intl.DisplayNames([locale.value], { type: 'region' }).of(code) ?? code
 const countryActions = computed(() => COUNTRIES.map((code) => ({ name: countryName(code), code })).sort((a, b) => a.name.localeCompare(b.name, locale.value)))
@@ -124,15 +125,36 @@ const onSelectBank = (bank) => {
 const onConnect = async () => {
   isConnecting.value = true
   try {
-    const authUrl = await new BankConnectionRepository().create({ country: country.value, bank: selected.value.name, psuType: psuType.value })
+    const { name, authUrl } = await new BankConnectionRepository().create({ country: country.value, bank: selected.value.name, psuType: psuType.value })
+    pendingName.value = name
+    startChecking()
     // The bank's own consent page; it sends the user to the account setup via the importer
     window.location.assign(authUrl)
+    // Long enough to stop a second tap while the page leaves; if it stays (an overlay), the user is not stuck with a spinner
+    setTimeout(() => (isConnecting.value = false), 5000)
   } catch {
     isConnecting.value = false
   }
 }
 
 watch(country, loadBanks, { immediate: true })
+
+// The bank may hand the user back to a browser instead of this app, which gives this page no event to react to. While a consent is
+// open at the bank, ask the importer whether it ended, and carry on where it did.
+const checkPending = async () => {
+  try {
+    const connection = await new BankConnectionRepository().getOneConnection(pendingName.value, { showErrorToast: false })
+    if (connection.status === 'needs_mapping') {
+      stopChecking()
+      await navigateTo({ path: RouteConstants.ROUTE_BANK_CONNECTION_SETUP, query: { connection: connection.name } })
+    }
+  } catch {
+    // The importer drops a consent the bank refused or that shared no accounts: let the user try again
+    stopChecking()
+  }
+}
+const { pause: stopChecking, resume: startChecking } = useIntervalFn(checkPending, 3000, { immediate: false })
+onBeforeUnmount(stopChecking)
 
 // -----
 
