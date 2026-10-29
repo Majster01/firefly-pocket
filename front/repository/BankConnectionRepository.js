@@ -45,6 +45,13 @@ export default class BankConnectionRepository extends BaseRepository {
     return get(response, 'data.data.auth_url')
   }
 
+  // Imports the connection over a time frame (YYYY-MM-DD, both days included) now, and then suggests categories for it.
+  // Returns at once; the progress is the connection's manual_import
+  async startImport(name, dateFrom, dateTo) {
+    const response = await axios.post(`${this.getUrl()}/${name}/import`, { date_from: dateFrom, date_to: dateTo })
+    return get(response, 'data.data')
+  }
+
   async delete(name) {
     return await axios.delete(`${this.getUrl()}/${name}`)
   }

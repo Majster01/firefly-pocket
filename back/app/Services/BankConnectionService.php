@@ -55,6 +55,15 @@ class BankConnectionService
         return $this->importer('post', "connections/$name/reauth", ['return_path' => self::RETURN_PATH])['data'];
     }
 
+    /**
+     * Imports the connection over a time frame now, with the settings of its saved configuration, and then runs the category suggester over the same time frame.
+     * The importer answers at once; the progress is the connection's manual_import.
+     */
+    public function startImport($name, $dateFrom, $dateTo)
+    {
+        return $this->importer('post', "connections/$name/imports", ['date_from' => $dateFrom, 'date_to' => $dateTo], BaseController::HTTP_CODE_UPDATE)['data'];
+    }
+
     public function delete($name)
     {
         $this->importer('delete', "connections/$name", [], BaseController::HTTP_CODE_OK_DELETE);

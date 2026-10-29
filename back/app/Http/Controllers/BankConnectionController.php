@@ -46,6 +46,12 @@ class BankConnectionController extends BaseController
         return $this->respond(['data' => app(BankConnectionService::class)->reauthenticate($request->name)]);
     }
 
+    public function import(Request $request)
+    {
+        BaseAuthorization::checkUser();
+        return $this->respond(['data' => app(BankConnectionService::class)->startImport($request->name, $request->date_from, $request->date_to)]);
+    }
+
     public function delete(Request $request)
     {
         BaseAuthorization::checkUser();
