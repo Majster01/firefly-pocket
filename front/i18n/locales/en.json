@@ -468,6 +468,12 @@
     "remove_message": "Stop importing from {bank} and end its consent at the bank? Imported transactions stay.",
     "removed": "Bank connection removed",
     "reauthenticated": "Bank re-authenticated. The next import uses the new consent.",
+    "done": {
+      "ok_title": "Bank consent given",
+      "ok_message": "Your bank connection is waiting for you in Pico.",
+      "failed_title": "Bank consent not completed",
+      "open_app": "Open Pico from your home screen, then Extras → Bank connections to continue."
+    },
     "new": {
       "title": "Add bank connection",
       "country": "Country",
@@ -489,11 +495,14 @@
       "import_since_hint": "Leave empty to import only the last few days. Banks usually share at most 90 days.",
       "save": "Save and start importing",
       "saved": "Saved. The first import runs tonight.",
-      "no_connection": "This bank connection could not be found."
+      "no_connection": "This bank connection could not be found.",
+      "no_accounts": "The bank shared no accounts",
+      "no_accounts_subtitle": "{bank} accepted the consent without any account selected. Give consent again and tick the account to import."
     },
     "reauthenticate_failed": {
       "bank_declined": "The bank did not give consent. Nothing changed.",
       "session_failed": "The bank consent could not be completed. Nothing changed; try again.",
+      "no_accounts": "The bank shared no accounts. Give consent again and select at least one account.",
       "unmatched_accounts": "The bank returned different accounts than before. Nothing changed; re-link them in the importer.",
       "invalid_state": "This consent link has expired or was already used. Start again.",
       "connection_gone": "This bank connection no longer exists.",

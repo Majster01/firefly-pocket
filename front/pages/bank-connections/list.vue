@@ -61,7 +61,7 @@
 
 <script setup>
 import { capitalize, get } from 'lodash-es'
-import { formatTimeAgo } from '@vueuse/core'
+import { formatTimeAgo, useDocumentVisibility } from '@vueuse/core'
 import RouteConstants from '~/constants/RouteConstants'
 import TablerIconConstants from '~/constants/TablerIconConstants'
 import BankConnectionRepository from '~/repository/BankConnectionRepository'
@@ -172,6 +172,10 @@ const showReturnResult = () => {
   }
   router.replace({ query: {} })
 }
+
+// A re-authentication may have finished in another browser: pick it up when the app is back
+const visibility = useDocumentVisibility()
+watch(visibility, (state) => state === 'visible' && onRefresh())
 
 onMounted(async () => {
   showReturnResult()

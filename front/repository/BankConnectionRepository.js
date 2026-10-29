@@ -16,8 +16,8 @@ export default class BankConnectionRepository extends BaseRepository {
     return get(response, 'data', {})
   }
 
-  async getOneConnection(name) {
-    const response = await axios.get(`${this.getUrl()}/${name}`)
+  async getOneConnection(name, { showErrorToast = true } = {}) {
+    const response = await axios.get(`${this.getUrl()}/${name}`, { showErrorToast })
     return get(response, 'data.data')
   }
 
@@ -27,10 +27,11 @@ export default class BankConnectionRepository extends BaseRepository {
     return get(response, 'data.data', [])
   }
 
-  // Starts the consent for a new connection: the bank's own consent page, which sends the user to the setup page
+  // Starts the consent for a new connection. Returns the new connection's name and the bank's consent page,
+  // which sends the user to the setup page
   async create({ country, bank, psuType }) {
     const response = await axios.post(this.getUrl(), { country, bank, psu_type: psuType }, { timeout: REAUTHENTICATE_TIMEOUT })
-    return get(response, 'data.data.auth_url')
+    return { name: get(response, 'data.data.name'), authUrl: get(response, 'data.data.auth_url') }
   }
 
   // accounts: [{ id, firefly_account_id }], null = not imported
