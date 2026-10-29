@@ -17,6 +17,9 @@ export const icons = {
   dashboard: 'IconDeviceDesktopAnalytics',
   exchangeRates: 'IconReplace',
   assistant: 'IconMessageChatbot',
+  ruleSuggestion: 'IconBulb',
+  ruleSuggestionCompany: 'IconBuildingStore',
+  ruleSuggestionPreview: 'IconListSearch',
 
   settingsAppConfig: 'IconTool',
   settingsUserPreferences: 'IconMoodCog',

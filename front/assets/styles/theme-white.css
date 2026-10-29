@@ -2252,3 +2252,55 @@ body {
         display: none;
     }
 }
+
+/*=== Rule suggestions ===*/
+
+.rule-suggestion-low-confidence {
+    flex-shrink: 0;
+    padding: 1px 6px;
+    border: 1px dashed #ef6c00;
+    border-radius: 5px;
+    background: #fff3e0;
+    color: #e65100;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    line-height: 16px;
+}
+
+.rule-suggestion-transaction .van-cell__value {
+    flex: none;
+    max-width: 45%;
+}
+
+.rule-suggestion-reason {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 10px 16px 14px;
+}
+
+.rule-suggestion-reason .list-item-subtitle {
+    align-items: flex-start;
+}
+
+.rule-suggestion-trigger {
+    padding: 4px 0;
+    border-bottom: 1px dashed var(--van-border-color);
+}
+
+/* iOS zooms into inputs smaller than 16px */
+.rule-suggestion-trigger .van-field__control {
+    font-size: 16px;
+}
+
+.rule-suggestion-preview {
+    padding: 4px 16px 14px;
+}
+
+/* A standalone count badge, without Vant's top-right offset */
+.van-badge.app-count-badge {
+    margin-left: auto;
+    transform: none;
+}

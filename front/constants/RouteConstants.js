@@ -48,6 +48,9 @@ export default {
   ROUTE_RECURRING_TRANSACTION_LIST: '/recurring-transactions/list',
   ROUTE_RECURRING_TRANSACTION_ID: '/recurring-transactions',
 
+  ROUTE_RULE_SUGGESTION_LIST: '/rule-suggestions/list',
+  ROUTE_RULE_SUGGESTION_ID: '/rule-suggestions',
+
   isForm(routeForm, currentForm) {
     let regex = new RegExp(`${routeForm}/[0-9]+`)
     return regex.test(currentForm)

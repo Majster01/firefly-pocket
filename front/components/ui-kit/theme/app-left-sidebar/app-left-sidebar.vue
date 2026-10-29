@@ -19,7 +19,7 @@
         </button>
 
         <template v-if="isSectionExpanded(section.key)">
-          <app-left-sidebar-page v-for="page in section.pages" :key="page.key" :label="page.label" :icon="page.icon" :route="page.route" />
+          <app-left-sidebar-page v-for="page in section.pages" :key="page.key" :label="page.label" :icon="page.icon" :route="page.route" :badge="page.badge" />
         </template>
       </div>
     </nav>
@@ -47,6 +47,7 @@ import { useLocalStorage } from '@vueuse/core'
 
 const profileStore = useProfileStore()
 const appStore = useAppStore()
+const ruleSuggestionStore = useRuleSuggestionStore()
 const { t } = useI18n()
 
 const expandedSections = useLocalStorage('leftSidebarExpandedSections', {
@@ -73,6 +74,14 @@ const sidebarSections = computed(() =>
       pages: [
         { key: 'tags', label: t('tags'), icon: TablerIconConstants.tag, route: RouteConstants.ROUTE_TAG_LIST, visible: profileStore.tagsEnabled },
         { key: 'categories', label: t('categories'), icon: TablerIconConstants.category, route: RouteConstants.ROUTE_CATEGORY_LIST, visible: profileStore.categoriesEnabled },
+        {
+          key: 'rule-suggestions',
+          label: t('rule_suggestions'),
+          icon: TablerIconConstants.ruleSuggestion,
+          route: RouteConstants.ROUTE_RULE_SUGGESTION_LIST,
+          visible: profileStore.ruleSuggestionsEnabled,
+          badge: ruleSuggestionStore.ruleSuggestionList.length || null,
+        },
       ],
     },
     {

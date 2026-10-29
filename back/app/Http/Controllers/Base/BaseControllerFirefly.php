@@ -25,7 +25,7 @@ class BaseControllerFirefly extends BaseController
 
     // -------------------------------------
 
-    private function getHeaders()
+    public function getHeaders()
     {
         return [
             "authorization" => request()->headers->get('authorization'),

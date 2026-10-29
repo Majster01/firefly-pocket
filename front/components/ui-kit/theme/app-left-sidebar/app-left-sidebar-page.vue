@@ -4,6 +4,7 @@
       <app-icon :icon="icon" :size="20" />
       {{ label }}
       <div v-if="dot" class="van-badge van-badge--dot"/>
+      <van-badge v-if="badge" :content="badge" class="app-count-badge" />
     </div>
   </nuxt-link>
 </template>
@@ -18,6 +19,7 @@ const props = defineProps({
   label: {},
   icon: {},
   route: {},
-  dot: {}
+  dot: {},
+  badge: {},
 })
 </script>

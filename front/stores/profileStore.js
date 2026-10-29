@@ -73,6 +73,7 @@ export const useProfileStore = defineStore('profile', () => {
   const tagsEnabled = useLocalStorage('tagsEnabled', true)
   const piggyBanksEnabled = useLocalStorage('piggyBanksEnabled', false)
   const recurringTransactionsEnabled = useLocalStorage('recurringTransactionsEnabled', true)
+  const ruleSuggestionsEnabled = useLocalStorage('ruleSuggestionsEnabled', true)
 
   const dashboard = reactive({
     isProfileFloatVisible: useLocalStorage('isProfileFloatVisible', true),
@@ -215,6 +216,7 @@ export const useProfileStore = defineStore('profile', () => {
     tagsEnabled,
     piggyBanksEnabled,
     recurringTransactionsEnabled,
+    ruleSuggestionsEnabled,
     dashboard,
     profileDictionary,
     activeProfile,
