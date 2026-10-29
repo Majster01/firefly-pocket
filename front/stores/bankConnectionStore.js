@@ -7,8 +7,8 @@ export const useBankConnectionStore = defineStore('bankConnection', () => {
   const bankConnectionList = ref([])
   const isLoadingBankConnections = ref(false)
 
-  // Consents that need re-authenticating soon or now
-  const attentionCount = computed(() => bankConnectionList.value.filter((item) => ['expiring', 'expired', 'error'].includes(item.status)).length)
+  // Consents that need re-authenticating soon or now, and new ones waiting for their accounts to be mapped
+  const attentionCount = computed(() => bankConnectionList.value.filter((item) => ['expiring', 'expired', 'error', 'needs_mapping'].includes(item.status)).length)
 
   async function fetchBankConnections({ showLoading = true, showErrorToast = true } = {}) {
     isLoadingBankConnections.value = true

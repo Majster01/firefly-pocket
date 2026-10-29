@@ -1,6 +1,10 @@
 <template>
   <div :class="formClass">
-    <app-top-toolbar />
+    <app-top-toolbar>
+      <template #right>
+        <app-button-list-add @click="navigateTo(RouteConstants.ROUTE_BANK_CONNECTION_NEW)" />
+      </template>
+    </app-top-toolbar>
 
     <empty-list v-if="isEmpty" :title="$t('bank_connection_page.list_empty')" :subtitle="$t('bank_connection_page.list_empty_subtitle')" />
 
@@ -35,7 +39,17 @@
         </van-cell>
 
         <div class="display-flex gap-1 p-1">
-          <van-button class="flex-1" size="small" :type="needsAttention(connection) ? 'primary' : 'default'" :loading="reauthenticating === connection.name" @click="onReauthenticate(connection)">
+          <van-button v-if="connection.status === 'needs_mapping'" class="flex-1" size="small" type="primary" @click="onSetUp(connection)">
+            {{ $t('bank_connection_page.set_up_accounts') }}
+          </van-button>
+          <van-button
+            v-else
+            class="flex-1"
+            size="small"
+            :type="needsAttention(connection) ? 'primary' : 'default'"
+            :loading="reauthenticating === connection.name"
+            @click="onReauthenticate(connection)"
+          >
             {{ $t('bank_connection_page.reauthenticate') }}
           </van-button>
           <van-button size="small" type="danger" plain @click="onRemove(connection)">{{ $t('bank_connection_page.remove') }}</van-button>
@@ -111,6 +125,8 @@ const onGoToAccount = async (account) => {
     await navigateTo(`${RouteConstants.ROUTE_ACCOUNT_ID}/${account.firefly_account_id}`)
   }
 }
+
+const onSetUp = async (connection) => await navigateTo({ path: RouteConstants.ROUTE_BANK_CONNECTION_SETUP, query: { connection: connection.name } })
 
 const onReauthenticate = async (connection) => {
   reauthenticating.value = connection.name

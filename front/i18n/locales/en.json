@@ -444,7 +444,7 @@
   },
   "bank_connection_page": {
     "list_empty": "No bank connections",
-    "list_empty_subtitle": "Bank connections are set up in the importer.",
+    "list_empty_subtitle": "Add a connection to import your bank transactions.",
     "status": {
       "active": "Active",
       "expiring": "Expiring",
@@ -462,11 +462,35 @@
     "last_import": "Last import",
     "import_messages": "No messages | 1 message | {count} messages",
     "reauthenticate": "Re-authenticate",
+    "set_up_accounts": "Set up accounts",
     "remove": "Remove",
     "remove_title": "Remove bank connection",
     "remove_message": "Stop importing from {bank} and end its consent at the bank? Imported transactions stay.",
     "removed": "Bank connection removed",
     "reauthenticated": "Bank re-authenticated. The next import uses the new consent.",
+    "new": {
+      "title": "Add bank connection",
+      "country": "Country",
+      "search_banks": "Search banks",
+      "no_banks": "No banks found",
+      "account_type": "Account type",
+      "personal": "Personal",
+      "business": "Business",
+      "continue": "Continue to the bank"
+    },
+    "setup": {
+      "title": "Set up accounts",
+      "intro": "Choose the Firefly III account each bank account feeds. Transactions are imported at the next nightly run.",
+      "firefly_account": "Firefly III account",
+      "choose": "Choose…",
+      "create_new": "New account",
+      "skip": "Don't import",
+      "import_since": "Import history since",
+      "import_since_hint": "Leave empty to import only the last few days. Banks usually share at most 90 days.",
+      "save": "Save and start importing",
+      "saved": "Saved. The first import runs tonight.",
+      "no_connection": "This bank connection could not be found."
+    },
     "reauthenticate_failed": {
       "bank_declined": "The bank did not give consent. Nothing changed.",
       "session_failed": "The bank consent could not be completed. Nothing changed; try again.",
