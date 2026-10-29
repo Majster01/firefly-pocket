@@ -73,11 +73,13 @@ The trigger/strict/stop_processing settings match the `Category:` rules, so trig
 
 | Action (Pico) | Effect in Firefly |
 | --- | --- |
-| **Approve** `{category, triggers[]}` | Append triggers (deduplicated) to `Category: {category}` in `Categorization`, creating that rule if missing. Delete the suggestion. Set the category on its `transactions`. Run `POST /rule-groups/{categorization}/trigger` over all time, so the guard rule keeps existing categories. |
+| **Approve** `{category, triggers[]}` | Append triggers (deduplicated) to `Category: {category}` in `Categorization`, creating that rule if missing. Backfill by search: over all time, find `has_no_category:true` transactions matching each approved trigger (the same search as the editor's preview) and set the category on exactly those, plus the suggestion's own `transactions`. Delete the suggestion. Never call a rule or rule-group trigger endpoint (see below). |
 | **Set category only** `{category}` | Set the category on its `transactions`. Delete the suggestion. No rule is written. |
 | **Reject** | Delete the suggestion. Transactions stay uncategorized. |
 
 No tags or other actions are added in v1.
+
+**Why no rule trigger:** in Firefly 6.6.6, `POST /rule-groups/{id}/trigger` and `POST /rules/{id}/trigger` fire rules outside the group context, so the `Stop: already categorized` guard does not stop them and they would overwrite existing categories. The guard only holds for `store-journal` on new transactions. The search-based backfill never touches a categorized transaction.
 
 ## Reconcile (suggester, start of every run)
 
