@@ -43,6 +43,7 @@
   "recurring_transaction": "Recurring transaction",
   "recurring_transactions": "Recurring transactions",
   "rule_suggestions": "Rule suggestions",
+  "bank_connections": "Bank connections",
   "rule_suggestions_to_review": "1 suggestion to review | {count} suggestions to review",
   "attachment": "Attachment",
   "attachments": "Attachments",
@@ -440,6 +441,40 @@
     "more_transactions": "+{count} more",
     "list_empty": "No suggestions to review",
     "list_empty_subtitle": "New category suggestions show up here after the nightly run."
+  },
+  "bank_connection_page": {
+    "list_empty": "No bank connections",
+    "list_empty_subtitle": "Bank connections are set up in the importer.",
+    "status": {
+      "active": "Active",
+      "expiring": "Expiring",
+      "expired": "Expired",
+      "error": "Error",
+      "pending": "Pending",
+      "needs_mapping": "Needs mapping"
+    },
+    "expires_on": "Consent until {date} (today) | Consent until {date} (1 day left) | Consent until {date} ({count} days left)",
+    "expired_on": "Consent ended {date}",
+    "expiry_unknown": "Consent expiry unknown",
+    "unknown_account": "Bank account",
+    "not_imported": "Not imported",
+    "new_account": "New account",
+    "last_import": "Last import",
+    "import_messages": "No messages | 1 message | {count} messages",
+    "reauthenticate": "Re-authenticate",
+    "remove": "Remove",
+    "remove_title": "Remove bank connection",
+    "remove_message": "Stop importing from {bank} and end its consent at the bank? Imported transactions stay.",
+    "removed": "Bank connection removed",
+    "reauthenticated": "Bank re-authenticated. The next import uses the new consent.",
+    "reauthenticate_failed": {
+      "bank_declined": "The bank did not give consent. Nothing changed.",
+      "session_failed": "The bank consent could not be completed. Nothing changed; try again.",
+      "unmatched_accounts": "The bank returned different accounts than before. Nothing changed; re-link them in the importer.",
+      "invalid_state": "This consent link has expired or was already used. Start again.",
+      "connection_gone": "This bank connection no longer exists.",
+      "unknown": "Re-authentication failed. Nothing changed."
+    }
   },
   "currency_page": {
     "title_add": "Add currency",

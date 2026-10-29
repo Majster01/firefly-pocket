@@ -11,6 +11,7 @@ use App\Http\Controllers\PiggyBankController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RecurrenceController;
 use App\Http\Controllers\RuleSuggestionController;
+use App\Http\Controllers\BankConnectionController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionTemplateController;
@@ -78,6 +79,10 @@ Route::post('rule-suggestions/preview', [RuleSuggestionController::class, 'previ
 Route::post('rule-suggestions/{id}/approve', [RuleSuggestionController::class, 'approve'])->where('id', '[0-9]+');
 Route::post('rule-suggestions/{id}/categorize', [RuleSuggestionController::class, 'categorize'])->where('id', '[0-9]+');
 Route::delete('rule-suggestions/{id}', [RuleSuggestionController::class, 'delete'])->where('id', '[0-9]+');
+
+Route::get('bank-connections', [BankConnectionController::class, 'getAll']);
+Route::post('bank-connections/{name}/reauthenticate', [BankConnectionController::class, 'reauthenticate'])->where('name', '[a-z0-9-]+');
+Route::delete('bank-connections/{name}', [BankConnectionController::class, 'delete'])->where('name', '[a-z0-9-]+');
 
 Route::post('assistant/rambles', [AssistantController::class, 'create']);
 Route::get('assistant/rambles/count', [AssistantController::class, 'getCount']);
