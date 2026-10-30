@@ -63,6 +63,12 @@ return [
     // Bank connections are managed by the FireflyX importer fork; Pico's backend calls its internal API
     'importer_api_url' => env('IMPORTER_API_URL', ''),
     'importer_api_token' => env('IMPORTER_API_TOKEN', ''),
+    // Web Push (docs/web-push.md). Generate the VAPID keys once; push is off until both are set
+    'vapid_public_key' => env('VAPID_PUBLIC_KEY', ''),
+    'vapid_private_key' => env('VAPID_PRIVATE_KEY', ''),
+    'vapid_subject' => env('VAPID_SUBJECT') ?: env('APP_URL', 'http://localhost'),
+    // Shared secret (32+ characters) of the FireflyX importer/suggester for POST /api/internal/notify
+    'notify_api_token' => env('NOTIFY_API_TOKEN', ''),
     // Folder with admin provided icons (svg, png, ...). In Docker, mount a volume here.
     'custom_icons_path' => env('CUSTOM_ICONS_PATH', storage_path('app/custom-icons')),
     'asset_url' => env('ASSET_URL'),

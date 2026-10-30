@@ -281,6 +281,7 @@
       }
     },
     "about_entry": "Informazioni",
+    "notifications_entry": "Notifiche",
     "version": "Versione",
     "new_version_available": "Nuova versione disponibile",
     "dashboard_entry": "Dashboard",
@@ -307,6 +308,17 @@
     "token": {
       "label": "Token di accesso personale",
       "placeholder": "Token personale"
+    },
+    "notifications": {
+      "title": "Notifiche",
+      "enable": "Attiva le notifiche",
+      "state_off": "Ricevi una notifica quando un'importazione termina o una connessione bancaria richiede attenzione. Il browser chiederà il permesso.",
+      "state_on": "Le notifiche sono attive su questo dispositivo.",
+      "state_unavailable": "Le notifiche push non sono configurate su questo server.",
+      "state_not_installed": "Su iPhone e iPad, aggiungi prima Pico alla schermata Home (Condividi, poi Aggiungi a Home), aprilo da lì e torna qui.",
+      "state_unsupported": "Questo browser non può mostrare notifiche push. Su iPhone e iPad serve iOS 16.4 o successivo.",
+      "state_denied": "Le notifiche sono bloccate per Pico. Consentile dalle impostazioni del browser o del sistema, poi ricarica.",
+      "error": "Impossibile modificare l'impostazione delle notifiche."
     }
   },
   "about": {

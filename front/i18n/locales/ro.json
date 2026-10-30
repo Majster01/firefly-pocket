@@ -281,6 +281,7 @@
       }
     },
     "about_entry": "Despre",
+    "notifications_entry": "Notificări",
     "version": "Versiune",
     "new_version_available": "Versiune nouă disponibilă",
     "dashboard_entry": "Tablou de bord",
@@ -307,6 +308,17 @@
     "token": {
       "label": "Token de acces personal",
       "placeholder": "Token personal"
+    },
+    "notifications": {
+      "title": "Notificări",
+      "enable": "Activează notificările",
+      "state_off": "Primești o notificare când se termină un import sau o conexiune bancară necesită atenție. Browserul îți va cere permisiunea.",
+      "state_on": "Notificările sunt activate pe acest dispozitiv.",
+      "state_unavailable": "Notificările push nu sunt configurate pe acest server.",
+      "state_not_installed": "Pe iPhone și iPad, adaugă mai întâi Pico pe ecranul principal (Partajare, apoi Adaugă pe ecranul principal), deschide-l de acolo și revino aici.",
+      "state_unsupported": "Acest browser nu poate afișa notificări push. Pe iPhone și iPad este nevoie de iOS 16.4 sau mai nou.",
+      "state_denied": "Notificările sunt blocate pentru Pico. Permite-le din setările browserului sau ale sistemului, apoi reîncarcă.",
+      "error": "Setarea notificărilor nu a putut fi schimbată."
     }
   },
   "about": {

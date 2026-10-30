@@ -9,6 +9,7 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "prod": "node .output/server/index.mjs",
+    "test": "node --test service-worker",
     "lint": "npm run lint:eslint && npm run lint:prettier",
     "lint:fix": "npm run lint:eslint:fix && npm run lint:prettier:fix",
     "lint:eslint": "eslint .",
@@ -26,7 +27,13 @@
     "eslint-config-prettier": "^10.1.8",
     "nuxt": "^4.1.2",
     "nuxt-svgo": "^4.2.6",
-    "prettier": "^3.6.2"
+    "prettier": "^3.6.2",
+    "workbox-cacheable-response": "^7.4.0",
+    "workbox-core": "^7.4.0",
+    "workbox-expiration": "^7.4.0",
+    "workbox-precaching": "^7.4.0",
+    "workbox-routing": "^7.4.0",
+    "workbox-strategies": "^7.4.0"
   },
   "dependencies": {
     "@pinia/nuxt": "^0.11.2",

@@ -281,6 +281,7 @@
       }
     },
     "about_entry": "À propos",
+    "notifications_entry": "Notifications",
     "version": "Version",
     "new_version_available": "Nouvelle version disponible",
     "dashboard_entry": "Tableau de bord",
@@ -307,6 +308,17 @@
     "token": {
       "label": "Jeton d'accès personnel",
       "placeholder": "Jeton personnel"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "enable": "Activer les notifications",
+      "state_off": "Soyez prévenu quand un import se termine ou qu'une connexion bancaire demande votre attention. Le navigateur demandera l'autorisation.",
+      "state_on": "Les notifications sont activées sur cet appareil.",
+      "state_unavailable": "Les notifications push ne sont pas configurées sur ce serveur.",
+      "state_not_installed": "Sur iPhone et iPad, ajoutez d'abord Pico à l'écran d'accueil (Partager, puis Sur l'écran d'accueil), ouvrez-le depuis là et revenez ici.",
+      "state_unsupported": "Ce navigateur ne peut pas afficher de notifications push. Sur iPhone et iPad, il faut iOS 16.4 ou plus récent.",
+      "state_denied": "Les notifications sont bloquées pour Pico. Autorisez-les dans les réglages du navigateur ou du système, puis rechargez.",
+      "error": "Impossible de modifier le réglage des notifications."
     }
   },
   "about": {

@@ -79,6 +79,7 @@ import {
   IconBuildingStore,
   IconListSearch,
   IconBuildingBank,
+  IconBell,
 } from '@tabler/icons-vue'
 
 export default defineNuxtPlugin((nuxtApp) => {
@@ -162,6 +163,7 @@ export default defineNuxtPlugin((nuxtApp) => {
   nuxtApp.vueApp.component('IconBuildingStore', IconBuildingStore)
   nuxtApp.vueApp.component('IconListSearch', IconListSearch)
   nuxtApp.vueApp.component('IconBuildingBank', IconBuildingBank)
+  nuxtApp.vueApp.component('IconBell', IconBell)
 
   // for (let iconName in tablerIcons) {
   //   nuxtApp.vueApp.component(iconName, tablerIcons[iconName])

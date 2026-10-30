@@ -26,6 +26,7 @@ useHead({
 })
 
 useResize()
+const { refresh: refreshAppBadge } = useAppBadge()
 
 const route = useRoute()
 
@@ -41,6 +42,7 @@ onMounted(async () => {
   appStore.fetchInfo()
   await profileStore.getProfiles({ showLoading: false })
   await appStore.syncEverythingIfOld()
+  refreshAppBadge()
 })
 </script>
 

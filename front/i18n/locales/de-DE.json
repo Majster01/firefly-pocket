@@ -282,6 +282,7 @@
       }
     },
     "about_entry": "Über",
+    "notifications_entry": "Benachrichtigungen",
     "version": "Version",
     "new_version_available": "Neue Version verfügbar",
     "dashboard_entry": "Dashboard",
@@ -308,6 +309,17 @@
     "token": {
       "label": "Persönlicher Access Token",
       "placeholder": "Persönlicher Token"
+    },
+    "notifications": {
+      "title": "Benachrichtigungen",
+      "enable": "Benachrichtigungen aktivieren",
+      "state_off": "Du wirst benachrichtigt, wenn ein Import fertig ist oder eine Bankverbindung Aufmerksamkeit braucht. Dein Browser fragt nach der Erlaubnis.",
+      "state_on": "Benachrichtigungen sind auf diesem Gerät aktiviert.",
+      "state_unavailable": "Push-Benachrichtigungen sind auf diesem Server nicht eingerichtet.",
+      "state_not_installed": "Auf iPhone und iPad füge Pico zuerst zum Home-Bildschirm hinzu (Teilen, dann Zum Home-Bildschirm), öffne es von dort und komm hierher zurück.",
+      "state_unsupported": "Dieser Browser kann keine Push-Benachrichtigungen anzeigen. Auf iPhone und iPad ist dafür iOS 16.4 oder neuer nötig.",
+      "state_denied": "Benachrichtigungen sind für Pico blockiert. Erlaube sie in den Browser- oder Systemeinstellungen und lade neu.",
+      "error": "Die Benachrichtigungseinstellung konnte nicht geändert werden."
     }
   },
   "about": {
