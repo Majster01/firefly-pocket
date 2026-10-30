@@ -65,6 +65,28 @@
           </van-cell>
         </van-cell-group>
 
+        <!-- ------------------------------------- bank connection activity -->
+        <van-cell-group inset>
+          <div class="van-cell-group-title">{{ $t('system_status_page.events.title') }}</div>
+          <van-cell v-if="events.recent.length === 0" :title="$t('system_status_page.events.none')" />
+          <template v-else>
+            <div class="px-1 pb-1 text-size-12" :class="events.totals.error > 0 ? 'text-danger' : 'text-muted'">
+              {{ $t('system_status_page.events.summary', { errors: events.totals.error, warnings: events.totals.warning }) }}
+            </div>
+            <van-cell v-for="event in shownEvents" :key="event.at + event.step + event.connection" :title="eventTitle(event)" :value="timeAgo(event.at)">
+              <template #label>
+                <span class="word-break-word" :class="eventClass(event)">{{ eventDetail(event) }}</span>
+              </template>
+            </van-cell>
+            <van-cell
+              v-if="events.recent.length > COLLAPSED_EVENTS"
+              is-link
+              :title="showAllEvents ? $t('system_status_page.events.show_less') : $t('system_status_page.events.show_all')"
+              @click="showAllEvents = !showAllEvents"
+            />
+          </template>
+        </van-cell-group>
+
         <!-- ------------------------------------------ category suggester -->
         <van-cell-group inset>
           <div class="van-cell-group-title">{{ $t('system_status_page.suggester.title') }}</div>
@@ -103,6 +125,7 @@
               <template #label>
                 <span v-if="run.status === 'failed'" class="text-danger word-break-word">{{ run.error }}</span>
                 <span v-else>{{ $t('system_status_page.suggester.run_detail', { calls: run.calls, suggestions: run.suggestions, low: run.low_confidence }) }}</span>
+                <div v-for="detail in run.error_details ?? []" :key="detail" class="text-danger word-break-word">{{ detail }}</div>
               </template>
               <template #value>
                 <span :class="run.status === 'failed' ? 'text-danger' : 'amount-income'">{{ run.status === 'failed' ? $t('system_status_page.suggester.failed') : '✓' }}</span>
@@ -130,8 +153,10 @@ import { useToolbar } from '~/composables/useToolbar'
 const WINDOW_OPTIONS = [7, 30, 90]
 // Days (and runs) listed before "show all"
 const COLLAPSED_DAYS = 14
+// Bank connection events listed before "show all"
+const COLLAPSED_EVENTS = 8
 
-const { t } = useI18n()
+const { t, te } = useI18n()
 const repository = new SystemStatusRepository()
 
 const days = ref(30)
@@ -139,6 +164,7 @@ const status = ref(null)
 const loadError = ref('')
 const isRefreshing = ref(false)
 const showAllDays = ref(false)
+const showAllEvents = ref(false)
 
 const today = format(new Date(), 'yyyy-MM-dd')
 const compactNumber = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 })
@@ -146,6 +172,9 @@ const compact = (value) => compactNumber.format(value ?? 0)
 
 const imports = computed(() => status.value.imports)
 const suggester = computed(() => status.value.suggester)
+// An importer from before the events existed has no such key
+const events = computed(() => status.value.events ?? { totals: { error: 0, warning: 0 }, recent: [] })
+const shownEvents = computed(() => (showAllEvents.value ? events.value.recent : events.value.recent.slice(0, COLLAPSED_EVENTS)))
 const shownDays = computed(() => (showAllDays.value ? imports.value.days : imports.value.days.slice(0, COLLAPSED_DAYS)))
 const suggesterErrors = computed(() => suggester.value.totals.group_errors + suggester.value.totals.write_errors + suggester.value.totals.failed_runs)
 
@@ -180,6 +209,17 @@ const dayDetail = (day) => {
   }
   return parts.join(' · ')
 }
+
+const translated = (key, fallback) => (te(key) ? t(key) : fallback)
+
+const eventTitle = (event) => {
+  const who = event.bank ?? event.connection ?? t('system_status_page.events.unknown_consent')
+  const step = translated(`system_status_page.events.step.${event.step}`, event.step)
+  const flow = event.flow ? ` (${translated(`system_status_page.events.flow.${event.flow}`, event.flow)})` : ''
+  return `${who} · ${step}${flow}`
+}
+const eventDetail = (event) => [event.reason ? translated(`system_status_page.events.reason.${event.reason}`, event.reason) : null, event.message].filter(Boolean).join(' · ')
+const eventClass = (event) => ({ 'text-danger': event.level === 'error', 'text-warning': event.level === 'warning', 'text-muted': event.level === 'info' })
 
 const statusTagType = (value) => ({ active: 'success', expiring: 'warning', expired: 'danger', error: 'danger' })[value] ?? 'default'
 

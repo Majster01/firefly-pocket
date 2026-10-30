@@ -467,6 +467,45 @@
       "title": "Import now",
       "runs": "{done} done, {failed} failed of {total}"
     },
+    "events": {
+      "title": "Bank connection activity",
+      "none": "Nothing recorded in this period",
+      "unknown_consent": "Unknown consent",
+      "summary": "{errors} errors, {warnings} warnings in this period",
+      "show_all": "Show all events",
+      "show_less": "Show fewer events",
+      "flow": {
+        "create": "linking",
+        "reauth": "re-authenticating"
+      },
+      "step": {
+        "consent_started": "Consent started",
+        "consent_completed": "Consent given",
+        "consent_declined": "Consent declined",
+        "consent_start_failed": "Could not start the consent",
+        "session_failed": "Bank session failed",
+        "no_accounts": "No accounts shared",
+        "relink_unmatched": "Accounts did not match",
+        "callback_rejected": "Return from the bank rejected",
+        "accounts_saved": "Accounts mapped",
+        "removed": "Removed",
+        "refresh_failed": "Status check failed",
+        "refresh_recovered": "Status check works again",
+        "consent_ended": "Consent ended"
+      },
+      "reason": {
+        "bank_declined": "The bank declined",
+        "session_failed": "Enable Banking refused the code",
+        "no_accounts": "The bank shared no accounts",
+        "unmatched_accounts": "The old consent was kept",
+        "invalid_state": "Link unknown, used or expired",
+        "connection_gone": "The connection was removed",
+        "eb_refused": "Enable Banking refused to start",
+        "no_callback_url": "Callback URL not configured",
+        "refresh_failed": "Enable Banking could not be asked",
+        "expired": "Time to re-authenticate"
+      }
+    },
     "connections": {
       "title": "Bank connections",
       "never_imported": "Not imported yet",
