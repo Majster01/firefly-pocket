@@ -39,7 +39,7 @@ services:
     environment:
       APP_ENV: local
       APP_DEBUG: "false"
-      APP_KEY: DevOnlyKeyDevOnlyKeyDevOnlyKey1
+      APP_KEY: DevOnlyKeyDevOnlyKeyDevOnlyKey12
       APP_URL: http://localhost:8081
       SITE_OWNER: dev@example.com
       TZ: Europe/Ljubljana
