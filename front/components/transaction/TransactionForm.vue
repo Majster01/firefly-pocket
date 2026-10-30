@@ -145,7 +145,6 @@ const {
   accountDestinationAllowedTypes,
   sourceCurrency,
   isForeignAmountVisible,
-  applyAssistantTransaction,
   onSubDay,
   onToday,
   onAddDay,
@@ -169,7 +168,6 @@ const submit = () => {
 defineExpose({
   validate,
   submit,
-  applyAssistantTransaction,
   isSplitTransaction,
 })
 </script>

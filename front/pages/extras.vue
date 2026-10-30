@@ -1,6 +1,6 @@
 <template>
   <div class="app-form">
-    <app-top-toolbar />
+    <app-top-toolbar hide-on-mobile />
 
     <van-cell-group inset style="overflow: auto">
       <div class="van-cell-group-title">{{ $t('primary') }}:</div>

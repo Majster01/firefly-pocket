@@ -66,7 +66,6 @@ export const icons = {
   microphone: 'IconMicrophone',
   stop: 'IconPlayerStop',
   play: 'IconPlayerPlay',
-  ramble: 'IconMessageCircleBolt',
   language: 'IconLanguage',
 
   fieldIcon: 'IconFavicon',

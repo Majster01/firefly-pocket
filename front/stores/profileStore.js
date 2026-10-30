@@ -23,10 +23,6 @@ export const useProfileStore = defineStore('profile', () => {
   const showAnimations = useLocalStorage('showAnimations', true)
   const resetFormOnCreate = useLocalStorage('resetFormOnCreate', false)
 
-  const assistantTodoTagMatcher = useLocalStorage('assistantTodoTagMatcher', '!!')
-  const assistantCurrency = useLocalStorage('assistantCurrency', null, { serializer: StorageSerializers.object })
-  const autoFocusAssistant = useLocalStorage('autoFocusAssistant', false)
-  const assistantLlmContext = useLocalStorage('assistantLlmContext', '')
 
   const defaultAccountSource = useLocalStorage('defaultAccountSource', null, { serializer: StorageSerializers.object })
   const defaultAccountDestination = useLocalStorage('defaultAccountDestination', null, { serializer: StorageSerializers.object })
@@ -179,10 +175,6 @@ export const useProfileStore = defineStore('profile', () => {
     startingPage,
     showAnimations,
     resetFormOnCreate,
-    assistantTodoTagMatcher,
-    assistantCurrency,
-    autoFocusAssistant,
-    assistantLlmContext,
     defaultAccountSource,
     defaultAccountDestination,
     defaultCategory,

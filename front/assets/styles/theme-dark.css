@@ -353,35 +353,6 @@
     box-shadow: rgba(0, 0, 0, 0.4) 0px 3px 8px;
 }
 
-.van-theme-dark .ramble-error {
-    background: rgba(236, 64, 122, 0.16);
-    color: #ff8aa8;
-}
-
-.van-theme-dark .ramble-header-icon {
-    box-shadow: none;
-}
-
-.van-theme-dark .van-button.ramble-interpret-button {
-    background: #2a2a2c;
-    border-color: #f5f5f5;
-    color: #f5f5f5;
-}
-
-.van-theme-dark .llm-status-pill-on {
-    color: #7bd28a;
-    background: rgba(102, 187, 106, 0.18);
-}
-
-.van-theme-dark .llm-detail-panel {
-    border: 1px solid #444;
-}
-
-.van-theme-dark .llm-status-pill-off {
-    color: #ff8aa8;
-    background: rgba(236, 64, 122, 0.16);
-}
-
 .van-theme-dark .transaction-desktop-row {
     border-color: #2e2e33;
     color: #f1f5f9;
@@ -433,10 +404,6 @@
     box-shadow: rgba(0, 0, 0, 0.35) 0 8px 24px;
 }
 
-.van-theme-dark .assistant-tag {
-    box-shadow: 0 2px 6px 0px rgba(0, 0, 0, 0.65);
-}
-
 .van-theme-dark .badge-excluded-net-worth {
     background: #22385b;
     color: #E3F2FD;
@@ -448,11 +415,6 @@
 
 .van-theme-dark .transaction-amount-operations {
     background: #222;
-}
-
-.van-theme-dark .ramble-modern-badge .van-badge {
-    background: #82181a;
-    color: #fff;
 }
 
 .van-theme-dark .transaction-amount-operations .button {

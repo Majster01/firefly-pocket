@@ -8,9 +8,7 @@
 
     <div class="mb-10" />
 
-    <transaction-assistant v-if="!itemId && !isCloning" v-model="assistantText" @change="onAssistant" @keyup.enter="saveItem" />
-
-    <transaction-form ref="transactionFormRef" v-model="item" :form-name="formName" @submit="saveItem" @failed="onValidationError">
+    <transaction-form v-model="item" :form-name="formName" @submit="saveItem" @failed="onValidationError">
       <template #actions>
         <div style="margin: 16px; position: relative">
           <app-button-form-delete v-if="itemId && !isSplitTransaction" class="mt-10" @click="onDelete" />
@@ -42,7 +40,6 @@
 import RouteConstants from '~/constants/RouteConstants'
 
 import { get } from 'lodash-es'
-import { ref } from 'vue'
 import { useForm } from '~/composables/useForm'
 import Transaction from '~/models/Transaction'
 import { useToolbar } from '~/composables/useToolbar'
@@ -55,21 +52,11 @@ import TransactionForm from '~/components/transaction/TransactionForm.vue'
 
 const route = useRoute()
 
-const assistantText = ref('')
-const transactionFormRef = ref(null)
-
 const { itemId, item, saveItem, onDelete, onNew, onValidationError, formName } = useForm({
   routeList: RouteConstants.ROUTE_TRANSACTION_LIST,
   routeForm: RouteConstants.ROUTE_TRANSACTION_ID,
   model: new Transaction(),
-  resetFields: () => {
-    assistantText.value = ''
-  },
 })
-
-const onAssistant = async (assistantTransaction) => {
-  await transactionFormRef.value?.applyAssistantTransaction(assistantTransaction)
-}
 
 const onCreateTransactionTemplate = async () => {
   await navigateTo(`${RouteConstants.ROUTE_TRANSACTION_TEMPLATE_ID}?transaction_id=${itemId.value}`)

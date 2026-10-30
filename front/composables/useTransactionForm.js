@@ -1,23 +1,18 @@
-import { get, head, isEqual, uniqBy } from 'lodash-es'
+import { get, head, isEqual } from 'lodash-es'
 import { addDays } from 'date-fns'
 import Account from '~/models/Account'
 import Category from '~/models/Category'
 import Tag from '~/models/Tag'
-import Currency from '~/models/Currency.js'
 import Transaction from '~/models/Transaction'
 import { transactionFormField, transactionExtraDateFieldList } from '~/constants/TransactionConstants.js'
 import { generateChildren } from '~/utils/VueUtils'
 import { isStringEmpty } from '~/utils/DataUtils'
-import { useAccountStore } from '~/stores/accountStore'
 import { useCategoryStore } from '~/stores/categoryStore'
-import { useTagStore } from '~/stores/tagStore'
 
 const transactionPathKey = 'attributes.transactions.0'
 
 export const useTransactionForm = ({ item, itemId, profileStore = useProfileStore() }) => {
-  const accountStore = useAccountStore()
   const categoryStore = useCategoryStore()
-  const tagStore = useTagStore()
 
   const { amount, amountForeign, date, tags, description, notes, budget, piggyBank, accountSource, accountDestination, category, type, currencyForeign } = generateChildren(item, [
     { computed: 'amount', parentKey: `${transactionPathKey}.amount` },
@@ -65,29 +60,6 @@ export const useTransactionForm = ({ item, itemId, profileStore = useProfileStor
     let { source, destination } = Transaction.attemptAccountFixOnTypeChange(type.value, accountSource.value, accountDestination.value)
     accountSource.value = source
     accountDestination.value = destination
-  }
-
-  const onTransactionTemplateSelected = async (transactionTemplate) => {
-    if (!transactionTemplate) {
-      resetItemInPlace()
-      return
-    }
-    type.value = transactionTemplate.type
-
-    amount.value = transactionTemplate.amount
-    if (transactionTemplate.account_source_id) {
-      accountSource.value = accountStore.accountDictionary[transactionTemplate.account_source_id]
-    }
-
-    if (transactionTemplate.account_destination_id) {
-      accountDestination.value = accountStore.accountDictionary[transactionTemplate.account_destination_id]
-    }
-
-    description.value = transactionTemplate.description
-    category.value = transactionTemplate.category
-    notes.value = transactionTemplate.notes
-    tags.value = transactionTemplate.tags
-    budget.value = transactionTemplate.budget
   }
 
   watch(category, async (newValue) => {
@@ -145,94 +117,6 @@ export const useTransactionForm = ({ item, itemId, profileStore = useProfileStor
     }
     description.value = newValue
   })
-
-  const resetItemInPlace = () => {
-    const emptyItem = new Transaction().getEmpty()
-    if (!item.value) {
-      item.value = emptyItem
-      return
-    }
-
-    // When `item` is a defineModel bound to a parent v-model, assigning a new object
-    // only emits upward and keeps returning the old object until the parent re-renders.
-    // Every field set that follows would then land on the stale object and be lost,
-    // so the reset must mutate the current object instead of replacing it.
-    Object.keys(item.value).forEach((key) => delete item.value[key])
-    Object.assign(item.value, emptyItem)
-  }
-
-  const appendTags = (newTags = []) => {
-    const tagsWithParents = newTags
-      .filter(Boolean)
-      .map((tag) => Tag.getTagWithParents(tag))
-      .flat()
-    tags.value = uniqBy([...(tags.value ?? []), ...tagsWithParents], 'id')
-  }
-
-  const applyAssistantTransaction = async ({
-    tag: newTag,
-    tags: newTags,
-    category: newCategory,
-    transactionTemplate: transactionTemplate,
-    amount: newAmount,
-    description: newDescription,
-    notes: newNotes,
-    budget: newBudget,
-    isTodo: newIsTodo,
-    dateOffset: newDateOffset,
-    date: newDate,
-    assistantCurrency,
-    accountSource: newAccountSource,
-    accountDestination: newAccountDestination,
-    type: newType,
-  }) => {
-    resetItemInPlace()
-
-    transactionTemplate ? await onTransactionTemplateSelected(transactionTemplate) : (type.value = newType ?? Transaction.types.expense)
-
-    if (newAccountSource !== undefined) {
-      accountSource.value = newAccountSource
-    }
-    if (newAccountDestination !== undefined) {
-      accountDestination.value = newAccountDestination
-    }
-    if (!newType && (newAccountSource || newAccountDestination)) {
-      type.value = Transaction.getTransactionTypeForAccounts({ source: accountSource.value, destination: accountDestination.value })
-    }
-
-    appendTags([newTag, ...(newTags ?? [])])
-    newIsTodo && tagStore.tagTodo && appendTags([tagStore.tagTodo])
-    newCategory && (category.value = newCategory)
-    newNotes && (notes.value = newNotes)
-    newBudget && (budget.value = newBudget)
-
-    if (newAmount && newAmount > 0) {
-      const accountCurrencyCode = Account.getCurrencyCode(accountSource.value)
-      const assistantCurrencyCode = Currency.getCode(assistantCurrency)
-      const isForeignAmount = assistantCurrencyCode && accountCurrencyCode && accountCurrencyCode !== assistantCurrencyCode
-      if (isForeignAmount) {
-        // Keep the stated foreign amount/currency even when no exchange rate is available,
-        // so the amount is never silently booked as the account currency. Without a rate,
-        // "amount" stays empty and the user has to fill it in before saving.
-        amountForeign.value = newAmount
-        currencyForeign.value = assistantCurrency
-        const convertedAmount = convertCurrency(newAmount, assistantCurrencyCode, accountCurrencyCode)
-        if (Number.isFinite(convertedAmount)) {
-          amount.value = convertedAmount.toFixed(Account.getCurrencyDecimalPlaces(accountSource.value) ?? 2)
-        }
-      } else {
-        amount.value = newAmount
-      }
-    }
-
-    newDescription && (description.value = newDescription)
-    if (date && newDate) {
-      date.value = newDate
-    } else if (date && (newDateOffset || newDateOffset === 0)) {
-      date.value = addDays(new Date(), newDateOffset)
-    }
-    attemptAccountsFix()
-  }
 
   const onSubDay = () => {
     date.value = addDays(date.value, -1)
@@ -318,7 +202,6 @@ export const useTransactionForm = ({ item, itemId, profileStore = useProfileStor
     accountDestinationAllowedTypes,
     sourceCurrency,
     isForeignAmountVisible,
-    applyAssistantTransaction,
     onSubDay,
     onToday,
     onAddDay,
