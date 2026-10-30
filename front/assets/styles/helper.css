@@ -931,6 +931,10 @@ label.display-block {
   /*justify-content: center;*/
 }
 
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
 .flex-right {
   justify-content: flex-end;
   display: flex;

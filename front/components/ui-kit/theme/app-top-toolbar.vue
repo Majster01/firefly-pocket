@@ -21,7 +21,7 @@
   </template>
 
   <!--    MOBILE    -->
-  <template v-else>
+  <template v-else-if="!hideOnMobile">
     <van-nav-bar :safe-area-inset-top="true" :fixed="true" :placeholder="true" v-bind="attributes" :left-text="leftText" @click-left="onBack">
       <template #right>
         <slot name="right" />
@@ -37,12 +37,16 @@
       </template>
     </van-nav-bar>
   </template>
+
+  <div v-else class="safe-area-top" />
 </template>
 
 <script setup>
 import { useProfileStore } from '~/stores/profileStore'
 import { useToolbar } from '~/composables/useToolbar'
 import { IconArrowLeft } from '@tabler/icons-vue'
+
+defineProps({ hideOnMobile: Boolean })
 
 const appStore = useAppStore()
 const profileStore = useProfileStore()

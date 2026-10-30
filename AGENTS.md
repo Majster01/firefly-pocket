@@ -4,7 +4,7 @@ Guidance for AI coding agents working in this repository.
 
 ## Project Snapshot
 
-Firefly Pico is a mobile-first Firefly III companion app for fast transaction entry, dashboards, icons, tags, templates, profiles, piggy banks, recurring transactions, and assistant-assisted expense logging.
+Firefly Pico is a mobile-first Firefly III companion app for fast transaction entry, dashboards, icons, tags, templates, profiles, piggy banks, and recurring transactions.
 
 **Environment Requirements:** Node.js 18+ and PHP 8.2+.
 

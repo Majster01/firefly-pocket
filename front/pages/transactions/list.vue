@@ -1,6 +1,6 @@
 <template>
   <div :class="formClass">
-    <app-top-toolbar>
+    <app-top-toolbar hide-on-mobile>
       <template #right>
         <div class="flex-center-vertical gap-1">
           <div class="mr-10 cursor-pointer" @click.prevent.stop="onShowFilters">
@@ -11,6 +11,10 @@
         </div>
       </template>
     </app-top-toolbar>
+
+    <div v-if="!appStore.isDesktopLayout" class="display-flex flex-right pr-15 pt-10">
+      <app-icon class="cursor-pointer" :icon="TablerIconConstants.search" size="20" :stroke="1.9" @click.prevent.stop="onShowFilters" />
+    </div>
 
     <div v-if="filtersDisplayList.length > 0" class="applied-filters-container">
       <div class="flex-center-vertical">

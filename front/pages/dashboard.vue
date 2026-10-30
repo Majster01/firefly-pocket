@@ -1,6 +1,6 @@
 <template>
   <div class="app-form">
-    <app-top-toolbar>
+    <app-top-toolbar hide-on-mobile>
       <template #subtitle>
         <dashboard-control-desktop v-if="appStore.isDesktopLayout" />
       </template>
