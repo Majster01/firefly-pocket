@@ -12,6 +12,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RecurrenceController;
 use App\Http\Controllers\RuleSuggestionController;
 use App\Http\Controllers\BankConnectionController;
+use App\Http\Controllers\SystemStatusController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionTemplateController;
@@ -88,6 +89,8 @@ Route::put('bank-connections/{name}/accounts', [BankConnectionController::class,
 Route::post('bank-connections/{name}/reauthenticate', [BankConnectionController::class, 'reauthenticate'])->where('name', '[a-z0-9-]+');
 Route::post('bank-connections/{name}/import', [BankConnectionController::class, 'import'])->where('name', '[a-z0-9-]+');
 Route::delete('bank-connections/{name}', [BankConnectionController::class, 'delete'])->where('name', '[a-z0-9-]+');
+
+Route::get('system-status', [SystemStatusController::class, 'get']);
 
 Route::post('assistant/rambles', [AssistantController::class, 'create']);
 Route::get('assistant/rambles/count', [AssistantController::class, 'getCount']);
