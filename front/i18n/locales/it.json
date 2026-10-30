@@ -436,7 +436,7 @@
     "no_upcoming": "Nessuna transazione ricorrente imminente ^_^"
   },
   "exchange_rate_page": {
-    "relative_to_usd": "Rispetto all'USD"
+    "relative_to_eur": "Rispetto all'EUR"
   },
   "dashboard": {
     "title": "Dashboard",
