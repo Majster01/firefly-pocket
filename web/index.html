@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- viewport-fit=cover: the Home Screen app draws under the notch and home indicator; the layout pads with safe-area insets -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Pocket" />
+    <meta name="theme-color" content="#d9c7b3" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1a1512" media="(prefers-color-scheme: dark)" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Firefly Pocket</title>
+    <script>
+      // Set the theme before the first paint, so a night user never sees a light flash
+      try {
+        const theme = JSON.parse(localStorage.getItem('pocket.settings') || '{}').theme || 'system'
+        if (theme !== 'system') document.documentElement.dataset.theme = theme
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

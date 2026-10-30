@@ -73,7 +73,7 @@ async function seedCurrencies() {
 
 const ASSETS = [
   { key: 'nlb', name: 'NLB Current', iban: iban('SI', '020100012345678'), account_role: 'defaultAsset', currency_code: 'EUR', opening_balance: '2450.00', notes: 'Main account; salary comes in here' },
-  { key: 'revolut', name: 'Revolut', iban: iban('LT', '325000012345678901'), account_role: 'defaultAsset', currency_code: 'EUR', opening_balance: '180.00', notes: 'Card for everyday spending' },
+  { key: 'revolut', name: 'Revolut', iban: iban('LT', '325000012345678901'), account_role: 'defaultAsset', currency_code: 'EUR', opening_balance: '900.00', notes: 'Card for everyday spending' },
   { key: 'savings', name: 'Savings', iban: iban('SI', '020100098765432'), account_role: 'savingAsset', currency_code: 'EUR', opening_balance: '8000.00' },
   { key: 'wallet', name: 'Wallet', account_role: 'cashWalletAsset', currency_code: 'EUR', opening_balance: '60.00' },
   { key: 'vwce', name: 'IBKR · VWCE', account_role: 'defaultAsset', currency_code: 'VWCE', opening_balance: '42.0000', notes: 'Vanguard FTSE All-World UCITS ETF (Acc) shares at Interactive Brokers' },
@@ -104,7 +104,7 @@ async function seedAccounts() {
       name: 'Car loan',
       type: 'liabilities',
       liability_type: 'loan',
-      liability_direction: 'credit',
+      liability_direction: 'debit',
       opening_balance: '8400.00',
       opening_balance_date: openingDate,
       interest: '4.2',
@@ -248,8 +248,8 @@ function planTransactions() {
       queue.push({ type: 'deposit', date, amount: '2650.00', description: 'Salary', source_name: 'Acme Software d.o.o.', destination_id: accounts.nlb.id, category_name: 'Salary' })
     }
     if (dom === 11) {
-      queue.push({ type: 'transfer', date, amount: '300.00', description: 'Monthly savings', source_id: accounts.nlb.id, destination_id: accounts.savings.id })
-      queue.push({ type: 'transfer', date, amount: '250.00', description: 'Top up Revolut', source_id: accounts.nlb.id, destination_id: accounts.revolut.id })
+      queue.push({ type: 'transfer', date, amount: '200.00', description: 'Monthly savings', source_id: accounts.nlb.id, destination_id: accounts.savings.id })
+      queue.push({ type: 'transfer', date, amount: '650.00', description: 'Top up Revolut', source_id: accounts.nlb.id, destination_id: accounts.revolut.id })
     }
     if (dom === 12 && VWCE_PRICES[month]) {
       const shares = (400 / VWCE_PRICES[month]).toFixed(4)
@@ -270,7 +270,7 @@ function planTransactions() {
       withdrawal(date, 'nlb', { description: 'TELEKOM SLOVENIJE', destination: 'Telekom Slovenije', min: 29.99, max: 29.99 }, 'Bills')
       withdrawal(date, 'nlb', { description: 'ELEKTRO ENERGIJA D.O.O.', destination: 'Elektro energija', min: 38, max: 61 }, 'Bills')
       if (accounts.loan) {
-        queue.push({ type: 'withdrawal', date, amount: '310.00', description: 'Car loan instalment', source_id: accounts.nlb.id, destination_id: accounts.loan.id })
+        queue.push({ type: 'withdrawal', date, amount: '310.00', description: 'Car loan instalment', source_id: accounts.nlb.id, destination_id: accounts.loan.id, category_name: 'Transport' })
       }
     }
     if (dom === 18) {
