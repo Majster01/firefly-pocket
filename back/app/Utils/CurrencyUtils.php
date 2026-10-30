@@ -183,7 +183,10 @@ class CurrencyUtils
         ["code" => "XAU", "name" => "Gold"],
         ["code" => "XAG", "name" => "Silver"],
         ["code" => "XPT", "name" => "Platinum"],
-        ["code" => "XPD", "name" => "Palladium"]
+        ["code" => "XPD", "name" => "Palladium"],
+
+        // Custom
+        ["code" => "VWCE", "name" => "Vanguard FTSE All-World UCITS ETF", "country" => "Xetra (EUR)"]
     ];
 
 }

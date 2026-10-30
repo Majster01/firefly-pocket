@@ -436,7 +436,7 @@
     "no_upcoming": "Nu există tranzacții recurente viitoare ^_^"
   },
   "exchange_rate_page": {
-    "relative_to_usd": "Relativ la USD"
+    "relative_to_eur": "Relativ la EUR"
   },
   "dashboard": {
     "title": "Rezumat",

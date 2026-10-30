@@ -437,7 +437,7 @@
     "no_upcoming": "Δεν υπάρχουν επερχόμενες επαναλαμβανόμενες συναλλαγές ^_^"
   },
   "exchange_rate_page": {
-    "relative_to_usd": "Σε σχέση με το USD"
+    "relative_to_eur": "Σε σχέση με το EUR"
   },
   "dashboard": {
     "title": "Πίνακας ελέγχου",

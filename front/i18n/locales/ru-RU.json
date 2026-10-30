@@ -436,7 +436,7 @@
     "no_upcoming": "Нет предстоящих повторяющихся транзакций ^_^"
   },
   "exchange_rate_page": {
-    "relative_to_usd": "Относительно USD"
+    "relative_to_eur": "Относительно EUR"
   },
   "dashboard": {
     "title": "Дашборд",

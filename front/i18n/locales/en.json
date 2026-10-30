@@ -616,7 +616,7 @@
     "no_upcoming": "No upcoming recurring transactions ^_^"
   },
   "exchange_rate_page": {
-    "relative_to_usd": "Relative to USD"
+    "relative_to_eur": "Relative to EUR"
   },
   "dashboard": {
     "title": "Dashboard",
