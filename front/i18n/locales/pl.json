@@ -281,6 +281,7 @@
       }
     },
     "about_entry": "O aplikacji",
+    "notifications_entry": "Powiadomienia",
     "version": "Wersja",
     "new_version_available": "Dostępna jest nowa wersja",
     "dashboard_entry": "Pulpit",
@@ -307,6 +308,17 @@
     "token": {
       "label": "Osobisty token dostępu",
       "placeholder": "Osobisty token"
+    },
+    "notifications": {
+      "title": "Powiadomienia",
+      "enable": "Włącz powiadomienia",
+      "state_off": "Dostaniesz powiadomienie, gdy import się zakończy lub połączenie z bankiem będzie wymagało uwagi. Przeglądarka poprosi o zgodę.",
+      "state_on": "Powiadomienia są włączone na tym urządzeniu.",
+      "state_unavailable": "Powiadomienia push nie są skonfigurowane na tym serwerze.",
+      "state_not_installed": "Na iPhonie i iPadzie najpierw dodaj Pico do ekranu początkowego (Udostępnij, potem Do ekranu początkowego), otwórz stamtąd i wróć tutaj.",
+      "state_unsupported": "Ta przeglądarka nie może wyświetlać powiadomień push. Na iPhonie i iPadzie wymagany jest iOS 16.4 lub nowszy.",
+      "state_denied": "Powiadomienia są zablokowane dla Pico. Zezwól na nie w ustawieniach przeglądarki lub systemu i odśwież stronę.",
+      "error": "Nie udało się zmienić ustawienia powiadomień."
     }
   },
   "about": {

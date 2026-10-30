@@ -101,6 +101,10 @@ export default defineNuxtConfig({
   },
   pwa: {
     registerType: 'autoUpdate',
+    // Own worker (precache, offline fallback, custom icons cache + Web Push), see service-worker/sw.js
+    strategies: 'injectManifest',
+    srcDir: 'service-worker',
+    filename: 'sw.js',
     manifest: {
       name: 'Pico',
       short_name: 'Pico',
@@ -116,21 +120,6 @@ export default defineNuxtConfig({
           src: '/android-chrome-512x512.png',
           sizes: '512x512',
           type: 'image/png',
-        },
-      ],
-    },
-    workbox: {
-      navigateFallback: '/',
-      runtimeCaching: [
-        {
-          // Admin custom icons. The backend may be on another origin => also cache opaque responses (status 0)
-          urlPattern: ({ url }) => url.pathname.includes('/api/custom-icons/'),
-          handler: 'StaleWhileRevalidate',
-          options: {
-            cacheName: 'custom-icons',
-            cacheableResponse: { statuses: [0, 200] },
-            expiration: { maxEntries: 500 },
-          },
         },
       ],
     },

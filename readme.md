@@ -65,6 +65,7 @@ Check out the **[full documentation](https://cioraneanu.github.io/firefly-pico-d
 - ✅ Expand Firefly "tags" with the option of subtags for better granularity
 - ✅ Add "templates" to make auto-completing fields a breeze :loudspeaker:
 - ✅ Beautiful dashboard making it easy to keep an eye on everything that matters :chart_with_upwards_trend:
+- ✅ Push notifications and app badge, e.g. when the nightly import finishes ([setup](docs/web-push.md)) :bell:
 - ✅ Lots of tweaks and settings :wrench:
 - ✅ Free and open-source
 

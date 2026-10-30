@@ -22,6 +22,7 @@ export const icons = {
   ruleSuggestionPreview: 'IconListSearch',
   bankConnection: 'IconBuildingBank',
   systemStatus: 'IconActivity',
+  notifications: 'IconBell',
 
   settingsAppConfig: 'IconTool',
   settingsUserPreferences: 'IconMoodCog',

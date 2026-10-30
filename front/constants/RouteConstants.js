@@ -20,6 +20,7 @@ export default {
   ROUTE_SETTINGS_TRANSACTION_DEFAULT_FORM_VALUES: '/settings/transactions/default-form-values',
   ROUTE_SETTINGS_TRANSACTION_DEFAULT_LIST_FILTERS: '/settings/transactions/default-list-filters',
   ROUTE_SETTINGS_TRANSACTION_QUICK_AMOUNTS: '/settings/transactions/quick-amounts',
+  ROUTE_SETTINGS_NOTIFICATIONS: '/settings/notifications',
   ROUTE_SETTINGS_ABOUT: '/settings/about',
 
   ROUTE_EXCHANGE_RATES: '/exchange-rates',

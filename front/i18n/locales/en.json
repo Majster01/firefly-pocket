@@ -284,6 +284,7 @@
       }
     },
     "about_entry": "About",
+    "notifications_entry": "Notifications",
     "version": "Version",
     "new_version_available": "New version available",
     "dashboard_entry": "Dashboard",
@@ -310,6 +311,17 @@
     "token": {
       "label": "Personal access token",
       "placeholder": "Personal token"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "enable": "Enable notifications",
+      "state_off": "Get notified when an import finishes or a bank connection needs attention. Your browser will ask for permission.",
+      "state_on": "Notifications are on for this device.",
+      "state_unavailable": "Push notifications are not set up on this server.",
+      "state_not_installed": "On iPhone and iPad, first add Pico to the Home Screen (Share, then Add to Home Screen), open it from there and come back here.",
+      "state_unsupported": "This browser cannot show push notifications. On iPhone and iPad this needs iOS 16.4 or newer.",
+      "state_denied": "Notifications are blocked for Pico. Allow them in the browser or system settings, then reload.",
+      "error": "Could not change the notification setting."
     }
   },
   "about": {

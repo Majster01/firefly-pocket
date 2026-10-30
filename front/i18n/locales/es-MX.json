@@ -281,6 +281,7 @@
       }
     },
     "about_entry": "Acerca de",
+    "notifications_entry": "Notificaciones",
     "version": "Versión",
     "new_version_available": "Nueva versión disponible",
     "dashboard_entry": "Panel principal",
@@ -307,6 +308,17 @@
     "token": {
       "label": "Token de acceso personal",
       "placeholder": "Token personal"
+    },
+    "notifications": {
+      "title": "Notificaciones",
+      "enable": "Activar notificaciones",
+      "state_off": "Recibe un aviso cuando termine una importación o una conexión bancaria necesite atención. El navegador pedirá permiso.",
+      "state_on": "Las notificaciones están activadas en este dispositivo.",
+      "state_unavailable": "Las notificaciones push no están configuradas en este servidor.",
+      "state_not_installed": "En iPhone y iPad, primero agrega Pico a la pantalla de inicio (Compartir, luego Agregar a pantalla de inicio), ábrelo desde ahí y regresa aquí.",
+      "state_unsupported": "Este navegador no puede mostrar notificaciones push. En iPhone y iPad se necesita iOS 16.4 o posterior.",
+      "state_denied": "Las notificaciones están bloqueadas para Pico. Permítelas en los ajustes del navegador o del sistema y vuelve a cargar.",
+      "error": "No se pudo cambiar el ajuste de notificaciones."
     }
   },
   "about": {

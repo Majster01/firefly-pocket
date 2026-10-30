@@ -268,6 +268,7 @@
       "placeholder": "个人令牌"
     },
     "about_entry": "关于",
+    "notifications_entry": "通知",
     "version": "版本",
     "new_version_available": "有新版本可用",
     "dashboard_entry": "仪表板",
@@ -288,6 +289,17 @@
         "transfers_by_category": "按类别分类的转账",
         "todo_transactions": "待处理交易"
       }
+    },
+    "notifications": {
+      "title": "通知",
+      "enable": "启用通知",
+      "state_off": "导入完成或银行连接需要处理时通知你。浏览器会请求权限。",
+      "state_on": "此设备已开启通知。",
+      "state_unavailable": "此服务器未设置推送通知。",
+      "state_not_installed": "在 iPhone 和 iPad 上，请先将 Pico 添加到主屏幕（分享，然后添加到主屏幕），从主屏幕打开后再回到这里。",
+      "state_unsupported": "此浏览器无法显示推送通知。iPhone 和 iPad 需要 iOS 16.4 或更高版本。",
+      "state_denied": "Pico 的通知已被屏蔽。请在浏览器或系统设置中允许，然后重新加载。",
+      "error": "无法更改通知设置。"
     }
   },
   "about": {

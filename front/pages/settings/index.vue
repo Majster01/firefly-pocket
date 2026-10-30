@@ -9,6 +9,7 @@
       <app-field-link :label="$t('settings.formatting_entry')" :icon="TablerIconConstants.fieldText1" @click="navigateTo(RouteConstants.ROUTE_SETTINGS_FORMATTING)" />
       <app-field-link :label="$t('settings.dashboard_entry')" :icon="TablerIconConstants.dashboard" @click="navigateTo(RouteConstants.ROUTE_SETTINGS_DASHBOARD)" />
       <app-field-link :label="$t('settings.transactions_entry')" :icon="TablerIconConstants.transaction" @click="navigateTo(RouteConstants.ROUTE_SETTINGS_TRANSACTION)" />
+      <app-field-link :label="$t('settings.notifications_entry')" :icon="TablerIconConstants.notifications" @click="navigateTo(RouteConstants.ROUTE_SETTINGS_NOTIFICATIONS)" />
       <app-field-link :label="$t('settings.about_entry')" :icon="TablerIconConstants.settingsAbout" @click="navigateTo(RouteConstants.ROUTE_SETTINGS_ABOUT)" />
     </van-cell-group>
 

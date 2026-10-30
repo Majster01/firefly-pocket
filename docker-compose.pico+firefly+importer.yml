@@ -31,6 +31,11 @@ services:
       # - ASSISTANT_TRANSCRIPTION_MODEL=gpt-4o-mini-transcribe
       # - ASSISTANT_TRANSCRIPTION_API_KEY=your-api-key
       # - ASSISTANT_TRANSCRIPTION_LANGUAGE=en
+      # Optional: Web Push + app badge, see docs/web-push.md
+      # - VAPID_PUBLIC_KEY=
+      # - VAPID_PRIVATE_KEY=
+      # - VAPID_SUBJECT=mailto:you@example.com
+      # - NOTIFY_API_TOKEN=at-least-32-characters-shared-with-the-importer
     # Optional: custom icons. Put .svg/.png/.webp/.jpg files in this folder and they show up in the icon picker
     # volumes:
     #   - /<your_path>/firefly-pico-icons:/var/www/html/storage/app/custom-icons:ro

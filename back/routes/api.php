@@ -7,8 +7,10 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\CustomIconController;
 use App\Http\Controllers\FireflyProxyController;
+use App\Http\Controllers\InternalNotifyController;
 use App\Http\Controllers\PiggyBankController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PushController;
 use App\Http\Controllers\RecurrenceController;
 use App\Http\Controllers\RuleSuggestionController;
 use App\Http\Controllers\BankConnectionController;
@@ -89,6 +91,12 @@ Route::put('bank-connections/{name}/accounts', [BankConnectionController::class,
 Route::post('bank-connections/{name}/reauthenticate', [BankConnectionController::class, 'reauthenticate'])->where('name', '[a-z0-9-]+');
 Route::post('bank-connections/{name}/import', [BankConnectionController::class, 'import'])->where('name', '[a-z0-9-]+');
 Route::delete('bank-connections/{name}', [BankConnectionController::class, 'delete'])->where('name', '[a-z0-9-]+');
+
+Route::get('push/public-key', [PushController::class, 'getPublicKey']);
+Route::post('push/subscriptions', [PushController::class, 'subscribe']);
+Route::delete('push/subscriptions', [PushController::class, 'unsubscribe']);
+// Not behind the user login: the FireflyX importer/suggester calls it with NOTIFY_API_TOKEN. The reverse proxy hides /api/internal/*
+Route::post('internal/notify', [InternalNotifyController::class, 'notify']);
 
 Route::get('system-status', [SystemStatusController::class, 'get']);
 
