@@ -63,6 +63,8 @@ return [
     // Bank connections are managed by the FireflyX importer fork; Pico's backend calls its internal API
     'importer_api_url' => env('IMPORTER_API_URL', ''),
     'importer_api_token' => env('IMPORTER_API_TOKEN', ''),
+    // Local development only: fixed dummy exchange rates (VWCE included) instead of calling the rate APIs
+    'exchange_rates_mock' => (bool) env('EXCHANGE_RATES_MOCK', false),
     // Web Push (docs/web-push.md). Generate the VAPID keys once; push is off until both are set
     'vapid_public_key' => env('VAPID_PUBLIC_KEY', ''),
     'vapid_private_key' => env('VAPID_PRIVATE_KEY', ''),

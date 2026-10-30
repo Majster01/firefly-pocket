@@ -1,0 +1,6 @@
+# For hosts without IPv6 (some Linux CI/cloud boxes), where nginx in the Firefly image fails on "listen [::]:8080":
+#   docker compose -f docker-compose.yml -f docker-compose.ipv4.yml up -d
+services:
+  app:
+    volumes:
+      - ./ipv4-only/http.conf.template:/etc/nginx/site-opts.d/http.conf.template:ro

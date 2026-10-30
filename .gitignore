@@ -8,3 +8,4 @@ dev/.env
 server/vendor/
 server/.env
 server/database/data/*.sqlite
+dev/.web-token.env
