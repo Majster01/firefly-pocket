@@ -44,6 +44,7 @@
   "recurring_transactions": "Recurring transactions",
   "rule_suggestions": "Rule suggestions",
   "bank_connections": "Bank connections",
+  "system_status": "System status",
   "rule_suggestions_to_review": "1 suggestion to review | {count} suggestions to review",
   "attachment": "Attachment",
   "attachments": "Attachments",
@@ -441,6 +442,57 @@
     "more_transactions": "+{count} more",
     "list_empty": "No suggestions to review",
     "list_empty_subtitle": "New category suggestions show up here after the nightly run."
+  },
+  "system_status_page": {
+    "last_days": "Last {count} days",
+    "unavailable": "Status unavailable",
+    "history_since": "History starts {date}. Earlier nights were not recorded.",
+    "imports": {
+      "title": "Nightly imports",
+      "last_import": "Last import",
+      "new_transactions": "New transactions",
+      "failed": "Failed",
+      "missed": "Nights missed",
+      "none_yet": "None yet",
+      "no_import": "No import",
+      "not_yet": "Not yet",
+      "connections": "1 connection | {count} connections",
+      "created": "{count} new",
+      "warnings": "1 warning | {count} warnings",
+      "recent_failures": "Recent failures",
+      "show_all": "Show all days",
+      "show_less": "Show fewer days"
+    },
+    "manual": {
+      "title": "Import now",
+      "runs": "{done} done, {failed} failed of {total}"
+    },
+    "connections": {
+      "title": "Bank connections",
+      "never_imported": "Not imported yet",
+      "days_left": "1 day left | {count} days left"
+    },
+    "suggester": {
+      "title": "Category suggester",
+      "runs": "Runs",
+      "calls": "AI calls",
+      "below_threshold": "Below threshold",
+      "searches": "Web searches",
+      "tokens": "Tokens in / out",
+      "errors": "Errors",
+      "threshold": "Confidence threshold {value}",
+      "outcomes": "What became of the suggestions",
+      "pending": "Waiting for review",
+      "approved": "Approved or categorized",
+      "rejected": "Rejected",
+      "recent_runs": "Recent runs",
+      "source": {
+        "nightly": "Nightly",
+        "manual": "Import now"
+      },
+      "run_detail": "{calls} calls · {suggestions} suggestions ({low} below threshold)",
+      "failed": "Failed"
+    }
   },
   "bank_connection_page": {
     "list_empty": "No bank connections",

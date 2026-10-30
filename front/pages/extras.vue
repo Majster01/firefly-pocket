@@ -32,6 +32,7 @@
         :badge="bankConnectionStore.attentionCount || null"
         @click="navigateTo(RouteConstants.ROUTE_BANK_CONNECTION_LIST)"
       />
+      <app-field-link :label="$t('system_status')" :icon="TablerIconConstants.systemStatus" @click="navigateTo(RouteConstants.ROUTE_SYSTEM_STATUS)" />
       <app-field-link :label="$t('exchange_rates')" :icon="TablerIconConstants.exchangeRates" @click="navigateTo(RouteConstants.ROUTE_EXCHANGE_RATES)" />
       <app-field-link :label="$t('currencies')" :icon="TablerIconConstants.currency" @click="onGoToCurrenciesList" />
     </van-cell-group>

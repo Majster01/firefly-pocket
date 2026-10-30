@@ -69,6 +69,15 @@ class BankConnectionService
         $this->importer('delete', "connections/$name", [], BaseController::HTTP_CODE_OK_DELETE);
     }
 
+    /**
+     * How the nightly imports went over the last $days days, where every connection stands, and what the category suggester has been doing.
+     * The importer collects all of it (the suggester's part included), so this needs no credentials beyond the importer's own.
+     */
+    public function getStatus($days)
+    {
+        return $this->importer('get', 'status', ['days' => $days])['data'];
+    }
+
     private function importer($method, $path, $data = [], $expectedStatus = BaseController::HTTP_CODE_OK)
     {
         if (!config('app.importer_api_url') || !config('app.importer_api_token')) {

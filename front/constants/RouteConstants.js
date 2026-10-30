@@ -54,6 +54,7 @@ export default {
   ROUTE_BANK_CONNECTION_NEW: '/bank-connections/new',
   ROUTE_BANK_CONNECTION_SETUP: '/bank-connections/setup',
   ROUTE_BANK_CONNECTION_DONE: '/bank-connections/done',
+  ROUTE_SYSTEM_STATUS: '/system-status',
 
   isForm(routeForm, currentForm) {
     let regex = new RegExp(`${routeForm}/[0-9]+`)
