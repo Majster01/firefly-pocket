@@ -1264,7 +1264,7 @@ svg {
 
 .dashboard-control-date {
     position: sticky;
-    top: 56px;
+    top: env(safe-area-inset-top);
     z-index: 99;
 }
 
