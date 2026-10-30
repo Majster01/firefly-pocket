@@ -1,0 +1,83 @@
+# Local, throwaway test stack for Firefly Pocket Next. Mirrors FireflyX (../fireflyx) with dummy data only:
+#
+#   db        Postgres, the same major version as FireflyX
+#   app       Firefly III, pinned to the FireflyX version      -> http://localhost:8081
+#   importer  Mock of the FireflyX importer fork API, a fake   -> http://localhost:8091
+#             bank consent page and a mock category suggester
+#
+# Pocket's own API (server/) and the web app (web/) run on the host: see scripts/dev.sh.
+# Nothing here talks to a real bank, a real Firefly deployment or an LLM.
+
+name: pocket-dev
+
+volumes:
+  db_data:
+  firefly_upload:
+  importer_data:
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: firefly
+      POSTGRES_PASSWORD: firefly-dev-password
+      POSTGRES_DB: firefly
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U firefly -d firefly"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    image: fireflyiii/core:version-6.6.6
+    ports:
+      - "8081:8080"
+    volumes:
+      - firefly_upload:/var/www/html/storage/upload
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "false"
+      APP_KEY: DevOnlyKeyDevOnlyKeyDevOnlyKey1
+      APP_URL: http://localhost:8081
+      SITE_OWNER: dev@example.com
+      TZ: Europe/Ljubljana
+      TRUSTED_PROXIES: "**"
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_DATABASE: firefly
+      DB_USERNAME: firefly
+      DB_PASSWORD: firefly-dev-password
+      STATIC_CRON_TOKEN: DevOnlyCronTokenDevOnlyCronToken
+      ALLOW_WEBHOOKS: "false"
+      SESSION_DRIVER: file
+      CACHE_DRIVER: file
+      APP_LOG_LEVEL: notice
+    depends_on:
+      db:
+        condition: service_healthy
+
+  importer:
+    image: node:22-alpine
+    working_dir: /mock
+    command: ["node", "server.mjs"]
+    ports:
+      - "8091:8091"
+    volumes:
+      - ./mock-importer:/mock:ro
+      - importer_data:/data
+    environment:
+      PORT: "8091"
+      DATA_FILE: /data/state.json
+      FIREFLY_URL: http://app:8080
+      # Written by scripts/dev-bootstrap.sh; the mock imports and suggests through it
+      FIREFLY_TOKEN: ${MOCK_FIREFLY_TOKEN:-}
+      FIREFLYX_API_TOKEN: dev-importer-token-dev-importer-token
+      # Where the fake bank sends the browser back to (the web app)
+      PICO_URL: http://localhost:5173
+      PUBLIC_URL: http://localhost:8091
+      TZ: Europe/Ljubljana
+    depends_on:
+      - app

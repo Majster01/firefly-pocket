@@ -1,0 +1,121 @@
+<?php
+
+use App\Http\Controllers\AccountController;
+use App\Http\Controllers\AssistantController;
+use App\Http\Controllers\BudgetController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CurrencyController;
+use App\Http\Controllers\CustomIconController;
+use App\Http\Controllers\FireflyProxyController;
+use App\Http\Controllers\InternalNotifyController;
+use App\Http\Controllers\PiggyBankController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PushController;
+use App\Http\Controllers\RecurrenceController;
+use App\Http\Controllers\RuleSuggestionController;
+use App\Http\Controllers\BankConnectionController;
+use App\Http\Controllers\SystemStatusController;
+use App\Http\Controllers\TagController;
+use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\TransactionTemplateController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\VersionController;
+use App\Utils\RouteUtils;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register API routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "api" middleware group. Make something great!
+|
+*/
+
+
+// Own resources
+Route::get('info', [VersionController::class, 'getInfo']);
+Route::get('user', [UserController::class, 'getUser']);
+
+RouteUtils::makeCRUD("transaction-templates", TransactionTemplateController::class);
+
+Route::get('custom-icons', [CustomIconController::class, 'getAll']);
+Route::get('custom-icons/{file}', [CustomIconController::class, 'getOne'])->where('file', '[^/]+');
+
+// Firefly proxied resources
+RouteUtils::makeCRUD("accounts", AccountController::class);
+Route::get("accounts/groups", [AccountController::class, 'getAccountGroups']);
+
+RouteUtils::makeCRUD("categories", CategoryController::class);
+RouteUtils::makeCRUD("budgets", BudgetController::class);
+RouteUtils::makeCRUD("piggy-banks", PiggyBankController::class);
+RouteUtils::makeCRUD("recurrences", RecurrenceController::class);
+RouteUtils::makeCRUD("tags", TagController::class);
+Route::post("tags/{id}/total", [TagController::class, 'computeTotal'])->where('id', '[0-9]+');
+
+// RouteUtils::makeCRUD("currencies", CurrencyController::class);
+
+Route::get("currencies/{id}", [CurrencyController::class, 'getOne'])->where('id', '[0-9]+');
+Route::get("currencies", [CurrencyController::class, 'getAll']);
+Route::post("currencies", [CurrencyController::class, 'create']);
+Route::put("currencies/{code}", [CurrencyController::class, 'update']);
+Route::delete("currencies/{code}", [CurrencyController::class, 'delete']);
+
+Route::get('currencies/exchange', [CurrencyController::class, 'exchangeRates']);
+
+Route::get('budget-limits', [BudgetController::class, 'getBudgetLimits']);
+
+
+RouteUtils::makeCRUD("transactions", TransactionController::class);
+Route::get('search/transactions', [TransactionController::class, 'getAll']);
+Route::get('search/transactions/total', [TransactionController::class, 'computeSearchTotal']);
+
+
+RouteUtils::makeCRUD("profiles", ProfileController::class);
+
+Route::get('rule-suggestions', [RuleSuggestionController::class, 'getAll']);
+Route::get('rule-suggestions/{id}', [RuleSuggestionController::class, 'getOne'])->where('id', '[0-9]+');
+Route::post('rule-suggestions/preview', [RuleSuggestionController::class, 'preview']);
+Route::post('rule-suggestions/{id}/approve', [RuleSuggestionController::class, 'approve'])->where('id', '[0-9]+');
+Route::post('rule-suggestions/{id}/categorize', [RuleSuggestionController::class, 'categorize'])->where('id', '[0-9]+');
+Route::delete('rule-suggestions/{id}', [RuleSuggestionController::class, 'delete'])->where('id', '[0-9]+');
+
+Route::get('bank-connections', [BankConnectionController::class, 'getAll']);
+Route::get('bank-connections/banks', [BankConnectionController::class, 'getBanks']);
+Route::post('bank-connections', [BankConnectionController::class, 'create']);
+Route::get('bank-connections/{name}', [BankConnectionController::class, 'getOne'])->where('name', '[a-z0-9-]+');
+Route::put('bank-connections/{name}/accounts', [BankConnectionController::class, 'saveAccounts'])->where('name', '[a-z0-9-]+');
+Route::post('bank-connections/{name}/reauthenticate', [BankConnectionController::class, 'reauthenticate'])->where('name', '[a-z0-9-]+');
+Route::post('bank-connections/{name}/import', [BankConnectionController::class, 'import'])->where('name', '[a-z0-9-]+');
+Route::delete('bank-connections/{name}', [BankConnectionController::class, 'delete'])->where('name', '[a-z0-9-]+');
+
+Route::get('push/public-key', [PushController::class, 'getPublicKey']);
+Route::post('push/subscriptions', [PushController::class, 'subscribe']);
+Route::delete('push/subscriptions', [PushController::class, 'unsubscribe']);
+// Not behind the user login: the FireflyX importer/suggester calls it with NOTIFY_API_TOKEN. The reverse proxy hides /api/internal/*
+Route::post('internal/notify', [InternalNotifyController::class, 'notify']);
+
+Route::get('system-status', [SystemStatusController::class, 'get']);
+
+Route::post('assistant/rambles', [AssistantController::class, 'create']);
+Route::get('assistant/rambles/count', [AssistantController::class, 'getCount']);
+Route::get('assistant/rambles', [AssistantController::class, 'getAll']);
+Route::get('assistant/rambles/{id}/voice', [AssistantController::class, 'getRambleVoice'])->where('id', '[0-9]+');
+Route::delete('assistant/rambles', [AssistantController::class, 'deleteRambles']);
+Route::delete('assistant/rambles/{id}', [AssistantController::class, 'deleteRamble'])->where('id', '[0-9]+');
+Route::post('assistant/interpret-transactions', [AssistantController::class, 'interpretTransactions']);
+Route::post('assistant/test-llm', [AssistantController::class, 'testLlm']);
+Route::post('assistant/test-transcription', [AssistantController::class, 'testTranscription']);
+
+Route::get('/test', function (Request $request) {
+    return "Test!";
+});
+
+// Just proxy the requests in which we do not change anything straight to Firefly III
+$proxyMethods = ['get', 'post', 'put', 'patch', 'delete'];
+foreach ($proxyMethods as $proxyMethod) {
+    Route::$proxyMethod('{any?}', [FireflyProxyController::class, 'proxyRequest'])->where('any', '.*');
+}
