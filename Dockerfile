@@ -36,7 +36,9 @@ RUN apk add --no-cache \
     php84-pdo_sqlite \
     php84-pcntl \
     php84-posix \
-    php84-tokenizer
+    php84-tokenizer \
+    php84-gmp \
+    php84-bcmath
 RUN ln -s /usr/bin/php84 /usr/bin/php
 
 #-----------------------------------------------------------------
