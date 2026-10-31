@@ -8,7 +8,7 @@
     <p v-else-if="!rows.length" class="muted small">Nothing spent in {{ periodName }}.</p>
     <DonutChart v-else-if="options.chart === 'donut'" :items="rows" :label="`Spending by category, ${periodName}`" :format="(value) => money(value, 'EUR', { decimals: 0 })" @select="select" />
     <ul v-else class="list cat-bars">
-      <li v-for="row in rows" :key="row.name">
+      <li v-for="row in shown" :key="row.name">
         <button class="cat-bar" @click="select(row)">
           <span class="row">
             <span class="grow ellipsis">{{ row.name }}</span>
@@ -16,6 +16,11 @@
             <span class="num muted tiny share">{{ Math.round(row.share * 100) }}%</span>
           </span>
           <span class="track"><i class="ink" :class="{ warn: row.uncategorized }" :style="{ width: `${(row.amount / rows[0].amount) * 100}%` }" /></span>
+        </button>
+      </li>
+      <li v-if="rows.length > shown.length">
+        <button class="cat-bar more-cats" @click="select({ name: 'Other', others: rows.slice(shown.length), amount: rows.slice(shown.length).reduce((sum, row) => sum + row.amount, 0) })">
+          {{ rows.length - shown.length }} more categories · <span class="num blurable">{{ money(rows.slice(shown.length).reduce((sum, row) => sum + row.amount, 0)) }}</span>
         </button>
       </li>
     </ul>
@@ -36,6 +41,7 @@ const rows = ref(null)
 const picked = ref(null)
 
 const periodName = computed(() => periodLabel(props.view, props.offset))
+const shown = computed(() => (Number(props.options.limit) ? rows.value.slice(0, Number(props.options.limit)) : rows.value))
 
 watch(
   [() => props.range.start, () => props.view, () => props.version, () => props.options.uncategorized],
@@ -83,5 +89,10 @@ const select = (row) => (picked.value = row)
 .cat-bar .share {
   width: 34px;
   text-align: right;
+}
+.more-cats {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
 }
 </style>
