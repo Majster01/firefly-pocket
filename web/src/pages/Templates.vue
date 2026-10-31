@@ -5,7 +5,8 @@
     </PageHeader>
     <p class="small muted intro">Transactions you enter often. They show up as chips when you add a transaction.</p>
 
-    <div v-if="!templates" class="loading"><span class="spinner" /></div>
+    <div v-if="loadError" class="banner bad"><Icon name="alert" :size="18" /> {{ loadError }}</div>
+    <div v-else-if="!templates" class="loading"><span class="spinner" /></div>
     <div v-else-if="!templates.length" class="card empty"><h3>No templates yet</h3></div>
     <div v-else class="card flush">
       <div v-for="template in templates" :key="template.id" class="item">
@@ -20,11 +21,16 @@
     </div>
 
     <Sheet :open="Boolean(editing)" :title="editing?.id ? 'Edit template' : 'New template'" @close="editing = null">
-      <template #action><button class="btn small primary" :disabled="!editing?.name.trim()" @click="save">Save</button></template>
+      <template #action>
+        <button class="btn small primary" :disabled="!editing?.name.trim() || saving" @click="save">
+          <span v-if="saving" class="spinner" />
+          <span v-else>Save</span>
+        </button>
+      </template>
       <template v-if="editing">
         <label class="field"><span>Name</span><input v-model="editing.name" placeholder="Coffee" /></label>
         <div class="seg block" style="margin-bottom: 12px">
-          <button v-for="option in TYPES" :key="option.value" :class="{ on: editing.type === option.value }" @click="editing.type = option.value">{{ option.label }}</button>
+          <button v-for="option in TYPES" :key="option.value" :class="{ on: editing.type === option.value }" :aria-pressed="editing.type === option.value" @click="editing.type = option.value">{{ option.label }}</button>
         </div>
         <div class="field-row">
           <label class="field"><span>Amount</span><input v-model="editing.amount" inputmode="decimal" placeholder="Any" /></label>
@@ -63,22 +69,22 @@
           </label>
         </div>
         <label class="field"><span>Tags</span><input v-model="editing.tags" placeholder="comma, separated" /></label>
-        <button v-if="editing.id" class="btn block danger" @click="remove">Delete template</button>
+        <button v-if="editing.id" class="btn block danger" :disabled="saving" @click="remove">Delete template</button>
       </template>
     </Sheet>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import PageHeader from '../components/PageHeader.vue'
 import Icon from '../components/Icon.vue'
 import Sheet from '../components/Sheet.vue'
 import { del, get, post, put } from '../lib/api.js'
 import { accountById, accountsOfType, loadAll, ownAccounts, store } from '../lib/data.js'
-import { money } from '../lib/format.js'
+import { money, parseAmount } from '../lib/format.js'
 import { compose } from '../lib/composer.js'
-import { toast } from '../lib/toast.js'
+import { toast, toastError } from '../lib/toast.js'
 
 const TYPES = [
   { value: 'withdrawal', label: 'Expense' },
@@ -87,6 +93,8 @@ const TYPES = [
 ]
 const templates = ref(null)
 const editing = ref(null)
+const saving = ref(false)
+const loadError = ref('')
 
 const sourceAccounts = computed(() => (editing.value?.type === 'deposit' ? accountsOfType('revenue') : ownAccounts()))
 const destinationAccounts = computed(() => (editing.value?.type === 'withdrawal' ? accountsOfType('expense') : ownAccounts()))
@@ -96,8 +104,26 @@ const describe = (template) =>
     .filter(Boolean)
     .join(' · ')
 
+// Switching the type swaps the account lists: an account the new lists do not show would be saved unseen
+watch(
+  () => editing.value?.type,
+  (type, previous) => {
+    const value = editing.value
+    // Only a switch in the open sheet: opening a template keeps what it has
+    if (!value || !previous || !store.loaded.accounts) return
+    const listed = (list, id) => list.some((account) => String(account.id) === String(id))
+    if (value.account_source_id && !listed(sourceAccounts.value, value.account_source_id)) value.account_source_id = ''
+    if (value.account_destination_id && !listed(destinationAccounts.value, value.account_destination_id)) value.account_destination_id = ''
+  },
+)
+
 async function reload() {
-  templates.value = (await get('transaction-templates', { limit: 100 }))?.data ?? []
+  try {
+    templates.value = (await get('transaction-templates', { limit: 100 }))?.data ?? []
+    loadError.value = ''
+  } catch (error) {
+    if (!templates.value) loadError.value = error.message
+  }
 }
 
 const open = (template) =>
@@ -106,11 +132,18 @@ const open = (template) =>
     : { id: null, name: '', type: 'withdrawal', amount: '', description: '', account_source_id: '', account_destination_id: '', category_id: '', budget_id: '', notes: '', tags: '' })
 
 async function save() {
+  if (saving.value) return
   const value = editing.value
+  const text = String(value.amount ?? '').trim()
+  const amount = text ? parseAmount(text) : null
+  if (text && !(amount > 0)) {
+    toastError('Enter the amount like 4,50, or leave it empty for any amount.')
+    return
+  }
   const body = {
     name: value.name.trim(),
     type: value.type,
-    amount: value.amount ? Number(String(value.amount).replace(',', '.')) : null,
+    amount,
     description: value.description || null,
     account_source_id: value.account_source_id || null,
     account_destination_id: value.account_destination_id || null,
@@ -122,18 +155,32 @@ async function save() {
       .map((tag) => tag.trim())
       .filter(Boolean),
   }
-  if (value.id) await put(`transaction-templates/${value.id}`, body)
-  else await post('transaction-templates', body)
-  toast('Saved')
-  editing.value = null
-  reload()
+  saving.value = true
+  try {
+    if (value.id) await put(`transaction-templates/${value.id}`, body)
+    else await post('transaction-templates', body)
+    toast('Saved')
+    editing.value = null
+  } catch {
+    // The error toast comes from api()
+  } finally {
+    saving.value = false
+    reload()
+  }
 }
 
 async function remove() {
   if (!confirm(`Delete the template ${editing.value.name}?`)) return
-  await del(`transaction-templates/${editing.value.id}`)
-  editing.value = null
-  reload()
+  saving.value = true
+  try {
+    await del(`transaction-templates/${editing.value.id}`)
+    editing.value = null
+  } catch {
+    // Toasted by api()
+  } finally {
+    saving.value = false
+    reload()
+  }
 }
 
 function use(template) {
@@ -153,7 +200,7 @@ function use(template) {
 }
 
 onMounted(() => {
-  loadAll('accounts', 'categories', 'budgets')
+  loadAll('accounts', 'categories', 'budgets').catch(() => null)
   reload()
 })
 </script>

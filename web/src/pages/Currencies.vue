@@ -30,7 +30,7 @@
           <tr v-for="row in history" :key="row.date">
             <td>{{ shortDate(row.date) }}</td>
             <td class="num">{{ money(row.rate) }}</td>
-            <td class="num" :class="row.change > 0 ? 'pos' : row.change < 0 ? 'bad' : 'muted'">{{ row.change === null ? '' : `${row.change > 0 ? '+' : ''}${(row.change * 100).toFixed(1)}%` }}</td>
+            <td class="num" :class="row.change > 0 ? 'pos' : row.change < 0 ? 'bad' : 'muted'">{{ change(row.change) }}</td>
           </tr>
         </tbody>
       </table>
@@ -47,11 +47,14 @@
           </select>
         </label>
       </div>
-      <div class="convert-result num">= {{ converted === null ? 'no rate' : money(converted) }}</div>
+      <div v-if="Number.isNaN(parsed)" class="small muted convert-hint">Enter an amount like 100 or 1.234,56</div>
+      <div v-else class="convert-result num">= {{ converted === null ? 'no rate' : money(converted) }}</div>
     </section>
 
     <h2 class="section-title">Your currencies</h2>
-    <div class="card flush">
+    <div v-if="loadError" class="banner bad"><Icon name="alert" :size="18" /> {{ loadError }}</div>
+    <div v-else-if="!store.loaded.currencies" class="loading"><span class="spinner" /></div>
+    <div v-else class="card flush">
       <div v-for="currency in enabled" :key="currency.id" class="item">
         <span class="avatar">{{ currency.attributes.symbol }}</span>
         <span class="grow">
@@ -74,20 +77,28 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import PageHeader from '../components/PageHeader.vue'
+import Icon from '../components/Icon.vue'
 import { getAll } from '../lib/api.js'
 import { balanceOf, load, store, toEur, vwcePrice } from '../lib/data.js'
-import { money, shares, shortDate } from '../lib/format.js'
+import { money, parseAmount, shares, shortDate } from '../lib/format.js'
 
 const amount = ref('100')
 const from = ref('USD')
 const history = ref([])
+const loadError = ref('')
 
 const price = computed(() => vwcePrice())
-const enabled = computed(() => store.currencies)
-const codes = computed(() => [...new Set([...store.currencies.map((currency) => currency.attributes.code), ...Object.keys(store.rates?.rates ?? {})])].sort())
+// Firefly ignores ?enabled=true and lists all its currencies: only the ones switched on are the user's
+const enabled = computed(() => store.currencies.filter((currency) => currency.attributes.enabled !== false))
+const codes = computed(() => [...new Set([...enabled.value.map((currency) => currency.attributes.code), ...Object.keys(store.rates?.rates ?? {})])].sort())
 const rate = (code) => store.rates?.rates?.[code]
 const formatRate = (value) => new Intl.NumberFormat(undefined, { maximumFractionDigits: value < 10 ? 4 : 2 }).format(value)
-const converted = computed(() => toEur(Number(String(amount.value).replace(',', '.')) || 0, from.value))
+// Empty counts as 0; something unreadable shows a hint instead of a made-up result
+const parsed = computed(() => (String(amount.value).trim() ? parseAmount(amount.value, { maxDecimals: from.value === 'VWCE' ? 4 : 2 }) : 0))
+const converted = computed(() => (Number.isNaN(parsed.value) ? null : toEur(parsed.value, from.value)))
+const percent = new Intl.NumberFormat(undefined, { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 })
+// "+1.2%" / "−0.8%" with a real minus, like money()
+const change = (value) => (value === null ? '' : `${value > 0 ? '+' : value < 0 ? '−' : ''}${percent.format(Math.abs(value))}`)
 const holding = computed(() => {
   const account = store.accounts.find((item) => item.attributes.type === 'asset' && item.attributes.currency_code === 'VWCE')
   return account ? { shares: balanceOf(account), eur: toEur(balanceOf(account), 'VWCE') ?? 0 } : null
@@ -104,8 +115,8 @@ async function loadHistory() {
 
 onMounted(() => {
   load('rates', { force: true })
-  load('currencies')
-  load('accounts')
+  load('currencies').catch((error) => (loadError.value = error.message))
+  load('accounts').catch(() => null)
   loadHistory()
 })
 </script>
@@ -142,6 +153,9 @@ onMounted(() => {
 }
 .converter {
   grid-template-columns: 2fr 1fr;
+}
+.convert-hint {
+  padding: 8px 0;
 }
 .convert-result {
   font-size: 24px;

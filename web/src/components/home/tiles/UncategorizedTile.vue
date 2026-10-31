@@ -16,11 +16,13 @@ const count = ref(null)
 const periodName = computed(() => periodLabel(props.view, props.offset, { short: true }))
 
 watch(
-  () => [props.range.start, props.version],
-  async () => {
+  [() => props.range.start, () => props.view, () => props.version],
+  async (_, __, onCleanup) => {
+    let stale = false
+    onCleanup(() => (stale = true))
     count.value = null
     const json = await cachedGet('search/transactions', { query: `has_no_category:true type:withdrawal ${periodQuery(props.range)}`, limit: 1 })
-    count.value = json.meta?.pagination?.total ?? 0
+    if (!stale) count.value = json.meta?.pagination?.total ?? 0
   },
   { immediate: true },
 )

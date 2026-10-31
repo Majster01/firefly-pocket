@@ -14,7 +14,8 @@ export const SIZE_LABELS = { half: '½', full: 'Full', third: '⅓', twothirds: 
 
 /**
  * Every tile Home knows. phone/desktop: the sizes it can take there (the first is the smallest).
- * options: what the tile's settings sheet offers; when(options) hides an option that does not apply.
+ * options: what the tile's settings sheet offers; when(options) hides an option that does not apply. Choices are
+ * [value, label] pairs in the order shown (an object would list its number keys first, whatever order they are written in).
  */
 export const TILES = {
   networth: { title: 'Net worth', icon: 'wallet', phone: ['half', 'full'], desktop: ['third', 'half', 'twothirds', 'full'] },
@@ -31,8 +32,8 @@ export const TILES = {
     phone: ['full'],
     desktop: ['third', 'half', 'twothirds', 'full'],
     options: {
-      chart: { label: 'Chart', type: 'choice', choices: { bars: 'Bars', donut: 'Donut' }, default: 'bars' },
-      limit: { label: 'Categories listed', type: 'choice', choices: { 5: '5', 8: '8', 12: '12', 0: 'All' }, default: 8, when: (options) => options.chart === 'bars' },
+      chart: { label: 'Chart', type: 'choice', choices: [['bars', 'Bars'], ['donut', 'Donut']], default: 'bars' },
+      limit: { label: 'Categories listed', type: 'choice', choices: [[5, '5'], [8, '8'], [12, '12'], [0, 'All']], default: 8, when: (options) => options.chart === 'bars' },
       uncategorized: { label: 'Include uncategorized', type: 'switch', default: true },
     },
   },
@@ -41,7 +42,7 @@ export const TILES = {
     icon: 'chart',
     phone: ['full'],
     desktop: ['third', 'half', 'twothirds', 'full'],
-    options: { metric: { label: 'Show', type: 'choice', choices: { spending: 'Spending', income: 'Income' }, default: 'spending' } },
+    options: { metric: { label: 'Show', type: 'choice', choices: [['spending', 'Spending'], ['income', 'Income']], default: 'spending' } },
   },
   budgets: { title: 'Budgets', icon: 'pie', phone: ['full'], desktop: ['third', 'half', 'twothirds', 'full'], feature: 'budgets' },
   recent: {
@@ -49,14 +50,14 @@ export const TILES = {
     icon: 'list',
     phone: ['full'],
     desktop: ['third', 'half', 'twothirds', 'full'],
-    options: { count: { label: 'Transactions', type: 'choice', choices: { 5: '5', 8: '8', 12: '12' }, default: 6 } },
+    options: { count: { label: 'Transactions', type: 'choice', choices: [[5, '5'], [8, '8'], [12, '12']], default: 5 } },
   },
   accounts: {
     title: 'Accounts',
     icon: 'bank',
     phone: ['full'],
     desktop: ['third', 'half', 'twothirds', 'full'],
-    options: { include: { label: 'Accounts', type: 'choice', choices: { assets: 'Cash & bank', all: 'All, with investments and loans' }, default: 'all' } },
+    options: { include: { label: 'Accounts', type: 'choice', choices: [['assets', 'Cash & bank'], ['all', 'All, with investments and loans']], default: 'all' } },
   },
   uncategorized: { title: 'Uncategorized', icon: 'alert', phone: ['half', 'full'], desktop: ['third', 'half', 'twothirds', 'full'] },
   piggy: { title: 'Piggy banks', icon: 'piggy', phone: ['full'], desktop: ['third', 'half', 'twothirds', 'full'], feature: 'piggyBanks' },
@@ -185,21 +186,49 @@ export function copyLayout(from, to) {
 
 // Pocket keeps a profile per Firefly token with free-form settings: the layouts live in settings.home, so the
 // phone layout follows you to a reinstalled Home Screen app and the desktop one to another browser.
+//
+// Device clocks disagree, so they only settle a real conflict. This device remembers the server's updated_at and its
+// own layout stamp from the last time the two matched: a server copy that changed since then while this one did not
+// wins, and the other way round.
 let profile = null
 let pushTimer = null
+const SYNCED_KEY = 'pocket.home.synced'
+let synced = (() => {
+  try {
+    return JSON.parse(localStorage.getItem(SYNCED_KEY) ?? 'null') ?? {}
+  } catch {
+    return {}
+  }
+})()
+
+function markSynced(updated = home.updated) {
+  synced = { at: profile?.updated_at ?? null, updated }
+  try {
+    localStorage.setItem(SYNCED_KEY, JSON.stringify(synced))
+  } catch {
+    // Without it the device clocks decide, as before
+  }
+}
 
 export async function pullHome() {
   try {
     const json = await get('profiles', undefined, { quiet: true })
     profile = json?.data?.[0] ?? null
     const remote = profile?.settings?.home
-    if (remote && Number(remote.updated ?? 0) > home.updated) {
+    const remoteUpdated = Number(remote?.updated ?? 0)
+    const remoteChanged = Boolean(synced.at) && profile?.updated_at !== synced.at
+    const localChanged = home.updated !== synced.updated
+    const takeRemote = remote && remoteUpdated !== home.updated && (synced.at && remoteChanged !== localChanged ? remoteChanged : remoteUpdated > home.updated)
+    if (takeRemote) {
       syncing = true
-      Object.assign(home, { phone: normalize('phone', remote.phone), desktop: normalize('desktop', remote.desktop), updated: Number(remote.updated) })
+      Object.assign(home, { phone: normalize('phone', remote.phone), desktop: normalize('desktop', remote.desktop), updated: remoteUpdated })
       await Promise.resolve()
       syncing = false
-    } else if (home.updated && Number(remote?.updated ?? 0) < home.updated) {
+      markSynced()
+    } else if (home.updated && remoteUpdated !== home.updated) {
       pushSoon(0)
+    } else if (profile) {
+      markSynced()
     }
   } catch {
     // Offline or an older server: the local layout is enough
@@ -213,6 +242,7 @@ function pushSoon(delay = 800) {
     const settings = { ...(profile.settings ?? {}), home: clone(home) }
     try {
       profile = (await put(`profiles/${profile.id}`, { name: profile.name, settings }, { quiet: true }))?.data ?? profile
+      markSynced(settings.home.updated)
     } catch {
       // Tried again on the next change
     }

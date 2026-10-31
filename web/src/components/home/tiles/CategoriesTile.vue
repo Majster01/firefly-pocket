@@ -20,7 +20,7 @@
       </li>
       <li v-if="rows.length > shown.length">
         <button class="cat-bar more-cats" @click="select({ name: 'Other', others: rows.slice(shown.length), amount: rows.slice(shown.length).reduce((sum, row) => sum + row.amount, 0) })">
-          {{ rows.length - shown.length }} more categories · {{ money(rows.slice(shown.length).reduce((sum, row) => sum + row.amount, 0)) }}
+          {{ rows.length - shown.length }} more categories · <span class="num blurable">{{ money(rows.slice(shown.length).reduce((sum, row) => sum + row.amount, 0)) }}</span>
         </button>
       </li>
     </ul>
@@ -44,10 +44,13 @@ const periodName = computed(() => periodLabel(props.view, props.offset))
 const shown = computed(() => (Number(props.options.limit) ? rows.value.slice(0, Number(props.options.limit)) : rows.value))
 
 watch(
-  () => [props.range.start, props.version, props.options.uncategorized],
-  async () => {
+  [() => props.range.start, () => props.view, () => props.version, () => props.options.uncategorized],
+  async (_, __, onCleanup) => {
+    let stale = false
+    onCleanup(() => (stale = true))
     rows.value = null
     const [byCategory, none] = await Promise.all([cachedGet('insight/expense/category', props.range), cachedGet('insight/expense/no-category', props.range).catch(() => [])])
+    if (stale) return
     const list = (byCategory ?? []).filter((row) => row.currency_code === 'EUR').map((row) => ({ id: row.id, name: row.name, amount: Math.abs(Number(row.difference_float)) }))
     const uncategorized = insightTotal(none)
     if (props.options.uncategorized && uncategorized > 0) list.push({ name: 'Uncategorized', amount: uncategorized, uncategorized: true })

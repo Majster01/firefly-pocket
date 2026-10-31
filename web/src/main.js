@@ -9,7 +9,9 @@ import './styles.css'
 applyTheme()
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme)
 setUnauthorizedHandler(() => {
-  if (router.currentRoute.value.name !== 'setup') router.replace({ name: 'setup', query: { reason: 'unauthorized' } })
+  // next: back to the same page once a new token is saved
+  const current = router.currentRoute.value
+  if (current.name !== 'setup') router.replace({ name: 'setup', query: { reason: 'unauthorized', next: current.fullPath } })
 })
 
 createApp(App).use(router).mount('#app')

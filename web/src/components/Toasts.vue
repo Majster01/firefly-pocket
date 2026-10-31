@@ -43,7 +43,7 @@ import Icon from './Icon.vue'
   box-shadow: var(--float-shadow);
 }
 .toast.error svg {
-  color: #ffb4a8;
+  color: var(--toast-bad);
 }
 .toast .btn {
   background: transparent;

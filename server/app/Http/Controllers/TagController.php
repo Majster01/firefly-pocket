@@ -26,17 +26,26 @@ class TagController extends BaseControllerFirefly
         $find = ['id' => $id];
 
         // We should only have 1 tag marked as to-do. Clear any old ones...
-        if (request()->is_todo) {
-            Tag::where('is_todo', true)->update(['is_todo' => false]);
+        if (request()->boolean('is_todo')) {
+            Tag::where('is_todo', true)->where('id', '!=', $id)->update(['is_todo' => false]);
         }
 
-        $fill = [
-            'icon' => request()->icon,
-            'parent_id' => request()->parent_id,
-            'is_todo' => request()->is_todo,
-        ];
-        $tag = Tag::updateOrCreate($find, $fill);
+        // Only what the client sent: a plain rename from the web app sends none of these, and must neither
+        // wipe the icon nor write null into the NOT NULL is_todo (the tag is already saved in Firefly by now)
+        $fill = request()->only(['icon', 'parent_id']);
+        if (request()->has('is_todo')) {
+            $fill['is_todo'] = request()->boolean('is_todo');
+        }
+        $tag = Tag::firstOrNew($find);
+        $tag->fill($fill);
+        $tag->is_todo ??= false;
+        $tag->save();
 
+        $fill = [
+            'icon' => $tag->icon,
+            'parent_id' => $tag->parent_id,
+            'is_todo' => (bool)$tag->is_todo,
+        ];
         $fill['total_amount'] = $tag->total_amount;
         $fill['total_currency_id'] = $tag->total_currency_id;
 

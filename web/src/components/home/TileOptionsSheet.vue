@@ -12,9 +12,11 @@
               </label>
             </template>
             <template v-else>
-              <div class="option-label">{{ option.label }}</div>
-              <div class="seg block">
-                <button v-for="(label, value) in option.choices" :key="value" :class="{ on: String(values[key]) === String(value) }" @click="set(key, isNaN(Number(value)) ? value : Number(value))">{{ label }}</button>
+              <div :id="`option-${key}`" class="option-label">{{ option.label }}</div>
+              <div class="seg block" role="group" :aria-labelledby="`option-${key}`">
+                <button v-for="[value, label] in option.choices" :key="value" :aria-pressed="String(values[key]) === String(value)" :class="{ on: String(values[key]) === String(value) }" @click="set(key, value)">
+                  {{ label }}
+                </button>
               </div>
             </template>
           </div>

@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
     <Transition name="sheet">
-      <div v-if="open" class="sheet-layer" @keydown.esc="close">
+      <div v-if="open" ref="layer" class="sheet-layer" @keydown.esc="close" @keydown.tab="trapTab">
         <div class="sheet-scrim" @click="close" />
         <div ref="panel" class="sheet" role="dialog" aria-modal="true" :aria-label="title" tabindex="-1" :class="{ wide }">
           <div class="sheet-grabber" aria-hidden="true" />
@@ -22,6 +22,11 @@
   </Teleport>
 </template>
 
+<script>
+// Open sheets, oldest first, shared by every Sheet: a sheet opened from another sheet makes the one below inert too
+const stack = []
+</script>
+
 <script setup>
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
@@ -34,21 +39,65 @@ const props = defineProps({
   wide: Boolean,
 })
 const emit = defineEmits(['close'])
+const layer = ref(null)
 const panel = ref(null)
 const close = () => emit('close')
 
+let mine = null
+let opener = null
+let silenced = []
+
+async function activate() {
+  opener = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null
+  await nextTick()
+  if (!props.open) return
+  mine = layer.value
+  stack.push(mine)
+  document.documentElement.classList.add('sheet-open')
+  // The sheet lives in <body>; everything else (except the toasts, whose Undo must stay reachable) goes inert
+  const behind = [...document.querySelectorAll('#app > :not(.toasts), body > .sheet-layer')].filter((el) => el !== mine && !el.inert)
+  behind.forEach((el) => (el.inert = true))
+  silenced = behind
+  panel.value?.focus({ preventScroll: true })
+}
+
+function deactivate() {
+  const at = stack.indexOf(mine)
+  if (at === -1) return
+  stack.splice(at, 1)
+  mine = null
+  silenced.forEach((el) => (el.inert = false))
+  silenced = []
+  if (!stack.length) document.documentElement.classList.remove('sheet-open')
+  // Back to the button or row that opened it, when that is still on the page
+  if (opener?.isConnected) opener.focus({ preventScroll: true })
+  opener = null
+}
+
+// Tab and Shift+Tab cycle within the panel
+function trapTab(event) {
+  const focusable = [...panel.value.querySelectorAll('a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])')].filter(
+    // An unchecked radio is skipped by Tab (only the group's checked one takes focus)
+    (el) => !el.disabled && !(el.type === 'radio' && !el.checked) && !el.closest('[inert]') && el.getClientRects().length,
+  )
+  if (!focusable.length) return event.preventDefault()
+  const [first, last] = [focusable[0], focusable.at(-1)]
+  const current = document.activeElement
+  if (event.shiftKey && (current === first || current === panel.value || !panel.value.contains(current))) {
+    event.preventDefault()
+    last.focus()
+  } else if (!event.shiftKey && (current === last || !panel.value.contains(current))) {
+    event.preventDefault()
+    first.focus()
+  }
+}
+
 watch(
   () => props.open,
-  async (open) => {
-    document.documentElement.classList.toggle('sheet-open', open)
-    if (open) {
-      await nextTick()
-      panel.value?.focus({ preventScroll: true })
-    }
-  },
+  (open) => (open ? activate() : deactivate()),
   { immediate: true },
 )
-onBeforeUnmount(() => document.documentElement.classList.remove('sheet-open'))
+onBeforeUnmount(deactivate)
 </script>
 
 <style>
@@ -81,6 +130,10 @@ html.sheet-open body {
   box-shadow: var(--frost-edge), var(--float-shadow);
   -webkit-backdrop-filter: blur(36px) saturate(160%);
   backdrop-filter: blur(36px) saturate(160%);
+  outline: none;
+}
+/* The panel takes focus only so the next Tab lands inside it; the global ring would outline the whole sheet */
+.sheet:focus-visible {
   outline: none;
 }
 .sheet-grabber {

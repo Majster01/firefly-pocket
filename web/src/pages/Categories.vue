@@ -5,10 +5,11 @@
     </PageHeader>
 
     <div class="seg period-seg">
-      <button v-for="option in PERIODS" :key="option.value" :class="{ on: period === option.value }" @click="period = option.value">{{ option.label }}</button>
+      <button v-for="option in PERIODS" :key="option.value" :class="{ on: period === option.value }" :aria-pressed="period === option.value" @click="period = option.value">{{ option.label }}</button>
     </div>
 
-    <div v-if="loading" class="loading"><span class="spinner" /></div>
+    <div v-if="loadError" class="banner bad"><Icon name="alert" :size="18" /> {{ loadError }}</div>
+    <div v-else-if="loading" class="loading"><span class="spinner" /></div>
     <div v-else class="card flush">
       <button v-for="category in rows" :key="category.id" class="item" @click="open(category)">
         <span class="avatar">{{ initials(category.name) }}</span>
@@ -25,7 +26,7 @@
     </div>
 
     <Sheet :open="Boolean(editing)" :title="editing?.id ? 'Edit category' : 'New category'" @close="editing = null">
-      <template #action><button class="btn small primary" :disabled="!editing?.name.trim()" @click="save">Save</button></template>
+      <template #action><button class="btn small primary" :disabled="!editing?.name.trim() || saving" @click="save">Save</button></template>
       <template v-if="editing">
         <label class="field"><span>Name</span><input v-model="editing.name" /></label>
         <label class="field"><span>Notes</span><textarea v-model="editing.notes" rows="3" placeholder="What belongs here, for you and the suggester" /></label>
@@ -53,9 +54,11 @@ const PERIODS = [
 ]
 const period = ref('month')
 const loading = ref(true)
+const saving = ref(false)
 const spent = ref({})
 const earned = ref({})
 const editing = ref(null)
+const loadError = ref('')
 
 const range = computed(() => {
   if (period.value === 'last') return monthRange(-1)
@@ -70,33 +73,56 @@ const rows = computed(() =>
 
 const byId = (rows) => Object.fromEntries((rows ?? []).filter((row) => row.currency_code === 'EUR').map((row) => [row.id, Math.abs(Number(row.difference_float))]))
 
+// Switching periods quickly: only the last request may fill the list
+let request = 0
+
 async function reload() {
+  const mine = ++request
   loading.value = true
+  loadError.value = ''
   try {
     const [, expense, income] = await Promise.all([load('categories', { force: true }), get('insight/expense/category', range.value), get('insight/income/category', range.value)])
+    if (mine !== request) return
     spent.value = byId(expense)
     earned.value = byId(income)
+  } catch (error) {
+    if (mine === request) loadError.value = error.message
   } finally {
-    loading.value = false
+    if (mine === request) loading.value = false
   }
 }
 
 const open = (category) => (editing.value = category ? { ...category, original: category.name } : { id: null, name: '', notes: '' })
 
 async function save() {
+  if (saving.value) return
+  saving.value = true
   const body = { name: editing.value.name.trim(), notes: editing.value.notes || null }
-  if (editing.value.id) await put(`categories/${editing.value.id}`, body)
-  else await post('categories', body)
-  toast('Saved')
-  editing.value = null
-  reload()
+  try {
+    if (editing.value.id) await put(`categories/${editing.value.id}`, body)
+    else await post('categories', body)
+    toast('Saved')
+    editing.value = null
+  } catch {
+    // The error toast comes from api()
+  } finally {
+    saving.value = false
+    reload()
+  }
 }
 
 async function remove() {
   if (!confirm(`Delete ${editing.value.original}? Its transactions stay, without a category.`)) return
-  await del(`categories/${editing.value.id}`)
-  editing.value = null
-  reload()
+  saving.value = true
+  try {
+    await del(`categories/${editing.value.id}`)
+    editing.value = null
+  } catch {
+    // Toasted by api(); one deleted elsewhere is gone after the reload
+  } finally {
+    saving.value = false
+    reload()
+  }
 }
 
 watch(period, reload)

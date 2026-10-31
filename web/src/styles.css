@@ -5,18 +5,25 @@
 :root {
   --bg: #d9c7b3;
   --text: #1d1915;
-  --muted: #6a5e54;
+  --muted: #574b42;
   --faint: rgba(255, 255, 255, 0.35);
   --line: rgba(255, 255, 255, 0.55);
-  --good: #23805a;
+  --good: #1d6b4b;
   --spend: #c4441f;
-  --income: #23805a;
-  --warn: #a8720b;
+  --income: #1d6b4b;
+  --warn: #7a5200;
   --bad: #c0322b;
   --accent: #e2552c;
   --ink: #17130f;
   --on-ink: #ffffff;
   --pill: #ffffff;
+  /* Text that sits on the bare room, outside any card: the glows behind it vary, so it stays close to --text */
+  --bare-text: color-mix(in srgb, var(--text) 78%, transparent);
+  /* Count badges: white on the accent is too faint, so a deeper orange by day and dark text at night */
+  --badge: #c4441f;
+  --on-badge: #ffffff;
+  /* Icons on toasts (--ink): an error tint that reads on dark ink by day and light ink at night */
+  --toast-bad: #ff9d8f;
   --radius: 22px;
   --radius-sm: 14px;
   --glow1: #8a5a3c;
@@ -51,7 +58,7 @@
   :root:not([data-theme='light']) {
     --bg: #1a1512;
     --text: #f3ebe3;
-    --muted: #a99b8e;
+    --muted: #c2b5a8;
     --faint: rgba(255, 255, 255, 0.06);
     --line: rgba(255, 255, 255, 0.1);
     --good: #5cc796;
@@ -63,6 +70,9 @@
     --ink: #f3ebe3;
     --on-ink: #17130f;
     --pill: rgba(255, 255, 255, 0.16);
+    --badge: var(--accent);
+    --on-badge: var(--on-ink);
+    --toast-bad: #b3261e;
     --glow1: #8a4b25;
     --glow2: #2b3a55;
     --glow3: #2f3a28;
@@ -86,7 +96,7 @@
 :root[data-theme='night'] {
   --bg: #1a1512;
   --text: #f3ebe3;
-  --muted: #a99b8e;
+  --muted: #c2b5a8;
   --faint: rgba(255, 255, 255, 0.06);
   --line: rgba(255, 255, 255, 0.1);
   --good: #5cc796;
@@ -98,6 +108,9 @@
   --ink: #f3ebe3;
   --on-ink: #17130f;
   --pill: rgba(255, 255, 255, 0.16);
+  --badge: var(--accent);
+  --on-badge: var(--on-ink);
+  --toast-bad: #b3261e;
   --glow1: #8a4b25;
   --glow2: #2b3a55;
   --glow3: #2f3a28;
@@ -145,7 +158,8 @@ body {
   overscroll-behavior-y: none;
 }
 
-/* The room: wood, a bright window, a dark screen, a plant, a rug */
+/* The room: wood, a bright window, a dark screen, a plant, a rug.
+   Kept soft by day: section titles and day headers sit straight on it and must stay readable over its darkest spot */
 body::after {
   content: '';
   position: fixed;
@@ -153,11 +167,11 @@ body::after {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(30vmax 40vmax at 12% 18%, color-mix(in srgb, var(--glow1) 70%, transparent), transparent 70%),
+    radial-gradient(30vmax 40vmax at 12% 18%, color-mix(in srgb, var(--glow1) 42%, transparent), transparent 70%),
     radial-gradient(40vmax 26vmax at 70% 12%, color-mix(in srgb, var(--glow2) 95%, transparent), transparent 70%),
-    radial-gradient(34vmax 22vmax at 55% 48%, rgba(40, 32, 28, 0.45), transparent 70%),
-    radial-gradient(28vmax 28vmax at 88% 70%, color-mix(in srgb, var(--glow3) 55%, transparent), transparent 70%),
-    radial-gradient(50vmax 30vmax at 40% 95%, color-mix(in srgb, var(--glow1) 75%, transparent), transparent 70%),
+    radial-gradient(34vmax 22vmax at 55% 48%, rgba(40, 32, 28, 0.22), transparent 70%),
+    radial-gradient(28vmax 28vmax at 88% 70%, color-mix(in srgb, var(--glow3) 40%, transparent), transparent 70%),
+    radial-gradient(50vmax 30vmax at 40% 95%, color-mix(in srgb, var(--glow1) 45%, transparent), transparent 70%),
     linear-gradient(180deg, color-mix(in srgb, var(--bg) 40%, #fff), var(--bg));
 }
 @media (prefers-color-scheme: dark) {
@@ -201,6 +215,11 @@ h3 {
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+/* Inside clipping containers the ring goes inwards, or the clip cuts it off */
+.card.flush :focus-visible,
+.seg button:focus-visible {
+  outline-offset: -2px;
 }
 
 .muted {
@@ -301,7 +320,11 @@ h3 {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  color: var(--muted);
+  color: var(--bare-text);
+}
+/* TransactionFeed's day headers sit on the bare room too (higher specificity: its own style loads later) */
+.day > .day-head {
+  color: var(--bare-text);
 }
 
 /* ---------------------------------------------------------------- lists */
@@ -333,6 +356,8 @@ a.item:hover {
 }
 .item-title {
   font-weight: 500;
+  /* A long word at 200% zoom wraps instead of running under the chevron */
+  overflow-wrap: anywhere;
 }
 .item-sub {
   font-size: 13px;
@@ -411,6 +436,15 @@ a.item:hover {
 .btn.small.icon {
   width: 34px;
 }
+/* Fingers need 44px; a mouse is fine with the compact size */
+@media (pointer: coarse) {
+  .btn.small {
+    min-height: 44px;
+  }
+  .btn.small.icon {
+    width: 44px;
+  }
+}
 .btn[disabled] {
   opacity: 0.45;
   pointer-events: none;
@@ -441,9 +475,16 @@ a.item:hover {
   color: var(--muted);
   white-space: nowrap;
 }
-.seg button.on {
+.seg button.on,
+.seg button[aria-pressed='true'],
+.seg button[aria-selected='true'] {
   background: var(--ink);
   color: var(--on-ink);
+}
+@media (pointer: coarse) {
+  .seg button {
+    min-height: 40px;
+  }
 }
 .seg.block {
   display: flex;
@@ -526,7 +567,8 @@ select.input {
 }
 .field-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0, …): a date input's intrinsic width must not squeeze its neighbour */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 .switch {
