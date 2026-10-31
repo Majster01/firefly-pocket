@@ -3,21 +3,22 @@
     <span class="avatar" :class="split.type">{{ avatar }}</span>
     <span class="grow">
       <span class="item-title ellipsis" style="display: block">{{ title }}</span>
-      <span class="item-sub ellipsis" style="display: block">
-        <template v-if="showDate">{{ shortDate(split.date) }} · </template>{{ subtitle }}
+      <!-- The chip sits beside the text, not inside the ellipsis, so it is never cut to "Unc" -->
+      <span class="item-sub tx-sub">
+        <span class="ellipsis"><template v-if="showDate">{{ shortDate(split.date) }} · </template>{{ subtitle }}</span>
         <span v-if="!split.category_name && split.type === 'withdrawal'" class="chip warn uncat">Uncategorized</span>
       </span>
     </span>
     <span class="item-end">
-      <span class="num tx-amount" :class="split.type">{{ amountText }}</span>
-      <span v-if="split.foreign_amount" class="item-sub num" style="display: block">{{ money(split.foreign_amount, split.foreign_currency_code) }}</span>
+      <span class="num tx-amount blurable" :class="[split.type, { in: accountId && signed.amount > 0 }]">{{ amountText }}</span>
+      <span v-if="secondText" class="item-sub num blurable" style="display: block">{{ secondText }}</span>
     </span>
   </button>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { counterparty, signedAmount } from '../lib/data.js'
+import { counterparty, signedAmount, signedFor } from '../lib/data.js'
 import { initials, money, shortDate } from '../lib/format.js'
 import { edit } from '../lib/composer.js'
 
@@ -27,17 +28,18 @@ const title = computed(() => props.split.description)
 const party = computed(() => counterparty(props.split))
 const subtitle = computed(() => [props.split.type === 'transfer' ? party.value : party.value, props.split.category_name].filter(Boolean).join(' · '))
 const avatar = computed(() => (props.split.type === 'transfer' ? '⇄' : initials(party.value || props.split.description)))
+// From an account's own page every row is in or out of that account, in its currency
+const signed = computed(() => (props.accountId ? signedFor(props.split, props.accountId) : { amount: signedAmount(props.split), code: props.split.currency_code }))
 const amountText = computed(() => {
   const { split } = props
-  if (split.type === 'transfer') {
-    // From an account's own page a transfer is in or out of it
-    if (props.accountId) {
-      const out = String(split.source_id) === String(props.accountId)
-      return money(out ? -split.amount : split.amount, split.currency_code, { signed: true })
-    }
-    return money(split.amount, split.currency_code)
-  }
-  return money(signedAmount(split), split.currency_code, { signed: true })
+  if (split.type === 'transfer' && !props.accountId) return money(split.amount, split.currency_code)
+  return money(signed.value.amount, signed.value.code, { signed: true })
+})
+// The other currency: the shares bought below the euros, or the euros paid below the shares on the VWCE page
+const secondText = computed(() => {
+  const { split } = props
+  if (!split.foreign_amount) return ''
+  return signed.value.foreign ? money(split.amount, split.currency_code) : money(split.foreign_amount, split.foreign_currency_code)
 })
 </script>
 
@@ -48,14 +50,21 @@ const amountText = computed(() => {
 .tx-amount {
   font-weight: 650;
 }
-.tx-amount.deposit {
-  color: var(--income);
-}
 .tx-amount.transfer {
   color: var(--muted);
 }
+.tx-amount.deposit,
+.tx-amount.in {
+  color: var(--income);
+}
+.tx-sub {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
 .uncat {
-  margin-left: 4px;
+  flex: none;
   padding: 0 6px;
   font-size: 11px;
 }

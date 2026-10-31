@@ -18,7 +18,8 @@ const loaders = {
   categories: () => getAll('categories'),
   budgets: () => getAll('budgets'),
   tags: () => getAll('tags'),
-  currencies: () => getAll('currencies', { enabled: true }),
+  // Firefly ignores ?enabled=true and sends all 42: keep the ones switched on (VWCE is one)
+  currencies: async () => (await getAll('currencies')).filter((currency) => currency.attributes.enabled),
   rates: () => get('currencies/exchange', undefined, { quiet: true }).catch(() => null),
   user: async () => (await get('user'))?.data ?? null,
 }
@@ -69,9 +70,15 @@ export const ACCOUNT_TYPES = {
   revenue: 'Revenue accounts',
 }
 
+export const ROLES = { defaultAsset: 'Current account', savingAsset: 'Savings', sharedAsset: 'Shared', ccAsset: 'Credit card', cashWalletAsset: 'Cash' }
+export const LIABILITY_KINDS = { loan: 'Loan', debt: 'Debt', mortgage: 'Mortgage' }
+export const OWN_TYPES = ['asset', 'liabilities', 'liability']
+/** What kind of own account it is: "Savings", "Loan" */
+export const accountKind = (account) => ROLES[account?.attributes.account_role] ?? LIABILITY_KINDS[account?.attributes.liability_type] ?? null
+
 export const accountById = (id) => store.accounts.find((account) => String(account.id) === String(id))
 export const assetAccounts = () => store.accounts.filter((account) => account.attributes.type === 'asset' && account.attributes.active)
-export const ownAccounts = () => store.accounts.filter((account) => ['asset', 'liabilities', 'liability'].includes(account.attributes.type) && account.attributes.active)
+export const ownAccounts = () => store.accounts.filter((account) => OWN_TYPES.includes(account.attributes.type) && account.attributes.active)
 export const accountsOfType = (type) => store.accounts.filter((account) => account.attributes.type === type)
 export const balanceOf = (account) => Number(account.attributes.current_balance ?? 0)
 
@@ -102,15 +109,43 @@ export const flatten = (groups) =>
     })),
   )
 
-/** Signed from the user's side: money out of an own account is negative. */
+// Firefly's side of an opening balance or reconciliation; the other side is the user's account
+const BOOKKEEPING = { 'opening balance': 'Initial balance account', reconciliation: 'Reconciliation account' }
+export const isBookkeeping = (split) => Boolean(BOOKKEEPING[split.type])
+
+/** Signed from the user's side: money out of an own account is negative. Transfers stay 0. */
 export function signedAmount(split) {
   const amount = Number(split.amount)
   if (split.type === 'withdrawal') return -amount
   if (split.type === 'deposit') return amount
+  // Into an asset from the initial balance account is +; a loan's opening balance goes the other way (the debt), so −
+  if (isBookkeeping(split)) return split.source_type === BOOKKEEPING[split.type] ? amount : -amount
   return 0
 }
 
-export const counterparty = (split) => (split.type === 'deposit' ? split.source_name : split.type === 'transfer' ? `${split.source_name} → ${split.destination_name}` : split.destination_name)
+/**
+ * Signed from one account's page, in that account's currency: + into it, − out of it. A loan instalment is + on the
+ * loan (the debt goes down); "Buy VWCE" is the shares on the VWCE account, not the euros. Payee pages keep signedAmount.
+ */
+export function signedFor(split, accountId) {
+  const id = String(accountId)
+  const into = String(split.destination_id) === id
+  const side = into ? split.destination_type : String(split.source_id) === id ? split.source_type : null
+  if (!side || side === 'Expense account' || side === 'Revenue account') return { amount: signedAmount(split), code: split.currency_code }
+  // Firefly keeps a transfer in the source's currency; the destination's own amount is the foreign one
+  const code = accountById(id)?.attributes.currency_code
+  const foreign = into && split.foreign_amount && code && code === split.foreign_currency_code
+  const amount = Number(foreign ? split.foreign_amount : split.amount)
+  return { amount: into ? amount : -amount, code: foreign ? split.foreign_currency_code : split.currency_code, foreign }
+}
+
+export function counterparty(split) {
+  if (split.type === 'deposit') return split.source_name
+  if (split.type === 'transfer') return `${split.source_name} → ${split.destination_name}`
+  // An opening balance names the user's own account, not Firefly's "Initial balance for …" side
+  if (isBookkeeping(split)) return split.source_type === BOOKKEEPING[split.type] ? split.destination_name : split.source_name
+  return split.destination_name
+}
 
 // ---------------------------------------------------------------- budgets
 
