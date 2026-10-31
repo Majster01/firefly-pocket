@@ -44,7 +44,7 @@
           <select v-model="editing.account_id">
             <option v-for="account in assetAccounts()" :key="account.id" :value="account.id">{{ account.attributes.name }}</option>
           </select>
-          <small v-if="editing.accounts.length > 1" class="muted">Also saved on {{ editing.accounts.slice(1).map((account) => `${account.name} (${money(account.current_amount)})`).join(', ') }}</small>
+          <small v-if="editing.accounts.length > 1" class="muted piggy-also">Also saved on {{ editing.accounts.slice(1).map((account) => `${account.name} (${money(account.current_amount)})`).join(', ') }}</small>
         </label>
         <div class="field-row">
           <label class="field"><span>Target</span><input v-model="editing.target_amount" inputmode="decimal" placeholder="No target" /></label>
@@ -254,5 +254,9 @@ onMounted(() => {
 }
 .piggy-foot {
   margin-top: 12px;
+}
+.piggy-also {
+  display: block;
+  margin: 6px 4px 0;
 }
 </style>
