@@ -322,10 +322,6 @@ h3 {
   letter-spacing: 0.02em;
   color: var(--bare-text);
 }
-/* TransactionFeed's day headers sit on the bare room too (higher specificity: its own style loads later) */
-.day > .day-head {
-  color: var(--bare-text);
-}
 
 /* ---------------------------------------------------------------- lists */
 
@@ -362,6 +358,10 @@ a.item:hover {
 .item-sub {
   font-size: 13px;
   color: var(--muted);
+}
+/* An amount in a subtitle keeps its meaning color */
+.item-sub.pos {
+  color: var(--income);
 }
 .item-end {
   margin-left: auto;

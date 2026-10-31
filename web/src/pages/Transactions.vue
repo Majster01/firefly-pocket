@@ -217,7 +217,7 @@ onMounted(() => {
   margin-bottom: 14px;
 }
 .toolbar .search {
-  min-width: 240px;
+  min-width: min(240px, 100%);
 }
 .filter-seg {
   align-self: center;

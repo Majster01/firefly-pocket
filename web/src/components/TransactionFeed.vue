@@ -57,6 +57,6 @@ const days = computed(() => {
   margin: 0 6px 6px;
   font-size: 13px;
   font-weight: 650;
-  color: var(--muted);
+  color: var(--bare-text);
 }
 </style>
