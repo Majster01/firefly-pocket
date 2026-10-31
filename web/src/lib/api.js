@@ -45,11 +45,29 @@ export async function api(method, path, { query, body, quiet = false, token } = 
   }
   if (!response.ok) {
     const message = errorMessage(json) ?? `Request failed (${response.status})`
-    if (response.status === 401 && !token) onUnauthorized()
-    else if (!quiet) toastError(message)
+    // Firefly answers 401 for an id that does not exist (deleted on another device, a stale link), not only for a bad
+    // token: ask whether the token still works before signing anyone out
+    if (response.status === 401 && !token) {
+      if (await tokenStillWorks()) {
+        const gone = 'This no longer exists. It may have been deleted elsewhere.'
+        if (!quiet) toastError(gone)
+        throw new ApiError(404, gone, json)
+      }
+      onUnauthorized()
+    } else if (!quiet) toastError(message)
     throw new ApiError(response.status, message, json)
   }
   return json
+}
+
+async function tokenStillWorks() {
+  try {
+    const response = await fetch(new URL('/api/user', location.origin), { headers: { Authorization: `Bearer ${settings.token}`, Accept: 'application/json' } })
+    const json = response.ok ? await response.json().catch(() => null) : null
+    return Boolean(json?.data)
+  } catch {
+    return false
+  }
 }
 
 function errorMessage(json) {
