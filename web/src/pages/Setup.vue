@@ -14,6 +14,8 @@
         <span v-else>Connect</span>
       </button>
       <p v-if="error" class="small bad">{{ error }}</p>
+      <!-- Changing the token from Settings: the Home Screen app has no browser back button -->
+      <p v-if="settings.token && route.query.reason !== 'unauthorized'"><RouterLink :to="next || '/settings'" class="small setup-cancel">Cancel</RouterLink></p>
       <p v-if="isDev" class="tiny muted">Local dev stack: the token is in <code>dev/.web-token.env</code> (written by <code>dev/scripts/bootstrap.sh</code>).</p>
     </form>
   </div>
@@ -34,17 +36,25 @@ const checking = ref(false)
 const error = ref('')
 const isDev = import.meta.env.DEV
 
+const next = typeof route.query.next === 'string' && route.query.next.startsWith('/') && !route.query.next.startsWith('//') ? route.query.next : ''
+const REFUSED = 'Firefly refused this token.'
+
 async function connect() {
   checking.value = true
   error.value = ''
   try {
     const json = await get('user', undefined, { token: token.value.replace(/^Bearer\s+/i, ''), quiet: true })
+    // Only a user proves the token works
+    if (!json?.data) {
+      error.value = REFUSED
+      return
+    }
     settings.token = token.value.replace(/^Bearer\s+/i, '')
     store.user = json.data
     Object.keys(store.loaded).forEach((key) => (store.loaded[key] = false))
-    router.replace(typeof route.query.next === 'string' && route.query.next.startsWith('/') ? route.query.next : '/')
+    router.replace(next || '/')
   } catch (caught) {
-    error.value = caught.status === 401 ? 'Firefly refused this token.' : caught.message
+    error.value = caught.status === 401 ? REFUSED : caught.message
   } finally {
     checking.value = false
   }
@@ -78,6 +88,10 @@ async function connect() {
 .setup-card .banner {
   text-align: left;
   margin-bottom: 12px;
+}
+.setup-cancel {
+  color: var(--accent);
+  font-weight: 600;
 }
 .setup-card textarea {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace !important;

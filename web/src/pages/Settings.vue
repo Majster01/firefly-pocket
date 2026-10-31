@@ -62,7 +62,7 @@
         <button class="btn small danger" @click="signOut"><Icon name="logout" :size="17" /> Sign out</button>
       </div>
     </div>
-    <p class="tiny muted about">Firefly Pocket · design language from firefly-money (MIT) · {{ pocket?.version ? `server ${pocket.version}` : '' }}</p>
+    <p class="tiny muted about">Firefly Pocket · design language from firefly-money (MIT){{ pocket?.version ? ` · server ${pocket.version}` : '' }}</p>
   </div>
 </template>
 
@@ -128,7 +128,7 @@ function signOut() {
 }
 
 onMounted(async () => {
-  load('user')
+  load('user').catch(() => null)
   if (pushSupported()) push.value = await pushStatus().catch(() => ({ configured: false }))
   about.value = (await get('about', undefined, { quiet: true }).catch(() => null))?.data ?? null
   pocket.value = await get('info', undefined, { quiet: true }).catch(() => null)

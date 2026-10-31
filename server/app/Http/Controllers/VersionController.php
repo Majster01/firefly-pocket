@@ -14,6 +14,7 @@ class VersionController extends BaseController
     public function getInfo(AssistantLlmConfigService $assistantLlmConfigService, AssistantTranscriptionConfigService $assistantTranscriptionConfigService)
     {
         return $this->respond([
+            'version' => $this->currentVersion(),
             'latest_version' => $this->resolveLatestVersion(),
             'assistant_llm' => $assistantLlmConfigService->getPublicConfig(),
             'assistant_transcription' => $assistantTranscriptionConfigService->getPublicConfig(),
@@ -21,15 +22,20 @@ class VersionController extends BaseController
     }
 
 
-    private function resolveLatestVersion()
+    // The VERSION file a release build writes, else composer.json's version. Null in a dev checkout without either.
+    private function currentVersion()
     {
         $versionFile = base_path('VERSION');
-        $includeDev = false;
-
         if (file_exists($versionFile)) {
-            $version = trim(file_get_contents($versionFile));
-            $includeDev = str_ends_with($version, '-dev');
+            return trim(file_get_contents($versionFile)) ?: null;
         }
+        $composer = json_decode((string)@file_get_contents(base_path('composer.json')), true);
+        return $composer['version'] ?? null;
+    }
+
+    private function resolveLatestVersion()
+    {
+        $includeDev = str_ends_with($this->currentVersion() ?? '', '-dev');
 
         $url = 'https://api.github.com/repos/cioraneanu/firefly-pico/tags?per_page=100';
         $response = Http::get($url);
