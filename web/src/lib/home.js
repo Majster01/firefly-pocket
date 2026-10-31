@@ -33,7 +33,6 @@ export const TILES = {
     desktop: ['third', 'half', 'twothirds', 'full'],
     options: {
       chart: { label: 'Chart', type: 'choice', choices: [['bars', 'Bars'], ['donut', 'Donut']], default: 'bars' },
-      limit: { label: 'Categories listed', type: 'choice', choices: [[5, '5'], [8, '8'], [12, '12'], [0, 'All']], default: 8, when: (options) => options.chart === 'bars' },
       uncategorized: { label: 'Include uncategorized', type: 'switch', default: true },
     },
   },
@@ -74,7 +73,7 @@ const DEFAULTS = {
       tile('suggestions', 'full'),
       tile('connections', 'full'),
       tile('cashflow', 'full'),
-      tile('categories', 'full', true, { chart: 'bars', limit: 5 }),
+      tile('categories', 'full', true, { chart: 'bars' }),
       tile('networth', 'full'),
       tile('budgets', 'full'),
       tile('recent', 'full', true, { count: 5 }),
