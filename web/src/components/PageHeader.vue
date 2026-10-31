@@ -40,9 +40,14 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
 }
 .page-head-inner {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   min-height: 44px;
+}
+/* The title keeps at least 140px: on a narrow phone a row of actions moves to its own line instead of covering it */
+.page-head-inner > .grow {
+  flex: 1 1 140px;
 }
 .page-eyebrow {
   font-size: 13px;
@@ -54,6 +59,7 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
   font-weight: 750;
   letter-spacing: -0.025em;
   line-height: 1.1;
+  overflow-wrap: break-word;
 }
 /* Focused by the router after navigation so screen readers announce the page; not something to click */
 .page-title:focus {
@@ -64,6 +70,7 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
 }
 .page-actions {
   gap: 8px;
+  margin-left: auto;
 }
 @media (min-width: 900px) {
   .page-head {
