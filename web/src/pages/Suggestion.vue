@@ -173,11 +173,12 @@ function setType(trigger, type) {
   trigger.type = type
 }
 
-// Each count answers the conditions it was asked for; a slower earlier answer must not overwrite a newer one
+// Each count answers the conditions it was asked for; a slower earlier answer must not overwrite a newer one.
+// A payee condition only counts as filled once the accounts are in, so count again when that happens too.
 let previewTimer
 let previewRequest = 0
 watch(
-  triggers,
+  [triggers, triggersFilled],
   () => {
     clearTimeout(previewTimer)
     const request = ++previewRequest
