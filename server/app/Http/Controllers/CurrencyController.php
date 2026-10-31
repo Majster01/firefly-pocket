@@ -32,6 +32,9 @@ class CurrencyController extends BaseControllerFirefly
         }
 
         $date = Carbon::now()->startOfDay()->format("Y-m-d");
+        if (config('app.exchange_rates_mock')) {
+            return $this->mockExchangeRates($date);
+        }
         $cacheKey = "exchange_eur_$date";
         $exchange = Cache::remember($cacheKey, 60 * 60 * 24 * 5, function () {
             $rates = collect();
@@ -70,6 +73,16 @@ class CurrencyController extends BaseControllerFirefly
         }
 
         return $exchange;
+    }
+
+    // Units per 1 EUR, roughly; VWCE at about 137.60 EUR a share
+    private function mockExchangeRates(string $date): array
+    {
+        return [
+            'date' => $date,
+            'rates' => collect(['EUR' => 1, 'USD' => 1.0852, 'GBP' => 0.8431, 'CHF' => 0.9412, 'HUF' => 395.1, 'CZK' => 25.31, 'PLN' => 4.312, 'JPY' => 165.2, 'VWCE' => 1 / 137.6]),
+            'currencies' => CurrencyUtils::CURRENCIES,
+        ];
     }
 
     private function vwcePrice(string $date): ?float

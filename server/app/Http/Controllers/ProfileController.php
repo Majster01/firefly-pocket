@@ -61,13 +61,16 @@ class ProfileController extends BaseController
     {
         BaseAuthorization::checkUser();
 
-        Profile::where('id', $request->id)->update([
-            'auth_token_hash' => getAuthTokenHash(),
+        // Only the caller's own profile: another token's profile is not found
+        $profile = Profile::where('auth_token_hash', getAuthTokenHash())->find($request->id);
+        if (!$profile) {
+            throw new GeneralException('Profile not found', BaseController::HTTP_CODE_NOT_FOUND);
+        }
+        $profile->update([
             'name' => $request->name,
             'settings' => $request->settings,
         ]);
-        $profile = Profile::find($request->id);
-        return $this->respondSuccessWithData(['data' => $profile]);
+        return $this->respondSuccessWithData(['data' => $profile->fresh()]);
     }
 
     public function delete(Request $request)
