@@ -10,6 +10,13 @@
           <span>{{ option.label }}</span>
         </button>
       </div>
+      <RouterLink to="/?customize=1" class="row setting-row">
+        <span class="grow">
+          Customize Home
+          <span class="tiny muted" style="display: block">Tiles, their order and size, month or year. Phone and desktop have their own layouts.</span>
+        </span>
+        <Icon name="chevron" class="chev" :size="18" />
+      </RouterLink>
       <label class="row setting-row">
         <span class="grow">Hide amounts on Home</span>
         <input v-model="settings.dashboard.hideBalances" type="checkbox" class="switch" />

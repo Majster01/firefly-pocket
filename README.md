@@ -10,7 +10,7 @@ A redesign of [Firefly Pocket](https://github.com/Majster01/firefly-pocket) (a F
 
 | Section | What it does |
 | --- | --- |
-| Home | Net worth in EUR (VWCE shares converted at the current price), month spend and income, budgets left, uncategorized count, spending per month, spending by category, latest transactions, alerts for pending suggestions and expiring bank consents |
+| Home | A month or a year (switch and step back in time), built from tiles you show, hide, reorder (drag or arrows), resize and set up: net worth, in · out · surplus with the period before, spending by category as bars or a donut (tap a category for its transactions in that period), spending or income over time, budgets, latest transactions, accounts, uncategorized, piggy banks, and the suggestion and bank connection notices. Phone and desktop keep separate layouts, saved in Pocket's profile so they follow you to another browser |
 | Transactions | Day-grouped feed, Firefly search syntax, filters (expenses, income, transfers, uncategorized), totals of a search; add/edit/delete in a sheet with templates, categories, budgets, tags; EUR → VWCE transfers ask for the shares |
 | Accounts | Cash & bank, investments (VWCE), liabilities, payees and payers; per-account feed; create/edit |
 | Budgets, Categories, Tags, Piggy banks, Recurring, Templates | Browse and edit; budgets per month with limits, piggy bank add/take out, recurring pause/resume |

@@ -14,7 +14,7 @@
         @blur="hover = null"
         @click="hover = hover === index ? null : index"
       >
-        <i class="bar" :class="{ current: item.current, dim: hover !== null && hover !== index }" :style="{ height: `${Math.max(2, (item.value / max) * 100)}%` }" />
+        <i class="bar" :class="{ current: item.current, dim: hover !== null && hover !== index }" :style="{ height: item.value > 0 ? `${Math.max(2, (item.value / max) * 100)}%` : '0' }" />
       </button>
       <div v-if="hover !== null" class="bars-tip" :style="tipStyle">
         <strong>{{ items[hover].label }}</strong>

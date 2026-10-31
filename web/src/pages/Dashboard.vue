@@ -1,293 +1,318 @@
 <template>
   <div>
     <PageHeader :title="greeting" :eyebrow="todayLabel">
-      <button class="btn icon small" :aria-label="settings.dashboard.hideBalances ? 'Show amounts' : 'Hide amounts'" @click="settings.dashboard.hideBalances = !settings.dashboard.hideBalances">
+      <button v-if="!editing" class="btn icon small" :aria-label="settings.dashboard.hideBalances ? 'Show amounts' : 'Hide amounts'" @click="settings.dashboard.hideBalances = !settings.dashboard.hideBalances">
         <Icon :name="settings.dashboard.hideBalances ? 'eyeOff' : 'eye'" :size="18" />
       </button>
+      <button v-if="!editing" class="btn small" aria-label="Customize Home" @click="editing = true"><Icon name="grid" :size="17" /><span class="customize-label">Customize</span></button>
+      <button v-else class="btn small primary" @click="finishEditing">Done</button>
     </PageHeader>
 
-    <div class="dash" :class="{ hidden: settings.dashboard.hideBalances }">
-      <div class="dash-main">
-        <section class="card hero">
-          <div class="hero-label">Net worth</div>
-          <div class="hero-value blurable">
-            <template v-if="store.loaded.accounts">{{ whole(netWorth.total) }}<span class="cents">{{ cents(netWorth.total) }}</span></template>
-            <span v-else class="skeleton" style="display: inline-block; width: 200px; height: 40px" />
-          </div>
-          <div class="small muted hero-sub">
-            <span v-if="vwce">VWCE {{ shares(vwce.shares) }} shares · <span class="blurable">{{ money(vwce.eur) }}</span> at {{ money(vwcePrice()) }}</span>
-            <span v-if="netWorth.missing"> · some balances have no exchange rate</span>
-          </div>
-        </section>
-
-        <div class="kpis">
-          <div class="kpi glass">
-            <div class="kpi-label">Spent in {{ monthName }}</div>
-            <div class="kpi-value blurable">{{ month ? money(month.spent) : '…' }}</div>
-          </div>
-          <div class="kpi glass">
-            <div class="kpi-label">Income in {{ monthName }}</div>
-            <div class="kpi-value pos blurable">{{ month ? money(month.income) : '…' }}</div>
-          </div>
-          <RouterLink v-if="settings.features.budgets" to="/budgets" class="kpi glass">
-            <div class="kpi-label">Left in budgets</div>
-            <div class="kpi-value blurable" :class="{ bad: budgetTotals.left < 0 }">{{ budgets ? money(budgetTotals.left) : '…' }}</div>
-          </RouterLink>
-          <RouterLink to="/transactions?filter=uncategorized" class="kpi glass">
-            <div class="kpi-label">Uncategorized</div>
-            <div class="kpi-value" :class="{ warn: uncategorized > 0 }">{{ uncategorized ?? '…' }}</div>
-          </RouterLink>
-        </div>
-
-        <RouterLink v-if="settings.features.ruleSuggestions && badges.suggestions" to="/suggestions" class="card attention">
-          <span class="avatar"><Icon name="sparkles" :size="20" /></span>
-          <span class="grow">
-            <strong>{{ badges.suggestions }} category {{ badges.suggestions === 1 ? 'suggestion' : 'suggestions' }}</strong>
-            <span class="item-sub" style="display: block">Review what the suggester proposes for new transactions</span>
-          </span>
-          <Icon name="chevron" class="chev" />
-        </RouterLink>
-        <RouterLink v-for="connection in attentionConnections" :key="connection.name" to="/bank-connections" class="card attention">
-          <span class="avatar"><img v-if="connection.bank.logo" :src="connection.bank.logo" alt="" /></span>
-          <span class="grow">
-            <strong>{{ connection.bank.name }}: {{ connectionNote(connection) }}</strong>
-            <span class="item-sub" style="display: block">{{ connection.status === 'needs_mapping' ? 'Choose the accounts to import' : 'Renew the bank consent to keep importing' }}</span>
-          </span>
-          <Icon name="chevron" class="chev" />
-        </RouterLink>
-
-        <section class="card">
-          <h2 class="card-title">Spending per month</h2>
-          <BarChart v-if="monthly.length" :items="monthly" label="Spending per month, in euro" :format="(value) => money(value, 'EUR', { decimals: 0 })" />
-          <div v-else class="skeleton" style="height: 170px" />
-        </section>
-
-        <section class="card">
-          <h2 class="card-title">
-            <span>Where it went in {{ monthName }}</span>
-            <RouterLink to="/categories" class="tiny">All categories</RouterLink>
-          </h2>
-          <ul v-if="categories.length" class="list cat-bars">
-            <li v-for="category in categories.slice(0, 7)" :key="category.name" class="cat-bar">
-              <div class="row">
-                <span class="grow ellipsis">{{ category.name }}</span>
-                <span class="num blurable">{{ money(category.amount) }}</span>
-                <span class="num muted tiny share">{{ Math.round(category.share * 100) }}%</span>
-              </div>
-              <div class="track"><i class="ink" :style="{ width: `${category.share * 100}%` }" /></div>
-            </li>
-          </ul>
-          <p v-else-if="month" class="muted small">Nothing spent yet this month.</p>
-          <div v-else class="skeleton" style="height: 120px" />
-        </section>
+    <div class="period-bar">
+      <div class="seg" role="tablist" aria-label="Period">
+        <button role="tab" :aria-selected="view === 'month'" :class="{ on: view === 'month' }" @click="setView('month')">Month</button>
+        <button role="tab" :aria-selected="view === 'year'" :class="{ on: view === 'year' }" @click="setView('year')">Year</button>
       </div>
-
-      <div class="dash-side">
-        <section v-if="settings.features.budgets" class="card">
-          <h2 class="card-title">
-            <span>Budgets</span>
-            <RouterLink to="/budgets" class="tiny">Details</RouterLink>
-          </h2>
-          <ul v-if="budgets?.length" class="list">
-            <li v-for="budget in budgets" :key="budget.id" class="budget-line">
-              <div class="row">
-                <span class="grow ellipsis">{{ budget.name }}</span>
-                <span class="small num blurable" :class="{ bad: budget.left < 0 }">{{ budget.left < 0 ? `${money(-budget.left)} over` : `${money(budget.left)} left` }}</span>
-              </div>
-              <div class="track" :title="`${money(budget.spent)} of ${money(budget.limit)}`"><i :class="meterClass(budget.ratio)" :style="{ width: `${Math.min(100, budget.ratio * 100)}%` }" /></div>
-            </li>
-          </ul>
-          <p v-else-if="budgets" class="muted small">No budgets with a limit this month.</p>
-          <div v-else class="skeleton" style="height: 140px" />
-        </section>
-
-        <section class="card flush">
-          <h2 class="card-title">
-            <span>Latest</span>
-            <RouterLink to="/transactions" class="tiny">All transactions</RouterLink>
-          </h2>
-          <div v-if="recent.length">
-            <TransactionRow v-for="split in recent" :key="split.transaction_journal_id" :split="split" show-date />
-          </div>
-          <div v-else class="loading"><span class="spinner" /></div>
-        </section>
-
-        <section class="card flush">
-          <h2 class="card-title">
-            <span>Accounts</span>
-            <RouterLink to="/accounts" class="tiny">All accounts</RouterLink>
-          </h2>
-          <RouterLink v-for="account in topAccounts" :key="account.id" :to="`/accounts/${account.id}`" class="item">
-            <span class="avatar">{{ initials(account.attributes.name) }}</span>
-            <span class="grow ellipsis item-title">{{ account.attributes.name }}</span>
-            <span class="item-end num blurable">
-              {{ money(balanceOf(account), account.attributes.currency_code) }}
-              <span v-if="account.attributes.currency_code !== 'EUR' && toEur(balanceOf(account), account.attributes.currency_code) !== null" class="item-sub" style="display: block">{{ money(toEur(balanceOf(account), account.attributes.currency_code)) }}</span>
-            </span>
-          </RouterLink>
-        </section>
+      <div class="period-nav">
+        <button class="btn icon small" :aria-label="`Previous ${view}`" @click="setOffset(offset - 1)"><Icon name="back" :size="18" /></button>
+        <button class="period-label" :disabled="offset === 0" :title="offset === 0 ? '' : 'Back to now'" @click="setOffset(0)">{{ periodLabel(view, offset) }}</button>
+        <button class="btn icon small" :aria-label="`Next ${view}`" :disabled="offset >= 0" @click="setOffset(offset + 1)"><Icon name="chevron" :size="18" /></button>
       </div>
     </div>
+
+    <div v-if="editing" class="card edit-banner">
+      <div class="grow">
+        <strong>Customizing the {{ DEVICES[device].label.toLowerCase() }} layout</strong>
+        <p class="small muted">Drag <Icon name="grid" :size="13" /> to move, tap the size to resize, <Icon name="eye" :size="13" /> to hide. The {{ device === 'phone' ? 'desktop' : 'phone' }} layout is separate.</p>
+      </div>
+      <button class="btn small" @click="libraryOpen = true"><Icon name="plus" :size="16" /> Tiles<span v-if="hiddenCount" class="lib-count">{{ hiddenCount }} hidden</span></button>
+    </div>
+
+    <TransitionGroup tag="div" name="tile-move" class="home-grid" :class="[`device-${device}`, { hidden: settings.dashboard.hideBalances, editing }]">
+      <HomeTile
+        v-for="entry in shownTiles"
+        :key="entry.id"
+        :entry="entry"
+        :device="device"
+        :editing="editing"
+        :dragging="dragId === entry.id"
+        @drag="startDrag(entry, $event)"
+        @move="move(entry, $event)"
+        @resize="resize(entry)"
+        @options="optionsFor = entry"
+        @toggle="toggle(entry)"
+      >
+        <component :is="COMPONENTS[entry.id]" :view="view" :offset="offset" :range="range" :options="optionsOf(entry)" :version="version" :editing="editing" />
+      </HomeTile>
+    </TransitionGroup>
+
+    <div v-if="!editing && !shownTiles.length" class="card empty">
+      <h3>Home is empty</h3>
+      <p>Every tile is hidden in this layout.</p>
+      <button class="btn primary" @click="editing = true">Customize</button>
+    </div>
+
+    <TileOptionsSheet :entry="optionsFor" :device="device" @close="optionsFor = null" />
+    <TileLibrarySheet :open="libraryOpen" :device="device" @close="libraryOpen = false" />
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import PageHeader from '../components/PageHeader.vue'
 import Icon from '../components/Icon.vue'
-import BarChart from '../components/BarChart.vue'
-import TransactionRow from '../components/TransactionRow.vue'
-import { get } from '../lib/api.js'
-import { assetAccounts, balanceOf, budgetMonth, flatten, load, meterClass, netWorthEur, store, toEur, vwcePrice } from '../lib/data.js'
-import { initials, money, monthRange, shares } from '../lib/format.js'
+import HomeTile from '../components/home/HomeTile.vue'
+import TileOptionsSheet from '../components/home/TileOptionsSheet.vue'
+import TileLibrarySheet from '../components/home/TileLibrarySheet.vue'
+import NetWorthTile from '../components/home/tiles/NetWorthTile.vue'
+import CashflowTile from '../components/home/tiles/CashflowTile.vue'
+import CategoriesTile from '../components/home/tiles/CategoriesTile.vue'
+import TrendTile from '../components/home/tiles/TrendTile.vue'
+import BudgetsTile from '../components/home/tiles/BudgetsTile.vue'
+import RecentTile from '../components/home/tiles/RecentTile.vue'
+import AccountsTile from '../components/home/tiles/AccountsTile.vue'
+import UncategorizedTile from '../components/home/tiles/UncategorizedTile.vue'
+import PiggyTile from '../components/home/tiles/PiggyTile.vue'
+import SuggestionsTile from '../components/home/tiles/SuggestionsTile.vue'
+import ConnectionsTile from '../components/home/tiles/ConnectionsTile.vue'
+import { DEVICES, TILES, device, home, optionsOf, periodLabel, periodRange, pullHome, touch } from '../lib/home.js'
+import { clearCache, load } from '../lib/data.js'
 import { settings } from '../lib/settings.js'
-import { badges } from '../lib/badges.js'
+import { badges, refreshBadges } from '../lib/badges.js'
 import { composer } from '../lib/composer.js'
+
+const COMPONENTS = {
+  networth: NetWorthTile,
+  cashflow: CashflowTile,
+  categories: CategoriesTile,
+  trend: TrendTile,
+  budgets: BudgetsTile,
+  recent: RecentTile,
+  accounts: AccountsTile,
+  uncategorized: UncategorizedTile,
+  piggy: PiggyTile,
+  suggestions: SuggestionsTile,
+  connections: ConnectionsTile,
+}
+
+const route = useRoute()
+const router = useRouter()
 
 const now = new Date()
 const hour = now.getHours()
 const greeting = hour < 5 ? 'Good night' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
 const todayLabel = new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long' }).format(now)
-const monthName = new Intl.DateTimeFormat(undefined, { month: 'long' }).format(now)
-const shortMonth = new Intl.DateTimeFormat(undefined, { month: 'short' })
-const longMonth = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' })
 
-const month = ref(null)
-const monthly = ref([])
-const categories = ref([])
-const budgets = ref(null)
-const recent = ref([])
-const uncategorized = ref(null)
-const connections = ref([])
+// Settings → Customize Home lands here with ?customize=1
+const editing = ref(route.query.customize === '1')
+const optionsFor = ref(null)
+const libraryOpen = ref(false)
+const dragId = ref(null)
+const version = ref(0)
 
-const netWorth = computed(() => netWorthEur())
-const whole = (value) => {
-  const text = money(value)
-  const match = text.match(/^(.*?)([.,]\d{2})(\D*)$/)
-  return match ? match[1] + match[3] : text
+// ------------------------------------------------------------------ period
+
+// The period is in the URL, so Back from a category's transactions returns to the same month or year.
+// Without one, Home opens on the view this layout last used.
+const layout = computed(() => home[device.value])
+const view = computed(() => (['month', 'year'].includes(route.query.view) ? route.query.view : layout.value.view))
+const offset = computed(() => Math.min(0, Number.parseInt(route.query.offset ?? '0', 10) || 0))
+const range = computed(() => periodRange(view.value, offset.value))
+
+function setView(value) {
+  if (layout.value.view !== value) {
+    layout.value.view = value
+    touch()
+  }
+  router.replace({ query: { view: value } })
 }
-const cents = (value) => money(value).match(/[.,]\d{2}/)?.[0] ?? ''
-
-const vwce = computed(() => {
-  const account = store.accounts.find((item) => item.attributes.type === 'asset' && item.attributes.currency_code === 'VWCE')
-  if (!account) return null
-  return { shares: balanceOf(account), eur: toEur(balanceOf(account), 'VWCE') ?? 0 }
+watch(editing, (value) => {
+  if (!value && route.query.customize) router.replace({ query: { ...route.query, customize: undefined } })
 })
-const topAccounts = computed(() => assetAccounts().slice(0, 6))
-const budgetTotals = computed(() => (budgets.value ?? []).reduce((totals, budget) => ({ left: totals.left + budget.left }), { left: 0 }))
-const attentionConnections = computed(() => (settings.features.bankConnections ? connections.value.filter((item) => ['expiring', 'expired', 'error', 'needs_mapping'].includes(item.status)) : []))
-const connectionNote = (connection) =>
-  ({ expiring: `consent ends in ${connection.days_left} ${connection.days_left === 1 ? 'day' : 'days'}`, expired: 'consent ended', error: 'last import failed', needs_mapping: 'accounts not set up' })[connection.status]
+const setOffset = (value) => router.replace({ query: { view: view.value, ...(value ? { offset: String(value) } : {}) } })
 
-const sumDifference = (rows) => -(rows ?? []).filter((row) => row.currency_code === 'EUR').reduce((total, row) => total + Number(row.difference_float), 0)
+// ------------------------------------------------------------------- tiles
 
-async function loadMonth() {
-  const range = monthRange(0)
-  const [expense, income, byCategory, uncategorizedJson] = await Promise.all([
-    get('insight/expense/total', range),
-    get('insight/income/total', range),
-    get('insight/expense/category', range),
-    get('search/transactions', { query: 'has_no_category:true type:withdrawal', limit: 1 }),
-  ])
-  month.value = { spent: sumDifference(expense), income: -sumDifference(income) }
-  const rows = (byCategory ?? []).filter((row) => row.currency_code === 'EUR').map((row) => ({ name: row.name, amount: -Number(row.difference_float) }))
-  const withoutCategory = await get('insight/expense/no-category', range).catch(() => [])
-  const none = sumDifference(withoutCategory)
-  if (none > 0) rows.push({ name: 'Uncategorized', amount: none })
-  const total = rows.reduce((sum, row) => sum + row.amount, 0) || 1
-  categories.value = rows.sort((a, b) => b.amount - a.amount).map((row) => ({ ...row, share: row.amount / total }))
-  uncategorized.value = uncategorizedJson.meta?.pagination?.total ?? 0
+const enabled = (entry) => !TILES[entry.id].feature || settings.features[TILES[entry.id].feature]
+// A notice with nothing to say takes no room, except while customizing
+const hasNotice = (entry) => (entry.id === 'suggestions' ? badges.suggestions > 0 : entry.id === 'connections' ? badges.connections > 0 : true)
+const shownTiles = computed(() => layout.value.tiles.filter((entry) => enabled(entry) && (editing.value || (entry.visible && hasNotice(entry)))))
+const hiddenCount = computed(() => layout.value.tiles.filter((entry) => enabled(entry) && !entry.visible).length)
+
+function move(entry, step) {
+  const tiles = layout.value.tiles
+  const visible = tiles.filter(enabled)
+  const target = visible[visible.indexOf(entry) + step]
+  if (!target) return
+  tiles.splice(tiles.indexOf(entry), 1)
+  tiles.splice(tiles.indexOf(target) + (step > 0 ? 1 : 0), 0, entry)
+  touch()
 }
 
-async function loadMonthly() {
-  const offsets = [-5, -4, -3, -2, -1, 0]
-  const totals = await Promise.all(offsets.map((offset) => get('insight/expense/total', monthRange(offset)).catch(() => [])))
-  monthly.value = offsets.map((offset, index) => {
-    const date = new Date(now.getFullYear(), now.getMonth() + offset, 1)
-    return { label: longMonth.format(date), short: shortMonth.format(date), value: sumDifference(totals[index]), current: offset === 0, note: offset === 0 ? 'so far' : '' }
-  })
+function resize(entry) {
+  const sizes = TILES[entry.id][device.value]
+  entry.size = sizes[(sizes.indexOf(entry.size) + 1) % sizes.length]
+  touch()
 }
 
-async function loadRecent() {
-  const json = await get('transactions', { limit: 8, type: 'all' })
-  recent.value = flatten(json.data ?? []).filter((split) => split.type !== 'opening balance').slice(0, 8)
+function toggle(entry) {
+  entry.visible = !entry.visible
+  touch()
 }
 
-function loadEverything() {
+function finishEditing() {
+  editing.value = false
+  dragId.value = null
+}
+
+// ---------------------------------------------------------------- dragging
+
+// Pointer events rather than HTML drag and drop, which iOS Safari does not do. The tile under the finger takes the
+// dragged tile's place as it moves; near the screen's edge the page scrolls.
+let scrollTimer = null
+function startDrag(entry, event) {
+  event.preventDefault()
+  dragId.value = entry.id
+  // Scroll anchoring would chase the moving tiles and scroll the page on its own
+  document.documentElement.style.overflowAnchor = 'none'
+  window.addEventListener('pointermove', onDrag)
+  window.addEventListener('pointerup', endDrag, { once: true })
+  window.addEventListener('pointercancel', endDrag, { once: true })
+}
+let lastPoint = null
+function reorderUnder({ x, y }) {
+  // At the screen's edges the finger is over the sticky header or the tab bar, not a tile: look just inside them
+  const top = document.querySelector('.page-head')?.getBoundingClientRect().bottom ?? 0
+  const bottom = document.querySelector('.tabbar')?.getBoundingClientRect().top ?? innerHeight
+  const grid = document.querySelector('.home-grid')?.getBoundingClientRect()
+  const clampedY = Math.min(Math.max(y, top + 12), (bottom > 0 && bottom < innerHeight ? bottom : innerHeight) - 12)
+  const clampedX = grid ? Math.min(Math.max(x, grid.left + 12), grid.right - 12) : x
+  const under = document.elementFromPoint(clampedX, clampedY)?.closest('[data-tile-id]')
+  const targetId = under?.dataset.tileId
+  if (!targetId || targetId === dragId.value) return
+  const tiles = layout.value.tiles
+  const from = tiles.findIndex((entry) => entry.id === dragId.value)
+  const to = tiles.findIndex((entry) => entry.id === targetId)
+  // Swap only past the target's middle, so two tiles do not trade places back and forth under a still finger.
+  // Tiles side by side compare across, tiles above and below compare down.
+  const rect = under.getBoundingClientRect()
+  const dragged = document.querySelector(`[data-tile-id="${dragId.value}"]`)?.getBoundingClientRect()
+  const sideBySide = dragged && dragged.top < rect.bottom - 8 && rect.top < dragged.bottom - 8
+  const past = sideBySide ? (to < from ? clampedX < rect.left + rect.width / 2 : clampedX > rect.left + rect.width / 2) : to < from ? clampedY < rect.top + rect.height / 2 : clampedY > rect.top + rect.height / 2
+  if (!past) return
+  const [moved] = tiles.splice(from, 1)
+  tiles.splice(to, 0, moved)
+}
+function onDrag(event) {
+  lastPoint = { x: event.clientX, y: event.clientY }
+  reorderUnder(lastPoint)
+  const edge = 90
+  const speed = event.clientY < edge ? -14 : event.clientY > innerHeight - edge - 70 ? 14 : 0
+  clearInterval(scrollTimer)
+  // While the page scrolls under a finger that holds still, the tile under it changes too
+  scrollTimer = speed
+    ? setInterval(() => {
+        scrollBy(0, speed)
+        reorderUnder(lastPoint)
+      }, 16)
+    : null
+}
+function endDrag() {
+  window.removeEventListener('pointermove', onDrag)
+  clearInterval(scrollTimer)
+  document.documentElement.style.overflowAnchor = ''
+  if (dragId.value) touch()
+  dragId.value = null
+}
+onBeforeUnmount(endDrag)
+
+// -------------------------------------------------------------------- data
+
+function refresh() {
+  clearCache()
+  version.value++
+  load('accounts', { force: true })
+  refreshBadges()
+}
+watch(() => composer.version, refresh)
+
+onMounted(() => {
+  clearCache()
   load('accounts', { force: true })
   load('rates')
-  loadMonth()
-  loadMonthly()
-  loadRecent()
-  if (settings.features.budgets) budgetMonth(monthRange(0)).then((list) => (budgets.value = list.filter((budget) => budget.limit > 0).sort((a, b) => b.ratio - a.ratio)))
-  if (settings.features.bankConnections) get('bank-connections', undefined, { quiet: true }).then((json) => (connections.value = json?.data ?? [])).catch(() => null)
-}
-
-watch(() => composer.version, loadEverything)
-onMounted(loadEverything)
+  pullHome()
+})
 </script>
 
 <style>
-.dash {
-  display: grid;
-  gap: 12px;
+.period-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
 }
-.dash-main,
-.dash-side {
-  display: grid;
-  gap: 12px;
-  align-content: start;
-  min-width: 0;
+.period-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
-.dash .card + .card {
-  margin-top: 0;
+.period-label {
+  min-width: 128px;
+  white-space: nowrap;
+  border: 0;
+  background: transparent;
+  font-weight: 700;
+  font-size: 16px;
+  text-align: center;
 }
-.hero-sub {
-  margin-top: 6px;
+.period-label:disabled {
+  cursor: default;
 }
-.attention {
+.edit-banner {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 14px;
+  margin-bottom: 12px;
 }
-.attention .avatar {
-  color: var(--accent);
+.edit-banner p {
+  margin: 2px 0 0;
 }
-.cat-bar {
-  padding: 7px 0;
+.lib-count {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
 }
-.cat-bar .track {
-  margin-top: 6px;
-  height: 6px;
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-flow: row dense;
+  gap: 12px;
 }
-.cat-bar .share {
-  width: 34px;
-  text-align: right;
+.home-grid.device-desktop {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 16px;
 }
-.budget-line {
-  padding: 8px 0;
+.home-grid .card + .card {
+  margin-top: 0;
 }
-.budget-line .track {
-  margin-top: 7px;
-}
-.dash.hidden .blurable {
+.home-grid.hidden .blurable {
   filter: blur(9px);
 }
 .blurable {
   transition: filter 0.2s ease;
 }
-@media (min-width: 900px) {
-  .dash {
-    grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr);
-    gap: 16px;
+.tile-move-move {
+  transition: transform 0.25s ease;
+}
+@media (max-width: 420px) {
+  .customize-label {
+    display: none;
   }
-  .dash-main,
-  .dash-side {
-    gap: 16px;
-  }
-  .kpis {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  .period-label {
+    min-width: 0;
+    font-size: 15px;
   }
 }
 </style>

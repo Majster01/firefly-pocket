@@ -5,7 +5,15 @@ import { settings } from './settings.js'
 // Counts shown next to navigation items
 export const badges = reactive({ suggestions: 0, connections: 0 })
 
-export async function refreshBadges() {
+let inflight = null
+
+// Several callers ask at once when the app opens: one round of requests serves them all
+export function refreshBadges() {
+  inflight ??= refresh().finally(() => (inflight = null))
+  return inflight
+}
+
+async function refresh() {
   if (!settings.token) return
   const tasks = []
   if (settings.features.ruleSuggestions) {

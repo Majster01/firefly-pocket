@@ -129,3 +129,25 @@ export async function budgetMonth({ start, end }) {
 }
 
 export const meterClass = (ratio) => (ratio > 1 ? 'bad' : ratio > 0.85 ? 'warn' : '')
+
+// ------------------------------------------------------------ shared reads
+
+// Home's tiles ask for overlapping data (the month's totals, its categories): one request each, kept for a minute
+const cache = new Map()
+const CACHE_MS = 60000
+
+export function cachedGet(path, query = {}) {
+  const key = `${path}?${new URLSearchParams(query)}`
+  const hit = cache.get(key)
+  if (hit && Date.now() - hit.at < CACHE_MS) return hit.promise
+  const promise = get(path, query).catch((error) => {
+    cache.delete(key)
+    throw error
+  })
+  cache.set(key, { at: Date.now(), promise })
+  return promise
+}
+export const clearCache = () => cache.clear()
+
+/** Firefly insight rows to a EUR total, spending positive. */
+export const insightTotal = (rows) => Math.abs((rows ?? []).filter((row) => row.currency_code === PRIMARY).reduce((total, row) => total + Number(row.difference_float), 0))
