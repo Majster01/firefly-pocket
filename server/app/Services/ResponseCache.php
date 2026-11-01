@@ -26,7 +26,7 @@ class ResponseCache
 
     // Pocket's own data or data that is not Firefly's: never cached here (paths after /api/)
     const NOT_CACHED = [
-        'assistant', 'bank-connections', 'currencies/exchange', 'custom-icons', 'info', 'internal', 'profiles', 'push',
+        'assistant', 'bank-connections', 'currencies/exchange', 'custom-icons', 'data-version', 'info', 'internal', 'profiles', 'push',
         'system-status', 'test', 'transaction-templates', 'user', 'accounts/groups',
     ];
 
@@ -111,9 +111,14 @@ class ResponseCache
         return '"' . hash('xxh128', $body) . '"';
     }
 
+    /**
+     * The day is part of the key: some answers move with the date alone (a recurring transaction's next date, a
+     * balance with transactions booked ahead), so nothing is kept past midnight.
+     */
     private function key(int $version, Request $request): string
     {
-        return self::KEY_PREFIX . $version . ':' . getAuthTokenHash() . ':' . hash('sha256', $request->getRequestUri());
+        $day = now(config('app.response_cache_timezone'))->toDateString();
+        return self::KEY_PREFIX . $version . ':' . $day . ':' . getAuthTokenHash() . ':' . hash('sha256', $request->getRequestUri());
     }
 
     private function matches(Request $request, array $prefixes): bool

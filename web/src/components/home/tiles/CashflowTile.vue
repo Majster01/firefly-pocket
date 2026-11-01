@@ -36,7 +36,8 @@
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import Icon from '../../Icon.vue'
-import { cachedGet, insightTotal } from '../../../lib/data.js'
+import { get } from '../../../lib/api.js'
+import { insightTotal } from '../../../lib/data.js'
 import { isoDate, money } from '../../../lib/format.js'
 import { periodLabel, periodRange } from '../../../lib/home.js'
 
@@ -64,7 +65,7 @@ const change = (now, before) => {
 }
 
 async function totals(range) {
-  const [income, expense] = await Promise.all([cachedGet('insight/income/total', range), cachedGet('insight/expense/total', range)])
+  const [income, expense] = await Promise.all([get('insight/income/total', range), get('insight/expense/total', range)])
   return { in: insightTotal(income), out: insightTotal(expense) }
 }
 

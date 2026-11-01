@@ -33,13 +33,24 @@ Pocket keeps Firefly's answers so that opening a page does not wait on Firefly f
   - something is saved, changed or deleted through Pocket (adding a transaction, approving or rejecting a suggestion, an import started from Bank connections). Saving the Home layout and previewing a suggestion's conditions do not count;
   - the importer or suggester calls `POST /api/internal/notify`;
   - Firefly's webhook calls `POST /api/internal/firefly-webhook`, for changes made outside Pocket (Firefly's own pages, the data importer).
-- Answers expire after `RESPONSE_CACHE_TTL` (12 hours) in any case.
+- Answers expire after `RESPONSE_CACHE_TTL` (12 hours) in any case, and at midnight in Firefly's timezone (`RESPONSE_CACHE_TIMEZONE`, else `TZ`), since some answers move with the date alone.
 - Answers carry an ETag, so the browser gets an empty 304 when nothing changed. A request with `Cache-Control: no-cache` skips the kept answer.
 - A token Firefly accepted is trusted for `USER_CACHE_TTL` (10 minutes) before Pocket asks Firefly again. A token revoked in Firefly can read kept answers for at most that long.
 
+**In the browser.** The web app keeps those answers too, in IndexedDB, so they survive closing the app (`web/src/lib/cache.js`):
+- It shows a kept answer only while `GET /api/data-version` still names the version it was kept under, and only on the day it was kept.
+- It asks for the version again:
+  - when the app starts;
+  - when it comes back to the screen;
+  - after anything it saves;
+  - before a read, when the last answer is more than 30 seconds old.
+- Reads wait for that check, so the app never shows a kept answer and then swaps it for a newer one.
+- Opening Home again with nothing changed sends only the version check and Pocket's own requests (profile, bank connections, exchange rates).
+- Another token or signing out throws away what was kept.
+
 In production use Redis, which the Docker image already runs for Horizon: `CACHE_DRIVER=redis`. Firefly III can use Redis for its own cache too (`CACHE_DRIVER=redis` and `REDIS_*` in Firefly's environment).
 
-**Firefly webhook.** In Firefly III, add a webhook under Automation → Webhooks:
+**Firefly webhook.** Webhooks may be switched off in Firefly III (`allow_webhooks`; the site owner turns them on in Firefly's administration settings). Then add one under Automation → Webhooks:
 - URL: `http://<pocket>/api/internal/firefly-webhook`, an address reachable on the compose network;
 - trigger: "After any event", which covers transactions, budgets and budgeted amounts;
 - response: "No details" (Pocket reads only the signature, not the content).

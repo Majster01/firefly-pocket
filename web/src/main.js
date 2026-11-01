@@ -4,8 +4,10 @@ import { router } from './router.js'
 import { applyTheme } from './lib/settings.js'
 import { setUnauthorizedHandler } from './lib/api.js'
 import { registerServiceWorker } from './lib/push.js'
+import { warmUp } from './lib/cache.js'
 import './styles.css'
 
+warmUp()
 applyTheme()
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme)
 setUnauthorizedHandler(() => {

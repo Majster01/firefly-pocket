@@ -79,7 +79,7 @@ import PiggyTile from '../components/home/tiles/PiggyTile.vue'
 import SuggestionsTile from '../components/home/tiles/SuggestionsTile.vue'
 import ConnectionsTile from '../components/home/tiles/ConnectionsTile.vue'
 import { DEVICES, TILES, device, home, optionsOf, periodLabel, periodRange, pullHome, touch } from '../lib/home.js'
-import { clearCache, load } from '../lib/data.js'
+import { load } from '../lib/data.js'
 import { settings } from '../lib/settings.js'
 import { badges, refreshBadges } from '../lib/badges.js'
 import { composer } from '../lib/composer.js'
@@ -239,16 +239,17 @@ onBeforeUnmount(endDrag)
 
 // -------------------------------------------------------------------- data
 
+// A transaction saved from the composer: the save made the app ask Pocket's data version again, so the tiles' reads
+// go past what was kept (lib/cache.js)
 function refresh() {
-  clearCache()
   version.value++
   load('accounts', { force: true })
   refreshBadges()
 }
 watch(() => composer.version, refresh)
 
+// Opening Home asks nothing that this browser kept under the current data version
 onMounted(() => {
-  clearCache()
   load('accounts', { force: true })
   load('rates')
   pullHome()
