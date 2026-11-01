@@ -50,7 +50,7 @@ Pocket keeps Firefly's answers so that opening a page does not wait on Firefly f
 
 In production use Redis, which the Docker image already runs for Horizon: `CACHE_DRIVER=redis`. Firefly III can use Redis for its own cache too (`CACHE_DRIVER=redis` and `REDIS_*` in Firefly's environment).
 
-**Firefly webhook.** In Firefly III, add a webhook under Automation → Webhooks:
+**Firefly webhook.** Webhooks may be switched off in Firefly III (`allow_webhooks`; the site owner turns them on in Firefly's administration settings). Then add one under Automation → Webhooks:
 - URL: `http://<pocket>/api/internal/firefly-webhook`, an address reachable on the compose network;
 - trigger: "After any event", which covers transactions, budgets and budgeted amounts;
 - response: "No details" (Pocket reads only the signature, not the content).
