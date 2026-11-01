@@ -22,7 +22,7 @@ A redesign of [Firefly Pocket](https://github.com/Majster01/firefly-pocket) (a F
 | Suggestions | Review `pico-suggestion:v1` rules: edit category and conditions with a live match count, approve as rule, set category only, or reject ([contract](https://github.com/Majster01/firefly-pocket/blob/main/docs/rule-suggestions.md)) |
 | Bank connections | Connect a bank (consent at the bank), map its accounts, import a date range now, renew or remove consents |
 | System status | Nightly imports, missed nights, connections, bank activity, the suggester's runs and outcomes |
-| Settings | Theme, feature switches, push notifications, the Firefly token |
+| Settings | Theme, feature switches, push notifications (per device: import results, problems, the suggestions digest daily or weekly, upgrades; [docs/web-push.md](docs/web-push.md)), the Firefly token |
 
 ### iPhone
 

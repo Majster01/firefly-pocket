@@ -1,4 +1,4 @@
-import { get, post, del } from './api.js'
+import { get, post, put, del } from './api.js'
 
 export async function registerServiceWorker() {
   if (!('serviceWorker' in navigator) || import.meta.env.DEV) return null
@@ -42,4 +42,22 @@ export async function unsubscribePush() {
     await del('push/subscriptions', { body: { endpoint: subscription.endpoint } }).catch(() => null)
     await subscription.unsubscribe()
   }
+}
+
+// What this device wants to be notified about; the server decides who gets what, so it is kept there per device
+const endpoint = async () => {
+  const registration = await navigator.serviceWorker.getRegistration()
+  return (await registration?.pushManager.getSubscription())?.endpoint ?? null
+}
+
+export async function loadPreferences() {
+  const current = await endpoint()
+  if (!current) return null
+  return (await get('push/preferences', { endpoint: current }, { quiet: true })).data
+}
+
+export async function savePreferences(preferences) {
+  const current = await endpoint()
+  if (!current) throw new Error('This device is not subscribed to notifications')
+  return (await put('push/preferences', { endpoint: current, preferences })).data
 }

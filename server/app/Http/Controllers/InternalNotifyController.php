@@ -49,6 +49,11 @@ class InternalNotifyController extends BaseController
         if (isset($data['tag'])) {
             $message['tag'] = $data['tag'];
         }
+        foreach (['event', 'count'] as $key) {
+            if (isset($data[$key])) {
+                $message[$key] = $data[$key];
+            }
+        }
         return $this->respond($service->notify($message));
     }
 

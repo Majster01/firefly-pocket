@@ -33,4 +33,25 @@ class PushController extends BaseController
         app(PushNotificationService::class)->unsubscribe($request->endpoint);
         return $this->respond(['data' => null]);
     }
+
+    public function getPreferences(Request $request)
+    {
+        BaseAuthorization::checkUser();
+        PushValidation::validateEndpoint($request);
+        $preferences = app(PushNotificationService::class)->preferences($request->query('endpoint'));
+        return $preferences === null ? $this->notSubscribed() : $this->respond(['data' => $preferences]);
+    }
+
+    public function savePreferences(Request $request)
+    {
+        BaseAuthorization::checkUser();
+        PushValidation::validatePreferences($request);
+        $preferences = app(PushNotificationService::class)->savePreferences($request->endpoint, $request->input('preferences'));
+        return $preferences === null ? $this->notSubscribed() : $this->respond(['data' => $preferences]);
+    }
+
+    private function notSubscribed()
+    {
+        return $this->setStatusCode(self::HTTP_CODE_NOT_FOUND)->respond(['message' => 'This device is not subscribed to notifications']);
+    }
 }

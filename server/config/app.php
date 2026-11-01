@@ -71,6 +71,8 @@ return [
     'vapid_subject' => env('VAPID_SUBJECT') ?: env('APP_URL', 'http://localhost'),
     // Shared secret (32+ characters) of the FireflyX importer/suggester for POST /api/internal/notify
     'notify_api_token' => env('NOTIFY_API_TOKEN', ''),
+    // The weekday of a weekly digest is read in this timezone (compose passes TZ)
+    'notify_timezone' => env('NOTIFY_TIMEZONE') ?: env('TZ') ?: 'UTC',
     // Cache of Firefly reads (app/Services/ResponseCache.php). The store is a config/cache.php store; empty = CACHE_DRIVER.
     // Writes through Pocket, /api/internal/notify and Firefly's webhook start a new data version; the TTL is a safety net
     'response_cache' => (bool) env('RESPONSE_CACHE', true),
