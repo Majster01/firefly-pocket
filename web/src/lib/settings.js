@@ -17,12 +17,24 @@ const DEFAULTS = {
   },
   notifications: { enabled: false },
   dashboard: { hideBalances: false },
+  // Starting values for a new transaction (empty = no preference). Accounts are kept by Firefly id, payee/payer by name
+  defaults: {
+    type: 'withdrawal',
+    expense: { account: '', payee: '', category: '' },
+    income: { account: '', payer: '', category: '' },
+    transfer: { source: '', destination: '' },
+  },
+}
+
+function mergeDefaults(saved = {}) {
+  const base = structuredClone(DEFAULTS.defaults)
+  return { type: saved.type ?? base.type, expense: { ...base.expense, ...saved.expense }, income: { ...base.income, ...saved.income }, transfer: { ...base.transfer, ...saved.transfer } }
 }
 
 function load() {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) ?? '{}')
-    return { ...DEFAULTS, ...saved, features: { ...DEFAULTS.features, ...saved.features }, notifications: { ...DEFAULTS.notifications, ...saved.notifications }, dashboard: { ...DEFAULTS.dashboard, ...saved.dashboard } }
+    return { ...DEFAULTS, ...saved, features: { ...DEFAULTS.features, ...saved.features }, notifications: { ...DEFAULTS.notifications, ...saved.notifications }, dashboard: { ...DEFAULTS.dashboard, ...saved.dashboard }, defaults: mergeDefaults(saved.defaults) }
   } catch {
     return structuredClone(DEFAULTS)
   }
