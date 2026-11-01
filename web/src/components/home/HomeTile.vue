@@ -8,8 +8,11 @@
     <div v-if="editing" class="tile-bar">
       <button class="tile-handle" aria-label="Drag to move" title="Drag to move" @pointerdown="$emit('drag', $event)"><Icon name="grid" :size="18" /></button>
       <span class="grow ellipsis tile-name">{{ tile.title }}</span>
-      <button class="btn small icon" aria-label="Move earlier" @click="$emit('move', -1)"><Icon name="back" :size="16" /></button>
-      <button class="btn small icon" aria-label="Move later" @click="$emit('move', 1)"><Icon name="chevron" :size="16" /></button>
+      <!-- The phone layout reads down one column, the desktop one across rows -->
+      <button class="btn small icon" :aria-label="column ? 'Move up' : 'Move earlier'" :disabled="first" @click="$emit('move', -1)">
+        <Icon :name="column ? 'down' : 'back'" :class="{ 'icon-up': column }" :size="16" />
+      </button>
+      <button class="btn small icon" :aria-label="column ? 'Move down' : 'Move later'" :disabled="last" @click="$emit('move', 1)"><Icon :name="column ? 'down' : 'chevron'" :size="16" /></button>
       <button v-if="sizes.length > 1" class="btn small tile-size" :aria-label="`Size ${SIZE_LABELS[entry.size]}, change`" @click="$emit('resize')">{{ SIZE_LABELS[entry.size] }}</button>
       <button v-if="tile.options" class="btn small icon" aria-label="Tile settings" @click="$emit('options')"><Icon name="settings" :size="16" /></button>
       <button class="btn small icon" :aria-label="entry.visible ? 'Hide tile' : 'Show tile'" @click="$emit('toggle')"><Icon :name="entry.visible ? 'eye' : 'eyeOff'" :size="16" /></button>
@@ -25,12 +28,13 @@ import { computed } from 'vue'
 import Icon from '../Icon.vue'
 import { DEVICES, SIZE_LABELS, TILES } from '../../lib/home.js'
 
-const props = defineProps({ entry: { type: Object, required: true }, device: { type: String, required: true }, editing: Boolean, dragging: Boolean })
+const props = defineProps({ entry: { type: Object, required: true }, device: { type: String, required: true }, editing: Boolean, dragging: Boolean, first: Boolean, last: Boolean })
 defineEmits(['drag', 'move', 'resize', 'options', 'toggle'])
 
 const tile = computed(() => TILES[props.entry.id])
 const sizes = computed(() => tile.value[props.device])
 const span = computed(() => DEVICES[props.device].sizes[props.entry.size] ?? DEVICES[props.device].columns)
+const column = computed(() => props.device === 'phone')
 </script>
 
 <style>
@@ -95,6 +99,9 @@ const span = computed(() => DEVICES[props.device].sizes[props.entry.size] ?? DEV
 }
 .tile-size {
   min-width: 46px;
+}
+.tile-bar .icon-up {
+  transform: rotate(180deg);
 }
 @keyframes tile-wiggle {
   from {

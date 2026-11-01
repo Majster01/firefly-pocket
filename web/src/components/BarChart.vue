@@ -1,29 +1,32 @@
 <template>
-  <figure class="bars" :aria-label="label">
-    <div class="bars-plot" :style="{ height: `${height}px` }" @mouseleave="hover = null">
+  <figure ref="root" class="bars" :aria-label="label">
+    <div class="bars-plot" :style="{ height: `${height}px` }" @pointerleave="$event.pointerType === 'mouse' && (hover = null)">
       <div class="bars-grid" aria-hidden="true">
-        <span v-for="tick in ticks" :key="tick" :style="{ bottom: `${(tick / max) * 100}%` }"><em>{{ format(tick) }}</em></span>
+        <span v-for="tick in ticks" :key="tick" :style="{ bottom: `${(tick / max) * 100}%` }"><em class="blurable">{{ format(tick) }}</em></span>
       </div>
       <button
         v-for="(item, index) in items"
         :key="item.label"
         class="bar-hit"
         :aria-label="`${item.label}: ${format(item.value)}`"
-        @mouseenter="hover = index"
+        @pointerenter="$event.pointerType === 'mouse' && (hover = index)"
+        @pointerdown="press($event, index)"
         @focus="hover = index"
         @blur="hover = null"
-        @click="hover = hover === index ? null : index"
+        @click="tap(index)"
       >
         <i class="bar" :class="{ current: item.current, dim: hover !== null && hover !== index }" :style="{ height: item.value > 0 ? `${Math.max(2, (item.value / max) * 100)}%` : '0' }" />
       </button>
       <div v-if="hover !== null" class="bars-tip" :style="tipStyle">
         <strong>{{ items[hover].label }}</strong>
-        <span class="num">{{ format(items[hover].value) }}</span>
+        <span class="num blurable">{{ format(items[hover].value) }}</span>
         <span v-if="items[hover].note" class="muted">{{ items[hover].note }}</span>
       </div>
     </div>
-    <figcaption class="bars-axis" aria-hidden="true">
-      <span v-for="item in items" :key="item.label" :class="{ current: item.current }">{{ item.short ?? item.label }}</span>
+    <figcaption class="bars-axis" :class="{ 'has-tiny': items.some((item) => item.tiny) }" aria-hidden="true">
+      <span v-for="item in items" :key="item.label" :class="{ current: item.current }">
+        <span class="axis-short">{{ item.short ?? item.label }}</span><span v-if="item.tiny" class="axis-tiny">{{ item.tiny }}</span>
+      </span>
     </figcaption>
     <table class="sr-only">
       <caption>{{ label }}</caption>
@@ -33,15 +36,16 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
 // One series of columns on a zero baseline: one hue, the current column darker, a tooltip per column
 const props = defineProps({
-  items: { type: Array, required: true }, // [{label, short, value, current, note}]
+  items: { type: Array, required: true }, // [{label, short, tiny, value, current, note}]; tiny: a label for narrow charts
   label: { type: String, default: '' },
   height: { type: Number, default: 150 },
   format: { type: Function, default: (value) => String(Math.round(value)) },
 })
+const root = ref(null)
 const hover = ref(null)
 
 const niceStep = (value) => {
@@ -51,15 +55,47 @@ const niceStep = (value) => {
 const step = computed(() => niceStep(Math.max(...props.items.map((item) => item.value), 1)))
 const max = computed(() => Math.max(step.value, Math.ceil(Math.max(...props.items.map((item) => item.value), 1) / step.value) * step.value))
 const ticks = computed(() => Array.from({ length: Math.round(max.value / step.value) + 1 }, (_, index) => index * step.value))
+// The tooltip sits at the top of the plot beside its column, on the side with more room: inside the card, clear of
+// the column it describes
 const tipStyle = computed(() => {
-  const share = (hover.value + 0.5) / props.items.length
-  return { left: `${share * 100}%`, transform: `translateX(${share > 0.7 ? '-90%' : share < 0.3 ? '-10%' : '-50%'})` }
+  const count = props.items.length
+  return hover.value < count / 2 ? { left: `calc(${((hover.value + 1) / count) * 100}% + 4px)` } : { right: `calc(${((count - hover.value) / count) * 100}% + 4px)` }
 })
+
+// A tap shows a column's tooltip and a second tap on it hides it; a mouse shows it on hover. Tapping a column
+// focuses it first, so whether it was open is read before that.
+let tapped = null
+function press(event, index) {
+  tapped = event.pointerType === 'mouse' ? null : { open: hover.value === index }
+}
+function tap(index) {
+  hover.value = tapped?.open ? null : index
+  tapped = null
+}
+
+// A tooltip opened by a tap stays until a tap elsewhere, or until a scroll moves the chart (a scroll still settling
+// when the tap came does not count)
+let openedAt = 0
+const top = () => root.value?.getBoundingClientRect().top ?? 0
+const dismiss = (event) => {
+  if (event.type === 'scroll' ? Math.abs(top() - openedAt) > 2 : !root.value?.contains(event.target)) hover.value = null
+}
+function listen(on) {
+  const method = on ? 'addEventListener' : 'removeEventListener'
+  document[method]('pointerdown', dismiss, true)
+  window[method]('scroll', dismiss, { capture: true, passive: true })
+}
+watch(hover, (value, before) => {
+  if (value !== null && before === null) openedAt = top()
+  if ((value === null) !== (before === null)) listen(value !== null)
+})
+onBeforeUnmount(() => listen(false))
 </script>
 
 <style>
 .bars {
   margin: 0;
+  container-type: inline-size;
 }
 .bars-plot {
   position: relative;
@@ -67,6 +103,10 @@ const tipStyle = computed(() => {
   align-items: flex-end;
   gap: 6px;
   margin-left: 40px;
+}
+.bars-grid {
+  position: absolute;
+  inset: 0;
 }
 .bars-grid span {
   position: absolute;
@@ -84,9 +124,14 @@ const tipStyle = computed(() => {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+/* Columns and their labels share one width each, however long a label is, so each label sits under its column */
+.bar-hit,
+.bars-axis > span {
+  flex: 1 1 0;
+  min-width: 0;
+}
 .bar-hit {
   position: relative;
-  flex: 1;
   height: 100%;
   display: flex;
   align-items: flex-end;
@@ -110,7 +155,7 @@ const tipStyle = computed(() => {
 }
 .bars-tip {
   position: absolute;
-  bottom: calc(100% + 6px);
+  top: 0;
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -120,7 +165,8 @@ const tipStyle = computed(() => {
   border: 1px solid var(--glass-border);
   box-shadow: var(--card-shadow);
   font-size: 13px;
-  white-space: nowrap;
+  width: max-content;
+  max-width: calc(50% - 4px);
   pointer-events: none;
   z-index: 2;
 }
@@ -129,14 +175,27 @@ const tipStyle = computed(() => {
   gap: 6px;
   margin: 6px 0 0 40px;
 }
-.bars-axis span {
-  flex: 1;
+.bars-axis > span {
+  overflow: hidden;
   text-align: center;
   font-size: 11.5px;
   color: var(--muted);
+  white-space: nowrap;
 }
 .bars-axis span.current {
   color: var(--text);
   font-weight: 650;
+}
+.axis-tiny {
+  display: none;
+}
+/* Twelve three-letter months need about 30px a column: narrower, they take one letter */
+@container (max-width: 400px) {
+  .bars-axis.has-tiny .axis-short {
+    display: none;
+  }
+  .bars-axis.has-tiny .axis-tiny {
+    display: inline;
+  }
 }
 </style>

@@ -73,7 +73,8 @@ class RuleSuggestionTest extends TestCase
             if (preg_match('#^rules/(\d+)$#', $path, $matches)) {
                 $rule = collect($this->rules)->firstWhere('id', $matches[1]);
                 return match ($method) {
-                    'GET' => $rule ? Http::response(['data' => $rule]) : Http::response(['message' => 'Not found'], 404),
+                    // Like Firefly 6.6.6: an id that does not exist answers 401, not 404
+                    'GET' => $rule ? Http::response(['data' => $rule]) : Http::response(['message' => 'Unauthenticated.'], 401),
                     'PUT' => Http::response(['data' => $rule]),
                     'DELETE' => Http::response(null, 204),
                 };
@@ -294,6 +295,15 @@ class RuleSuggestionTest extends TestCase
     {
         $this->deleteJson('api/rule-suggestions/19', [], $this->headers())->assertNotFound();
         $this->deleteJson('api/rule-suggestions/10', [], $this->headers())->assertNotFound();
+
+        $this->assertCount(0, $this->recorded('DELETE', 'rules/\d+'));
+    }
+
+    public function test_a_deleted_suggestion_is_not_found_rather_than_unauthorized()
+    {
+        $this->getJson('api/rule-suggestions/99', $this->headers())->assertNotFound()->assertJsonPath('message', 'Rule suggestion not found');
+        $this->deleteJson('api/rule-suggestions/99', [], $this->headers())->assertNotFound();
+        $this->postJson('api/rule-suggestions/99/categorize', ['category' => 'Food & Drink'], $this->headers())->assertNotFound();
 
         $this->assertCount(0, $this->recorded('DELETE', 'rules/\d+'));
     }

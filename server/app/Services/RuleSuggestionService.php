@@ -94,7 +94,16 @@ class RuleSuggestionService
 
     private function findSuggestion($id)
     {
-        $rule = fget($this->firefly('get', "rules/$id"), 'data');
+        // Firefly answers 401 (not 404) for a rule id that does not exist, e.g. a suggestion handled on another device.
+        // The token was checked before this => it means the rule is gone, not that the user is signed out.
+        try {
+            $rule = fget($this->firefly('get', "rules/$id"), 'data');
+        } catch (FireflyException $e) {
+            if (in_array($e->getCode(), [BaseController::HTTP_CODE_UNAUTHORIZED, BaseController::HTTP_CODE_NOT_FOUND])) {
+                throw new GeneralException('Rule suggestion not found', BaseController::HTTP_CODE_NOT_FOUND);
+            }
+            throw $e;
+        }
         $isSuggestion = fget($rule, 'attributes.rule_group_title') === config('app.rule_group_suggestions');
         $suggestion = $isSuggestion ? $this->toSuggestion($rule) : null;
         if (!$suggestion) {

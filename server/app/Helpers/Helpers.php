@@ -16,16 +16,35 @@ if (!function_exists('getAuthTokenHash')) {
 
 
 if (!function_exists('getUser')) {
+    /**
+     * The Firefly user of the request's token, or null when Firefly refuses it. Kept per token: for the request, and
+     * for USER_CACHE_TTL seconds in the cache store, so most requests do not ask Firefly who the token belongs to.
+     * A token revoked in Firefly keeps working in Pocket for at most that long.
+     */
     function getUser()
     {
-        return Cache::driver('array')->rememberForever('getUser', function () {
+        if (!request()->bearerToken()) {
+            return null;
+        }
+        $hash = getAuthTokenHash();
+        return Cache::driver('array')->rememberForever("getUser:$hash", function () use ($hash) {
+            $ttl = (int) config('app.user_cache_ttl');
+            $store = Cache::store(config('app.response_cache_store'));
+            $key = "pocket:user:$hash";
+            if ($ttl > 0 && is_array($cached = $store->get($key))) {
+                return $cached;
+            }
+
             $httpClient = (new BaseControllerFirefly())->getHttpClient();
             $url = config('app.firefly_url') . '/api/v1/about/user';
             $response = $httpClient->get($url);
-            if ($response->status() !== BaseController::HTTP_CODE_OK) {
+            if ($response->status() !== BaseController::HTTP_CODE_OK || !is_array($user = $response->json())) {
                 return null;
             }
-            return $response->json();
+            if ($ttl > 0) {
+                $store->put($key, $user, $ttl);
+            }
+            return $user;
         });
     }
 }

@@ -73,6 +73,24 @@ return [
     'notify_api_token' => env('NOTIFY_API_TOKEN', ''),
     // The weekday of a weekly digest is read in this timezone (compose passes TZ)
     'notify_timezone' => env('NOTIFY_TIMEZONE') ?: env('TZ') ?: 'UTC',
+    // Cache of Firefly reads (app/Services/ResponseCache.php). The store is a config/cache.php store; empty = CACHE_DRIVER.
+    // Writes through Pocket, /api/internal/notify and Firefly's webhook start a new data version; the TTL is a safety net
+    'response_cache' => (bool) env('RESPONSE_CACHE', true),
+    'response_cache_store' => env('RESPONSE_CACHE_STORE') ?: null,
+    'response_cache_ttl' => (int) env('RESPONSE_CACHE_TTL', 60 * 60 * 12),
+    // Firefly's timezone: nothing is kept past its midnight (Pocket itself runs on UTC)
+    'response_cache_timezone' => env('RESPONSE_CACHE_TIMEZONE') ?: env('TZ') ?: 'UTC',
+    // Warm-up after a change (app/Services/CacheWarmUp.php): a Firefly personal access token of the same user, used only
+    // to fetch again what Home asked for; empty = off. Runs WARMUP_DELAY seconds after the first change, on the queue
+    'warmup_firefly_token' => env('WARMUP_FIREFLY_TOKEN', ''),
+    'warmup_delay' => (int) env('WARMUP_DELAY', 60),
+    // How long a token Firefly accepted is trusted without asking Firefly again (seconds, 0 = every request)
+    'user_cache_ttl' => (int) env('USER_CACHE_TTL', 600),
+    // The secret Firefly shows for the webhook that calls POST /api/internal/firefly-webhook
+    'firefly_webhook_secret' => env('FIREFLY_WEBHOOK_SECRET', ''),
+    // Server-Timing header on API responses (time spent in Pocket and in Firefly), and a log line per request
+    'server_timing' => (bool) env('SERVER_TIMING', true),
+    'server_timing_log' => (bool) env('SERVER_TIMING_LOG', false),
     // Folder with admin provided icons (svg, png, ...). In Docker, mount a volume here.
     'custom_icons_path' => env('CUSTOM_ICONS_PATH', storage_path('app/custom-icons')),
     'asset_url' => env('ASSET_URL'),

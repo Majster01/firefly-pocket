@@ -1,29 +1,31 @@
 <template>
   <div class="donut">
-    <svg viewBox="0 0 120 120" class="donut-svg" role="img" :aria-label="`${label}: ${segments.map((segment) => `${segment.name} ${format(segment.amount)}`).join(', ')}`" @mouseleave="hover = null">
-      <circle cx="60" cy="60" :r="R" class="donut-track" />
-      <path
-        v-for="(segment, index) in arcs"
-        :key="segment.name"
-        :d="segment.path"
-        class="donut-arc"
-        :class="[`slot-${segment.slot}`, { dim: hover !== null && hover !== index }]"
-        tabindex="0"
-        @mouseenter="hover = index"
-        @focus="hover = index"
-        @blur="hover = null"
-        @click="$emit('select', segment)"
-        @keydown.enter="$emit('select', segment)"
-      />
-      <text x="60" y="56" class="donut-total">{{ format(focus ? focus.amount : total) }}</text>
-      <text x="60" y="71" class="donut-caption">{{ focus ? focus.name : caption }}</text>
-    </svg>
+    <!-- The slices answer a mouse or a finger; the legend's buttons name them for a keyboard and a screen reader -->
+    <div class="donut-ring" @mouseleave="hover = null">
+      <svg viewBox="0 0 120 120" class="donut-svg" role="img" :aria-label="`${label}: ${segments.map((segment) => `${segment.name} ${format(segment.amount)}`).join(', ')}`">
+        <circle cx="60" cy="60" :r="R" class="donut-track" />
+        <path
+          v-for="(segment, index) in arcs"
+          :key="segment.name"
+          :d="segment.path"
+          class="donut-arc"
+          :class="[`slot-${segment.slot}`, { dim: hover !== null && hover !== index }]"
+          @mouseenter="hover = index"
+          @click="$emit('select', segment)"
+        />
+      </svg>
+      <!-- HTML rather than SVG text, so hiding amounts can blur it in every browser -->
+      <div class="donut-center" aria-hidden="true">
+        <span class="donut-total num blurable">{{ format(focus ? focus.amount : total) }}</span>
+        <span class="donut-caption ellipsis">{{ focus ? focus.name : caption }}</span>
+      </div>
+    </div>
     <ul class="donut-legend">
       <li v-for="(segment, index) in segments" :key="segment.name">
-        <button class="legend-row" :class="{ on: hover === index }" @mouseenter="hover = index" @mouseleave="hover = null" @click="$emit('select', segment)">
+        <button class="legend-row" :class="{ on: hover === index }" @mouseenter="hover = index" @mouseleave="hover = null" @focus="hover = index" @blur="hover = null" @click="$emit('select', segment)">
           <i class="swatch" :class="`slot-${segment.slot}`" />
           <span class="grow ellipsis">{{ segment.name }}</span>
-          <span class="num">{{ format(segment.amount) }}</span>
+          <span class="num blurable">{{ format(segment.amount) }}</span>
           <span class="num muted tiny share">{{ Math.round((segment.amount / total) * 100) }}%</span>
         </button>
       </li>
@@ -115,10 +117,28 @@ const arcs = computed(() => {
   --slot-5: #d55181;
   --slot-other: #7d746b;
 }
-.donut-svg {
+.donut-ring {
+  position: relative;
   width: min(190px, 100%);
   flex-shrink: 0;
   margin: 0 auto;
+  container-type: inline-size;
+}
+.donut-svg {
+  display: block;
+  width: 100%;
+}
+/* Inside the ring's hole: 120 units of the drawing are the ring's width */
+.donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24cqi;
+  pointer-events: none;
+  text-align: center;
 }
 .donut-track {
   fill: none;
@@ -128,25 +148,20 @@ const arcs = computed(() => {
 .donut-arc {
   cursor: pointer;
   transition: opacity 0.15s ease;
-  outline: none;
 }
 .donut-arc.dim {
   opacity: 0.35;
 }
-.donut-arc:focus-visible {
-  stroke: var(--text);
-  stroke-width: 1.5;
-}
 .donut-total {
-  text-anchor: middle;
-  font: 700 14px var(--font-display);
-  fill: var(--text);
-  font-variant-numeric: tabular-nums;
+  font: 700 11.7cqi var(--font-display);
+  color: var(--text);
+  white-space: nowrap;
 }
 .donut-caption {
-  text-anchor: middle;
-  font: 500 8.5px var(--font);
-  fill: var(--muted);
+  max-width: 100%;
+  margin-top: 1.5cqi;
+  font: 500 7.1cqi var(--font);
+  color: var(--muted);
 }
 .slot-1 {
   fill: var(--slot-1);

@@ -5,10 +5,10 @@
     </PageHeader>
 
     <div class="seg window-seg">
-      <button v-for="option in WINDOWS" :key="option" :class="{ on: days === option }" @click="days = option">Last {{ option }} days</button>
+      <button v-for="option in WINDOWS" :key="option" :class="{ on: days === option }" :aria-pressed="days === option" @click="days = option">Last {{ option }} days</button>
     </div>
 
-    <div v-if="error" class="banner bad"><Icon name="alert" :size="18" /> Unavailable: {{ error }}</div>
+    <div v-if="error" class="banner bad status-error"><Icon name="alert" :size="18" /> <span>Unavailable: {{ error }}</span></div>
     <div v-if="!status && !error" class="loading"><span class="spinner" /></div>
 
     <div v-if="status" class="status">
@@ -32,7 +32,7 @@
         </div>
         <ul class="list day-list">
           <li v-for="day in shownDays" :key="day.date" class="row">
-            <span class="grow">{{ shortDate(day.date) }} <span v-if="day.ran" class="tiny muted">· {{ day.connections }} connections{{ day.warnings ? ` · ${day.warnings} warnings` : '' }}</span></span>
+            <span class="grow">{{ shortDate(day.date) }} <span v-if="day.ran" class="tiny muted">· {{ plural(day.connections, 'connection') }}{{ day.warnings ? ` · ${plural(day.warnings, 'warning')}` : '' }}</span></span>
             <span class="small" :class="nightClass(day) === 'failed' ? 'bad' : nightClass(day) === 'missed' ? 'bad' : nightClass(day) === 'ok' ? 'good' : 'muted'">{{ nightText(day) }}</span>
           </li>
         </ul>
@@ -46,9 +46,9 @@
             <span class="grow">
               <strong>{{ connection.bank }}</strong>
               <span class="tiny muted" style="display: block">
-                {{ connection.last_import_at ? `${connection.last_import_ok ? '✓' : '✗'} ${timeAgo(connection.last_import_at)}` : 'never imported' }}{{ connection.days_left !== null ? ` · ${connection.days_left} days of consent left` : '' }}
+                {{ connection.last_import_at ? `${connection.last_import_ok ? '✓' : '✗'} ${timeAgo(connection.last_import_at)}` : 'never imported' }}{{ consentLeft(connection) }}
               </span>
-              <span v-if="connection.last_error" class="tiny bad" style="display: block">{{ connection.last_error }}</span>
+              <span v-if="connection.last_error" class="tiny bad error-text" style="display: block">{{ connection.last_error }}</span>
             </span>
             <span class="chip" :class="STATUS[connection.status]?.tone">{{ STATUS[connection.status]?.label ?? connection.status }}</span>
           </li>
@@ -58,7 +58,7 @@
 
       <section class="card">
         <h2 class="card-title">Category suggester</h2>
-        <p v-if="!status.suggester.available" class="small bad">{{ status.suggester.error }}</p>
+        <p v-if="!status.suggester.available" class="small bad error-text">{{ status.suggester.error }}</p>
         <div class="kpis status-kpis three">
           <div><div class="kpi-label">Runs</div><div class="kpi-value">{{ status.suggester.totals.runs }}</div></div>
           <div><div class="kpi-label">Model calls</div><div class="kpi-value">{{ status.suggester.totals.calls }}</div></div>
@@ -69,7 +69,7 @@
         </div>
         <div class="row outcomes">
           <RouterLink to="/suggestions" class="outcome"><strong>{{ status.suggester.suggestions.pending }}</strong><span class="tiny muted">pending</span></RouterLink>
-          <div class="outcome"><strong class="good">{{ status.suggester.suggestions.resolved }}</strong><span class="tiny muted">approved</span></div>
+          <div class="outcome"><strong class="good">{{ status.suggester.suggestions.resolved }}</strong><span class="tiny muted" title="Approved as a rule or set as the category">resolved</span></div>
           <div class="outcome"><strong>{{ status.suggester.suggestions.rejected }}</strong><span class="tiny muted">rejected</span></div>
         </div>
         <p v-if="status.suggester.last_run" class="tiny muted">Unsure below a confidence of {{ status.suggester.last_run.min_confidence }}</p>
@@ -77,8 +77,8 @@
           <li v-for="run in status.suggester.recent.slice(0, 7)" :key="run.id" class="row">
             <span class="grow">
               {{ shortDate(run.started) }} <span class="tiny muted">· {{ run.source }}</span>
-              <span v-if="run.status === 'failed'" class="tiny bad" style="display: block">{{ run.error }}</span>
-              <span v-else class="tiny muted" style="display: block">{{ run.calls }} calls · {{ run.suggestions }} suggestions · {{ run.low_confidence }} unsure</span>
+              <span v-if="run.status === 'failed'" class="tiny bad error-text" style="display: block">{{ run.error }}</span>
+              <span v-else class="tiny muted" style="display: block">{{ plural(run.calls, 'call') }} · {{ plural(run.suggestions, 'suggestion') }} · {{ run.low_confidence }} unsure</span>
             </span>
             <span :class="run.status === 'failed' ? 'bad' : 'good'">{{ run.status === 'failed' ? 'Failed' : '✓' }}</span>
           </li>
@@ -86,14 +86,14 @@
       </section>
 
       <section class="card">
-        <h2 class="card-title">Bank activity <span v-if="status.events.recent.length" class="tiny" :class="{ bad: status.events.totals.error }">{{ status.events.totals.error }} errors · {{ status.events.totals.warning }} warnings</span></h2>
+        <h2 class="card-title">Bank activity <span v-if="status.events.recent.length" class="tiny" :class="{ bad: status.events.totals.error }">{{ plural(status.events.totals.error, 'error') }} · {{ plural(status.events.totals.warning, 'warning') }}</span></h2>
         <p v-if="!status.events.recent.length" class="small muted">Nothing happened.</p>
         <ul class="list day-list">
           <li v-for="event in shownEvents" :key="event.at + event.step + event.connection" class="row event">
             <i class="event-dot" :class="event.level" />
             <span class="grow">
               {{ event.bank ?? event.connection ?? 'Unknown consent' }} · {{ event.step }}{{ event.flow ? ` (${event.flow})` : '' }}
-              <span class="tiny muted" style="display: block">{{ [event.reason, event.message].filter(Boolean).join(' · ') }}</span>
+              <span class="tiny muted error-text" style="display: block">{{ [event.reason, event.message].filter(Boolean).join(' · ') }}</span>
             </span>
             <span class="tiny muted">{{ timeAgo(event.at) }}</span>
           </li>
@@ -119,6 +119,14 @@ const error = ref('')
 const allDays = ref(false)
 const allEvents = ref(false)
 const today = isoDate()
+
+const plural = (count, word) => `${count} ${count === 1 ? word : `${word}s`}`
+const consentLeft = (connection) => {
+  if (connection.days_left === null || connection.days_left === undefined) return ''
+  if (connection.days_left < 0) return ' · consent ended'
+  if (connection.days_left === 0) return ' · consent ends today'
+  return ` · ${plural(connection.days_left, 'day')} of consent left`
+}
 
 const compactFormat = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 })
 const compact = (value) => compactFormat.format(value ?? 0)
@@ -165,7 +173,13 @@ onMounted(reload)
 }
 .status {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
+}
+/* Importer errors carry URLs and ids without spaces: break them anywhere rather than widen the page */
+.error-text,
+.status-error {
+  overflow-wrap: anywhere;
 }
 .status .card + .card {
   margin-top: 0;
@@ -255,7 +269,7 @@ onMounted(reload)
 }
 @media (min-width: 900px) {
   .status {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
     align-items: start;
   }

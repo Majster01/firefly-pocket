@@ -9,9 +9,9 @@
     </PageHeader>
 
     <div class="period-bar">
-      <div class="seg" role="tablist" aria-label="Period">
-        <button role="tab" :aria-selected="view === 'month'" :class="{ on: view === 'month' }" @click="setView('month')">Month</button>
-        <button role="tab" :aria-selected="view === 'year'" :class="{ on: view === 'year' }" @click="setView('year')">Year</button>
+      <div class="seg" role="group" aria-label="Period">
+        <button :aria-pressed="view === 'month'" :class="{ on: view === 'month' }" @click="setView('month')">Month</button>
+        <button :aria-pressed="view === 'year'" :class="{ on: view === 'year' }" @click="setView('year')">Year</button>
       </div>
       <div class="period-nav">
         <button class="btn icon small" :aria-label="`Previous ${view}`" @click="setOffset(offset - 1)"><Icon name="back" :size="18" /></button>
@@ -30,11 +30,13 @@
 
     <TransitionGroup tag="div" name="tile-move" class="home-grid" :class="[`device-${device}`, { hidden: settings.dashboard.hideBalances, editing }]">
       <HomeTile
-        v-for="entry in shownTiles"
+        v-for="(entry, index) in shownTiles"
         :key="entry.id"
         :entry="entry"
         :device="device"
         :editing="editing"
+        :first="index === 0"
+        :last="index === shownTiles.length - 1"
         :dragging="dragId === entry.id"
         @drag="startDrag(entry, $event)"
         @move="move(entry, $event)"
@@ -42,7 +44,7 @@
         @options="optionsFor = entry"
         @toggle="toggle(entry)"
       >
-        <component :is="COMPONENTS[entry.id]" :view="view" :offset="offset" :range="range" :options="optionsOf(entry)" :version="version" :editing="editing" />
+        <component :is="COMPONENTS[entry.id]" :view="view" :offset="offset" :range="range" :options="tileOptions(entry)" :version="version" :editing="editing" />
       </HomeTile>
     </TransitionGroup>
 
@@ -77,7 +79,7 @@ import PiggyTile from '../components/home/tiles/PiggyTile.vue'
 import SuggestionsTile from '../components/home/tiles/SuggestionsTile.vue'
 import ConnectionsTile from '../components/home/tiles/ConnectionsTile.vue'
 import { DEVICES, TILES, device, home, optionsOf, periodLabel, periodRange, pullHome, touch } from '../lib/home.js'
-import { clearCache, load } from '../lib/data.js'
+import { load } from '../lib/data.js'
 import { settings } from '../lib/settings.js'
 import { badges, refreshBadges } from '../lib/badges.js'
 import { composer } from '../lib/composer.js'
@@ -139,6 +141,14 @@ const enabled = (entry) => !TILES[entry.id].feature || settings.features[TILES[e
 const hasNotice = (entry) => (entry.id === 'suggestions' ? badges.suggestions > 0 : entry.id === 'connections' ? badges.connections > 0 : true)
 const shownTiles = computed(() => layout.value.tiles.filter((entry) => enabled(entry) && (editing.value || (entry.visible && hasNotice(entry)))))
 const hiddenCount = computed(() => layout.value.tiles.filter((entry) => enabled(entry) && !entry.visible).length)
+
+// The same options object for a tile until its options change: a fresh one on every render of Home (hiding amounts,
+// a step of a drag) would look like new options to the tile
+const optionsCache = new WeakMap()
+function tileOptions(entry) {
+  if (!optionsCache.has(entry)) optionsCache.set(entry, computed(() => optionsOf(entry)))
+  return optionsCache.get(entry).value
+}
 
 function move(entry, step) {
   const tiles = layout.value.tiles
@@ -229,16 +239,17 @@ onBeforeUnmount(endDrag)
 
 // -------------------------------------------------------------------- data
 
+// A transaction saved from the composer: the save made the app ask Pocket's data version again, so the tiles' reads
+// go past what was kept (lib/cache.js)
 function refresh() {
-  clearCache()
   version.value++
   load('accounts', { force: true })
   refreshBadges()
 }
 watch(() => composer.version, refresh)
 
+// Opening Home asks nothing that this browser kept under the current data version
 onMounted(() => {
-  clearCache()
   load('accounts', { force: true })
   load('rates')
   pullHome()
@@ -297,8 +308,17 @@ onMounted(() => {
 .home-grid .card + .card {
   margin-top: 0;
 }
-.home-grid.hidden .blurable {
+.home-grid.hidden .blurable,
+.home-grid.hidden .tx .item-end {
   filter: blur(9px);
+}
+.home-grid .tx .item-end {
+  transition: filter 0.2s ease;
+}
+/* "All" and "Details" in a tile's title: a 44px target around 17px of text, without growing the title */
+.home-grid .card-title > a {
+  padding: 13px 12px;
+  margin: -13px -12px;
 }
 .blurable {
   transition: filter 0.2s ease;

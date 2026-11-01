@@ -6,7 +6,7 @@
     </h2>
     <div v-if="!data" class="skeleton" style="height: 120px" />
     <template v-else>
-      <div class="flow-figures">
+      <div class="flow-figures" :style="{ '--fit': fit }">
         <button class="flow" @click="open('deposit')">
           <span class="kpi-label"><Icon name="arrowDown" :size="14" /> In</span>
           <span class="flow-value num pos blurable">{{ money(data.in) }}</span>
@@ -36,7 +36,8 @@
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import Icon from '../../Icon.vue'
-import { cachedGet, insightTotal } from '../../../lib/data.js'
+import { get } from '../../../lib/api.js'
+import { insightTotal } from '../../../lib/data.js'
 import { isoDate, money } from '../../../lib/format.js'
 import { periodLabel, periodRange } from '../../../lib/home.js'
 
@@ -51,6 +52,8 @@ const keptText = computed(() => {
   return surplus.value >= 0 ? `${ratio}% of income kept` : `${ratio}% more out than in`
 })
 const scale = computed(() => Math.max(data.value.in, data.value.out, 1))
+// The longest figure, in ems: the figures take the font size that fits it in their column
+const fit = computed(() => Math.max(...[money(data.value.in), money(data.value.out), money(surplus.value, 'EUR', { signed: true })].map((text) => text.length)) * 0.6)
 const periodName = computed(() => periodLabel(props.view, props.offset))
 const previousName = computed(() => periodLabel(props.view, props.offset - 1))
 const running = computed(() => props.range.end >= isoDate() && props.range.start <= isoDate())
@@ -62,16 +65,20 @@ const change = (now, before) => {
 }
 
 async function totals(range) {
-  const [income, expense] = await Promise.all([cachedGet('insight/income/total', range), cachedGet('insight/expense/total', range)])
+  const [income, expense] = await Promise.all([get('insight/income/total', range), get('insight/expense/total', range)])
   return { in: insightTotal(income), out: insightTotal(expense) }
 }
 
+// Primitives only (a new array from the getter would refetch on every render), and the answer for a period stepped
+// past is dropped
 watch(
-  () => [props.range.start, props.version, props.options.compare],
-  async () => {
+  [() => props.range.start, () => props.view, () => props.version, () => props.options.compare],
+  async (_, __, onCleanup) => {
+    let stale = false
+    onCleanup(() => (stale = true))
     data.value = null
     const [current, previous] = await Promise.all([totals(props.range), props.options.compare ? totals(periodRange(props.view, props.offset - 1)) : null])
-    data.value = { ...current, previous }
+    if (!stale) data.value = { ...current, previous }
   },
   { immediate: true },
 )
@@ -80,10 +87,33 @@ const open = (type) => router.push({ path: '/transactions', query: { filter: typ
 </script>
 
 <style>
+/* The tile lays out its figures by its own width: three across, In and Out over Surplus, or one under the other */
+.cashflow {
+  container-type: inline-size;
+}
 .flow-figures {
+  --column: calc((100cqi - 16px) / 3);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+}
+@container (max-width: 300px) {
+  .flow-figures {
+    --column: calc((100cqi - 8px) / 2);
+    grid-template-columns: 1fr 1fr;
+  }
+  .flow.surplus {
+    grid-column: span 2;
+  }
+}
+@container (max-width: 200px) {
+  .flow-figures {
+    --column: 100cqi;
+    grid-template-columns: 1fr;
+  }
+  .flow.surplus {
+    grid-column: auto;
+  }
 }
 .flow {
   display: flex;
@@ -107,7 +137,8 @@ button.flow:hover {
   gap: 3px;
 }
 .flow-value {
-  font-size: 21px;
+  /* What fits the longest figure in a column (less the button's padding) */
+  font-size: clamp(14px, calc((var(--column) - 10px) / var(--fit, 6)), 21px);
   font-weight: 700;
   letter-spacing: -0.01em;
   white-space: nowrap;
@@ -136,16 +167,5 @@ button.flow:hover {
 }
 .flow-note {
   margin: 10px 0 0;
-}
-@media (max-width: 420px) {
-  .flow-value {
-    font-size: 18px;
-  }
-}
-.size-third .flow-figures {
-  grid-template-columns: 1fr 1fr;
-}
-.size-third .flow.surplus {
-  grid-column: span 2;
 }
 </style>

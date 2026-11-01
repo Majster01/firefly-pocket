@@ -16,9 +16,14 @@
     </div>
 
     <div v-if="loading" class="loading"><span class="spinner" /></div>
+    <div v-else-if="banksError" class="card empty">
+      <h3>Could not load the banks</h3>
+      <p class="error-text">{{ banksError }}</p>
+      <button class="btn small" @click="loadBanks(country)">Retry</button>
+    </div>
     <div v-else-if="!filtered.length" class="card empty">No banks found</div>
     <div v-else class="card flush">
-      <button v-for="bank in filtered" :key="bank.name" class="item" :class="{ selected: selected?.name === bank.name }" @click="select(bank)">
+      <button v-for="bank in filtered" :key="bank.name" class="item" :class="{ selected: selected?.name === bank.name }" :aria-pressed="selected?.name === bank.name" @click="select(bank)">
         <span class="avatar"><img v-if="bank.logo" :src="bank.logo" alt="" /></span>
         <span class="grow item-title">{{ bank.name }}</span>
         <Icon v-if="selected?.name === bank.name" name="check" class="good" />
@@ -29,7 +34,7 @@
       <div class="row">
         <span class="grow">Account type</span>
         <div class="seg">
-          <button v-for="type in selected.psu_types" :key="type" :class="{ on: psuType === type }" @click="psuType = type">{{ type === 'business' ? 'Business' : 'Personal' }}</button>
+          <button v-for="type in selected.psu_types" :key="type" :class="{ on: psuType === type }" :aria-pressed="psuType === type" @click="psuType = type">{{ type === 'business' ? 'Business' : 'Personal' }}</button>
         </div>
       </div>
     </div>
@@ -68,30 +73,42 @@ const search = ref('')
 const selected = ref(null)
 const psuType = ref('personal')
 const loading = ref(false)
+const banksError = ref('')
 const connecting = ref(false)
 
 const filtered = computed(() => banks.value.filter((bank) => !search.value || bank.name.toLowerCase().includes(search.value.toLowerCase())))
 
+async function loadBanks(code) {
+  loading.value = true
+  banksError.value = ''
+  selected.value = null
+  try {
+    banks.value = (await get('bank-connections/banks', { country: code }, { quiet: true })).data
+  } catch (error) {
+    banks.value = []
+    banksError.value = error.message
+  } finally {
+    loading.value = false
+  }
+}
+
 watch(
   country,
-  async (code) => {
+  (code) => {
     try {
       localStorage.setItem('pocket.bankCountry', code)
     } catch {
       // Not remembered, that is all
     }
-    loading.value = true
-    selected.value = null
-    try {
-      banks.value = (await get('bank-connections/banks', { country: code })).data
-    } catch {
-      banks.value = []
-    } finally {
-      loading.value = false
-    }
+    loadBanks(code)
   },
   { immediate: true },
 )
+
+// "Continue to NLB" while the search hides NLB would connect a bank the user no longer sees
+watch(filtered, (list) => {
+  if (selected.value && !list.some((bank) => bank.name === selected.value.name)) selected.value = null
+})
 
 const select = (bank) => {
   selected.value = bank
@@ -140,5 +157,8 @@ async function connect() {
 }
 .note {
   margin: 14px 6px;
+}
+.error-text {
+  overflow-wrap: anywhere;
 }
 </style>

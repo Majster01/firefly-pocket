@@ -30,10 +30,13 @@ const budgets = ref(null)
 const periodName = computed(() => periodLabel(props.view, props.offset))
 
 watch(
-  () => [props.range.start, props.view, props.version],
-  async () => {
+  [() => props.range.start, () => props.view, () => props.version],
+  async (_, __, onCleanup) => {
+    let stale = false
+    onCleanup(() => (stale = true))
     budgets.value = null
-    budgets.value = (await budgetMonth(props.range)).filter((budget) => budget.limit > 0).sort((a, b) => b.ratio - a.ratio)
+    const list = await budgetMonth(props.range)
+    if (!stale) budgets.value = list.filter((budget) => budget.limit > 0).sort((a, b) => b.ratio - a.ratio)
   },
   { immediate: true },
 )

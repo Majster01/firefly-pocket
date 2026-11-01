@@ -7,13 +7,14 @@
     </PageHeader>
 
     <section v-if="budgets" class="card hero">
-      <div class="hero-label">Left this month</div>
+      <div class="hero-label">{{ offset === 0 ? 'Left this month' : `Left in ${monthLabel(range.start)}` }}</div>
       <div class="hero-value" :class="{ bad: totals.left < 0 }">{{ money(totals.left) }}</div>
       <div class="track hero-track"><i :class="meterClass(totals.ratio)" :style="{ width: `${Math.min(100, totals.ratio * 100)}%` }" /></div>
       <div class="small muted">{{ money(totals.spent) }} spent of {{ money(totals.limit) }} · {{ daysLeft }}</div>
     </section>
 
-    <div v-if="!budgets" class="loading"><span class="spinner" /></div>
+    <div v-if="loadError" class="banner bad"><Icon name="alert" :size="18" /> {{ loadError }}</div>
+    <div v-else-if="!budgets" class="loading"><span class="spinner" /></div>
     <div v-else class="budget-grid">
       <button v-for="budget in budgets" :key="budget.id" class="card budget-card" @click="open(budget)">
         <div class="row">
@@ -32,11 +33,16 @@
     </div>
 
     <Sheet :open="Boolean(editing)" :title="editing?.id ? 'Edit budget' : 'New budget'" @close="editing = null">
-      <template #action><button class="btn small primary" :disabled="!editing?.name.trim()" @click="save">Save</button></template>
+      <template #action>
+        <button class="btn small primary" :disabled="!editing?.name.trim() || saving" @click="save">
+          <span v-if="saving" class="spinner" />
+          <span v-else>Save</span>
+        </button>
+      </template>
       <template v-if="editing">
         <label class="field"><span>Name</span><input v-model="editing.name" /></label>
-        <label class="field"><span>Limit for {{ monthLabel(range.start) }} (EUR)</span><input v-model="editing.limit" inputmode="decimal" placeholder="No limit" /></label>
-        <button v-if="editing.id" class="btn block danger" @click="remove">Delete budget</button>
+        <label class="field"><span>Limit for {{ monthLabel(editing.range.start) }} (EUR)</span><input v-model="editing.limit" inputmode="decimal" placeholder="No limit" /></label>
+        <button v-if="editing.id" class="btn block danger" :disabled="saving" @click="remove">Delete budget</button>
       </template>
     </Sheet>
   </div>
@@ -49,12 +55,16 @@ import Icon from '../components/Icon.vue'
 import Sheet from '../components/Sheet.vue'
 import { del, post, put } from '../lib/api.js'
 import { budgetMonth, meterClass } from '../lib/data.js'
-import { money, monthLabel, monthRange } from '../lib/format.js'
-import { toast } from '../lib/toast.js'
+import { money, monthLabel, monthRange, parseAmount } from '../lib/format.js'
+import { toast, toastError } from '../lib/toast.js'
 
 const offset = ref(0)
 const budgets = ref(null)
+// The month the shown budgets belong to: an edit sets that month's limit, even if the arrows moved on meanwhile
+const budgetsRange = ref(null)
 const editing = ref(null)
+const saving = ref(false)
+const loadError = ref('')
 const range = computed(() => monthRange(offset.value))
 
 const totals = computed(() => {
@@ -70,37 +80,74 @@ const daysLeft = computed(() => {
   return `${days} ${days === 1 ? 'day' : 'days'} to go`
 })
 
+// Stepping through months quickly: only the last request may fill the page
+let request = 0
+
 async function reload() {
+  const mine = ++request
+  const shown = range.value
   budgets.value = null
-  budgets.value = (await budgetMonth(range.value)).sort((a, b) => b.limit - a.limit)
+  loadError.value = ''
+  try {
+    const list = (await budgetMonth(shown)).sort((a, b) => b.limit - a.limit)
+    if (mine !== request) return
+    budgets.value = list
+    budgetsRange.value = shown
+  } catch (error) {
+    if (mine === request) loadError.value = error.message
+  }
 }
 
-const open = (budget) => (editing.value = budget ? { id: budget.id, name: budget.name, limit: budget.limit ? String(budget.limit) : '', limits: budget.limits } : { id: null, name: '', limit: '', limits: [] })
+const open = (budget) =>
+  (editing.value = budget
+    ? { id: budget.id, name: budget.name, limit: budget.limit ? String(budget.limit) : '', limits: budget.limits, range: budgetsRange.value ?? range.value }
+    : { id: null, name: '', limit: '', limits: [], range: budgetsRange.value ?? range.value })
 
 async function save() {
-  const { id, name, limit, limits } = editing.value
-  let budgetId = id
-  if (id) await put(`budgets/${id}`, { name: name.trim() })
-  else budgetId = (await post('budgets', { name: name.trim(), active: true })).data.id
-  const amount = Number(String(limit).replace(',', '.'))
-  const existing = limits[0]
-  if (limit && amount > 0) {
-    const body = { start: range.value.start, end: range.value.end, amount: amount.toFixed(2), currency_code: 'EUR' }
-    if (existing) await put(`budgets/${budgetId}/limits/${existing.id}`, body)
-    else await post(`budgets/${budgetId}/limits`, body)
-  } else if (existing) {
-    await del(`budgets/${budgetId}/limits/${existing.id}`)
+  if (saving.value) return
+  const value = editing.value
+  const text = String(value.limit).trim()
+  const amount = text ? parseAmount(text) : null
+  // Only an empty field removes the limit; something unreadable must not delete it and say Saved
+  if (text && !(amount > 0)) {
+    toastError('Enter the limit as an amount, like 250 or 250,50. Leave it empty for no limit.')
+    return
   }
-  toast('Saved')
-  editing.value = null
-  reload()
+  saving.value = true
+  try {
+    if (value.id) await put(`budgets/${value.id}`, { name: value.name.trim() })
+    // Remember the new id at once, so a retry after a failed limit does not create the budget twice
+    else value.id = (await post('budgets', { name: value.name.trim(), active: true })).data.id
+    const existing = value.limits[0]
+    if (amount) {
+      const body = { start: value.range.start, end: value.range.end, amount: amount.toFixed(2), currency_code: 'EUR' }
+      if (existing) await put(`budgets/${value.id}/limits/${existing.id}`, body)
+      else await post(`budgets/${value.id}/limits`, body)
+    } else if (existing) {
+      await del(`budgets/${value.id}/limits/${existing.id}`)
+    }
+    toast('Saved')
+    editing.value = null
+  } catch {
+    // The error toast comes from api()
+  } finally {
+    saving.value = false
+    reload()
+  }
 }
 
 async function remove() {
   if (!confirm(`Delete the budget ${editing.value.name}?`)) return
-  await del(`budgets/${editing.value.id}`)
-  editing.value = null
-  reload()
+  saving.value = true
+  try {
+    await del(`budgets/${editing.value.id}`)
+    editing.value = null
+  } catch {
+    // Toasted by api()
+  } finally {
+    saving.value = false
+    reload()
+  }
 }
 
 watch(offset, reload)

@@ -4,7 +4,7 @@
       <RouterLink v-if="back" :to="back" class="btn icon small page-back" aria-label="Back"><Icon name="back" :size="20" /></RouterLink>
       <div class="grow">
         <div v-if="eyebrow" class="page-eyebrow">{{ eyebrow }}</div>
-        <h1 class="page-title">{{ title }}</h1>
+        <h1 class="page-title" tabindex="-1">{{ title }}</h1>
       </div>
       <div class="row page-actions"><slot /></div>
     </div>
@@ -40,26 +40,37 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
 }
 .page-head-inner {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   min-height: 44px;
 }
+/* The title keeps at least 140px: on a narrow phone a row of actions moves to its own line instead of covering it */
+.page-head-inner > .grow {
+  flex: 1 1 140px;
+}
 .page-eyebrow {
   font-size: 13px;
   font-weight: 600;
-  color: var(--muted);
+  color: var(--bare-text);
 }
 .page-title {
   font-size: 30px;
   font-weight: 750;
   letter-spacing: -0.025em;
   line-height: 1.1;
+  overflow-wrap: break-word;
+}
+/* Focused by the router after navigation so screen readers announce the page; not something to click */
+.page-title:focus {
+  outline: none;
 }
 .page-head.scrolled .page-title {
   font-size: 22px;
 }
 .page-actions {
   gap: 8px;
+  margin-left: auto;
 }
 @media (min-width: 900px) {
   .page-head {

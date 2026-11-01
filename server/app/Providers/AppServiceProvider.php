@@ -4,6 +4,10 @@ namespace App\Providers;
 
 use App\Services\Push\PushSender;
 use App\Services\Push\WebPushSender;
+use App\Support\RequestTiming;
+use App\Support\UpstreamPrefetch;
+use GuzzleHttp\Promise\Create;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -14,6 +18,9 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(PushSender::class, WebPushSender::class);
+        // Per request, also under a long-running server (Octane)
+        $this->app->scoped(RequestTiming::class);
+        $this->app->scoped(UpstreamPrefetch::class);
     }
 
     /**
@@ -21,6 +28,36 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Firefly answers a batch fetched ahead (BatchReader) stand in for the controllers' own GETs. Registered first,
+        // so it is the outermost: an answer from here is not timed as a call to Firefly
+        Http::globalMiddleware(function (callable $handler) {
+            return function ($request, array $options) use ($handler) {
+                if ($request->getMethod() === 'GET') {
+                    $answer = app(UpstreamPrefetch::class)->take($request->getHeaderLine('Authorization'), (string) $request->getUri());
+                    if ($answer) {
+                        return Create::promiseFor($answer);
+                    }
+                }
+                return $handler($request, $options);
+            };
+        });
+
+        // Times every outgoing call (Firefly, the importer) for the Server-Timing header
+        Http::globalMiddleware(function (callable $handler) {
+            return function ($request, array $options) use ($handler) {
+                $start = hrtime(true);
+                $record = fn() => app(RequestTiming::class)->addUpstream((hrtime(true) - $start) / 1e6);
+                return $handler($request, $options)->then(
+                    function ($response) use ($record) {
+                        $record();
+                        return $response;
+                    },
+                    function ($reason) use ($record) {
+                        $record();
+                        return Create::rejectionFor($reason);
+                    },
+                );
+            };
+        });
     }
 }

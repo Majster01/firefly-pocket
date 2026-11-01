@@ -4,7 +4,13 @@
       <button v-if="account" class="btn small" @click="isEditing = true"><Icon name="edit" :size="17" /> Edit</button>
     </PageHeader>
 
-    <div v-if="!account" class="loading"><span class="spinner" /></div>
+    <div v-if="failed" class="empty card">
+      <h3>{{ failed === 'missing' ? 'Account not found' : 'Could not load this account' }}</h3>
+      <p>{{ failed === 'missing' ? 'It may have been deleted elsewhere.' : 'Check your connection and try again.' }}</p>
+      <button v-if="failed !== 'missing'" class="btn" @click="reload">Try again</button>
+      <RouterLink v-else to="/accounts" class="btn">All accounts</RouterLink>
+    </div>
+    <div v-else-if="!account" class="loading"><span class="spinner" /></div>
     <template v-else>
       <section class="card hero">
         <div class="hero-label">{{ isOwn ? 'Balance' : account.attributes.type === 'expense' ? 'Paid in total' : 'Received in total' }}</div>
@@ -14,9 +20,9 @@
           <strong>{{ eur === null ? 'no exchange rate' : money(eur) }}</strong>
         </div>
         <div class="row wrap account-meta small muted">
-          <span v-if="account.attributes.iban" class="chip">{{ account.attributes.iban }}</span>
-          <span v-if="account.attributes.account_role" class="chip">{{ account.attributes.account_role.replace('Asset', '') }}</span>
-          <span v-if="account.attributes.include_net_worth === false" class="chip">Not in net worth</span>
+          <span v-if="account.attributes.iban" class="chip num">{{ groupedIban }}</span>
+          <span v-if="kindLabel" class="chip">{{ kindLabel }}</span>
+          <span v-if="isOwn && account.attributes.include_net_worth === false" class="chip">Not in net worth</span>
         </div>
         <p v-if="account.attributes.notes" class="small muted">{{ account.attributes.notes }}</p>
       </section>
@@ -26,7 +32,10 @@
       <div v-else-if="!splits.length" class="card empty">No transactions yet</div>
       <TransactionFeed v-else :splits="splits" :account-id="account.id" />
       <div v-if="page < totalPages" class="more">
-        <button class="btn" :disabled="loading" @click="loadPage(page + 1)">Load more</button>
+        <button class="btn" :disabled="loading" @click="loadPage(page + 1)">
+          <span v-if="loading" class="spinner" />
+          <span v-else>Load more</span>
+        </button>
       </div>
     </template>
 
@@ -42,7 +51,7 @@ import Icon from '../components/Icon.vue'
 import TransactionFeed from '../components/TransactionFeed.vue'
 import AccountSheet from '../components/AccountSheet.vue'
 import { get } from '../lib/api.js'
-import { balanceOf, flatten, load, toEur, vwcePrice } from '../lib/data.js'
+import { accountKind, balanceOf, flatten, load, OWN_TYPES, toEur, vwcePrice } from '../lib/data.js'
 import { money, shares } from '../lib/format.js'
 import { composer } from '../lib/composer.js'
 
@@ -54,29 +63,56 @@ const page = ref(1)
 const totalPages = ref(1)
 const loading = ref(false)
 const isEditing = ref(false)
+const failed = ref('') // 'missing' or 'error'
 
-const isOwn = computed(() => ['asset', 'liabilities', 'liability'].includes(account.value?.attributes.type))
+const isOwn = computed(() => OWN_TYPES.includes(account.value?.attributes.type))
 const eur = computed(() => toEur(balanceOf(account.value), account.value.attributes.currency_code))
+const kindLabel = computed(() => (isOwn.value ? accountKind(account.value) : null))
+// Read in fours, as printed on a card: SI56 0201 0001 2345 678
+const groupedIban = computed(() => account.value.attributes.iban.replace(/\s/g, '').replace(/(.{4})(?=.)/g, '$1 '))
 
+let requestId = 0
 async function loadPage(number) {
+  const id = ++requestId
   loading.value = true
   try {
     const json = await get(`accounts/${route.params.id}/transactions`, { page: number, limit: 50 })
+    if (id !== requestId) return
     const rows = flatten(json.data ?? [])
     splits.value = number === 1 ? rows : [...splits.value, ...rows]
     page.value = number
     totalPages.value = json.meta?.pagination?.total_pages ?? 1
+  } catch {
+    // The toast comes from api(); "Load more" can be tapped again
   } finally {
-    loading.value = false
+    if (id === requestId) loading.value = false
   }
 }
 
 async function reload() {
-  account.value = (await get(`accounts/${route.params.id}`)).data
+  failed.value = ''
+  try {
+    account.value = (await get(`accounts/${route.params.id}`)).data
+  } catch (error) {
+    // A stale link or an account deleted elsewhere: say so instead of spinning
+    if (error.status === 404) account.value = null
+    if (!account.value) failed.value = error.status === 404 ? 'missing' : 'error'
+    return
+  }
   loadPage(1)
 }
 
 watch(() => composer.version, reload)
+// Same page, another account (a link from one account to another)
+watch(
+  () => route.params.id,
+  (id) => {
+    if (!id || route.name !== 'account') return
+    account.value = null
+    splits.value = []
+    reload()
+  },
+)
 onMounted(() => {
   load('rates')
   load('accounts')

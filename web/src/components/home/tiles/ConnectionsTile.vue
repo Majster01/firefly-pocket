@@ -9,6 +9,14 @@
       <Icon name="chevron" class="chev" />
     </RouterLink>
   </div>
+  <!-- Until the list arrives nothing is known to be fine: Home only shows this tile when the badge counts a problem -->
+  <div v-else-if="connections === null" class="card attention" aria-busy="true">
+    <span class="avatar skeleton" />
+    <span class="grow">
+      <span class="skeleton notice-line" />
+      <span class="skeleton notice-line short" />
+    </span>
+  </div>
   <RouterLink v-else-if="editing" to="/bank-connections" class="card attention">
     <span class="avatar"><Icon name="bank" :size="20" /></span>
     <span class="grow">
@@ -24,14 +32,19 @@ import Icon from '../../Icon.vue'
 import { get } from '../../../lib/api.js'
 
 const props = defineProps({ editing: Boolean, version: Number })
-const connections = ref([])
-const attention = computed(() => connections.value.filter((item) => ['expiring', 'expired', 'error', 'needs_mapping'].includes(item.status)))
+const connections = ref(null)
+const attention = computed(() => (connections.value ?? []).filter((item) => ['expiring', 'expired', 'error', 'needs_mapping'].includes(item.status)))
 const note = (connection) =>
   ({ expiring: `consent ends in ${connection.days_left} ${connection.days_left === 1 ? 'day' : 'days'}`, expired: 'consent ended', error: 'last import failed', needs_mapping: 'accounts not set up' })[connection.status]
 
 watch(
   () => props.version,
-  async () => (connections.value = (await get('bank-connections', undefined, { quiet: true }).catch(() => null))?.data ?? []),
+  async (_, __, onCleanup) => {
+    let stale = false
+    onCleanup(() => (stale = true))
+    const json = await get('bank-connections', undefined, { quiet: true }).catch(() => null)
+    if (!stale) connections.value = json?.data ?? []
+  },
   { immediate: true },
 )
 </script>
@@ -45,5 +58,14 @@ watch(
 }
 .notice-stack .card + .card {
   margin-top: 0;
+}
+.notice-line {
+  display: block;
+  height: 13px;
+  width: min(260px, 90%);
+}
+.notice-line.short {
+  width: min(180px, 60%);
+  margin-top: 7px;
 }
 </style>

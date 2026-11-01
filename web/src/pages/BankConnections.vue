@@ -5,7 +5,10 @@
       <RouterLink to="/bank-connections/new" class="btn small"><Icon name="plus" :size="18" /> Connect</RouterLink>
     </PageHeader>
 
-    <div v-if="loadError" class="banner bad"><Icon name="alert" :size="18" /> {{ loadError }}</div>
+    <div v-if="loadError" class="banner bad error-text">
+      <Icon name="alert" :size="18" /> <span class="grow">{{ loadError }}</span>
+      <button class="btn small" @click="reload">Retry</button>
+    </div>
     <div v-if="!connections && !loadError" class="loading"><span class="spinner" /></div>
     <div v-else-if="connections && !connections.length" class="card empty">
       <h3>No bank connected</h3>
@@ -14,7 +17,7 @@
     </div>
 
     <div class="connection-grid">
-      <article v-for="connection in connections ?? []" :key="connection.name" class="card connection">
+      <article v-for="connection in connections ?? []" :id="`connection-${connection.name}`" :key="connection.name" class="card connection" :class="{ highlighted: highlighted === connection.name }">
         <header class="row">
           <span class="avatar"><img v-if="connection.bank.logo" :src="connection.bank.logo" alt="" /></span>
           <div class="grow">
@@ -23,31 +26,31 @@
           </div>
           <span class="chip" :class="STATUS[connection.status]?.tone">{{ STATUS[connection.status]?.label ?? connection.status }}</span>
         </header>
-        <p v-if="connection.last_error" class="small bad">{{ connection.last_error }}</p>
+        <p v-if="connection.last_error" class="small bad error-text">{{ connection.last_error }}</p>
 
         <ul class="list connection-accounts">
           <li v-for="account in connection.accounts" :key="account.id" class="row">
-            <span class="grow">
+            <span class="grow account-name">
               <span style="display: block">{{ account.name ?? account.iban_masked }}</span>
               <span class="tiny muted">{{ [account.iban_masked, account.currency].filter(Boolean).join(' · ') }}</span>
             </span>
-            <RouterLink v-if="account.firefly_account_id > 0" :to="`/accounts/${account.firefly_account_id}`" class="small target">→ {{ accountName(account.firefly_account_id) }}</RouterLink>
+            <RouterLink v-if="account.firefly_account_id > 0" :to="`/accounts/${account.firefly_account_id}`" class="small target ellipsis">→ {{ accountName(account.firefly_account_id) }}</RouterLink>
             <span v-else class="small muted">{{ account.firefly_account_id === 0 ? 'New account' : 'Not imported' }}</span>
           </li>
         </ul>
 
-        <div v-if="connection.last_import" class="small import-line">
+        <div v-if="connection.last_import" class="small import-line error-text">
           <span :class="connection.last_import.ok ? 'good' : 'bad'">{{ connection.last_import.ok ? '✓' : '✗' }}</span>
           Last import {{ timeAgo(connection.last_import.at) }}
           <span class="muted">· {{ connection.last_import.ok ? `${connection.last_import.summary?.messages ?? 0} new` : connection.last_import.summary?.first_error }}</span>
         </div>
-        <div v-if="connection.manual_import" class="small import-line">
+        <div v-if="connection.manual_import" class="small import-line error-text">
           <span v-if="IMPORT_ACTIVE.includes(connection.manual_import.status)" class="spinner" style="width: 14px; height: 14px" />
           <span :class="{ good: connection.manual_import.status === 'done', bad: connection.manual_import.status === 'failed' }">{{ IMPORT_STATUS[connection.manual_import.status] }}</span>
           <span class="muted">· {{ shortDate(connection.manual_import.date_from) }} – {{ shortDate(connection.manual_import.date_to) }}{{ manualDetail(connection.manual_import) }}</span>
         </div>
         <RouterLink v-if="connection.manual_import?.suggestions?.written > 0 && settings.features.ruleSuggestions" to="/suggestions" class="small review-link">
-          <Icon name="sparkles" :size="15" /> Review {{ connection.manual_import.suggestions.written }} new suggestions
+          <Icon name="sparkles" :size="15" /> Review {{ plural(connection.manual_import.suggestions.written, 'new suggestion') }}
         </RouterLink>
 
         <footer class="row wrap connection-actions">
@@ -57,7 +60,10 @@
             <span v-else>Renew consent</span>
           </button>
           <button v-if="['active', 'expiring', 'error'].includes(connection.status)" class="btn small" :disabled="anyImportActive" @click="openImport(connection)">Import now</button>
-          <button class="btn small icon danger" aria-label="Remove" @click="remove(connection)"><Icon name="trash" :size="16" /></button>
+          <button class="btn small icon danger" :aria-label="`Remove ${connection.bank.name}`" :disabled="removing === connection.name" @click="remove(connection)">
+            <span v-if="removing === connection.name" class="spinner" style="width: 16px; height: 16px" />
+            <Icon v-else name="trash" :size="16" />
+          </button>
         </footer>
       </article>
     </div>
@@ -68,8 +74,9 @@
           <label class="field"><span>From</span><input v-model="importFrom" type="date" :min="earliest" :max="importTo || today" /></label>
           <label class="field"><span>To</span><input v-model="importTo" type="date" :min="importFrom" :max="today" /></label>
         </div>
+        <p v-if="importProblem" class="small bad">{{ importProblem }}</p>
         <p class="small muted">Imports with the connection's saved settings, then suggests categories for what came in. Transactions already in Firefly are skipped.</p>
-        <button class="btn primary block" :disabled="!importFrom || !importTo || importFrom > importTo || starting" @click="startImport">
+        <button class="btn primary block" :disabled="Boolean(importProblem) || starting" @click="startImport">
           <span v-if="starting" class="spinner" />
           <span v-else>Start import</span>
         </button>
@@ -79,7 +86,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import PageHeader from '../components/PageHeader.vue'
 import Icon from '../components/Icon.vue'
@@ -102,27 +109,41 @@ const importing = ref(null)
 const importFrom = ref('')
 const importTo = ref('')
 const starting = ref(false)
+const removing = ref(null)
+const highlighted = ref(null)
 
 const today = isoDate()
 const earliest = isoDate(Date.now() - 90 * 86400000)
 const anyImportActive = computed(() => (connections.value ?? []).some((connection) => IMPORT_ACTIVE.includes(connection.manual_import?.status)))
 
+// The date inputs' min/max only limit the picker: typed dates still need checking
+const importProblem = computed(() => {
+  if (!importFrom.value || !importTo.value) return 'Choose both dates'
+  if (importFrom.value < earliest) return `Banks share at most 90 days: from ${shortDate(earliest)} on`
+  if (importTo.value > today) return 'The end cannot be in the future'
+  if (importFrom.value > importTo.value) return 'The start is after the end'
+  return ''
+})
+
+const plural = (count, word) => `${count} ${count === 1 ? word : `${word}s`}`
 const accountName = (id) => accountById(id)?.attributes.name ?? `#${id}`
 const expiry = (connection) => {
   if (!connection.expires_at) return 'Consent not given yet'
   if (connection.status === 'expired') return `Consent ended ${shortDate(connection.expires_at)}`
-  return `Consent until ${shortDate(connection.expires_at)} · ${connection.days_left} ${connection.days_left === 1 ? 'day' : 'days'} left`
+  if (connection.days_left <= 0) return `Consent ends today`
+  return `Consent until ${shortDate(connection.expires_at)} · ${plural(connection.days_left, 'day')} left`
 }
 const manualDetail = (manual) => {
   if (manual.status === 'failed') return ` · ${manual.error}`
   if (manual.status !== 'done') return ''
   if (manual.suggest_error) return ` · suggester failed: ${manual.suggest_error}`
-  return ` · ${manual.summary?.messages ?? 0} new · ${manual.suggestions?.written ?? 0} suggestions`
+  return ` · ${manual.summary?.messages ?? 0} new · ${plural(manual.suggestions?.written ?? 0, 'suggestion')}`
 }
 
+// Always quiet: the banner says it, a toast on top would say it twice. A background refresh keeps the last list.
 async function reload({ quiet = false } = {}) {
   try {
-    connections.value = (await get('bank-connections', undefined, { quiet })).data
+    connections.value = (await get('bank-connections', undefined, { quiet: true })).data
     loadError.value = ''
   } catch (error) {
     if (!quiet) loadError.value = error.message
@@ -153,17 +174,34 @@ async function startImport() {
     toast('Import started')
     importing.value = null
     await reload()
+  } catch {
+    // Toasted by the api; the sheet stays open to try again
   } finally {
     starting.value = false
   }
 }
 
 async function remove(connection) {
-  if (!confirm(`Remove the ${connection.bank.name} connection? Imported transactions stay in Firefly.`)) return
-  await del(`bank-connections/${connection.name}`)
-  toast('Removed')
-  reload()
-  refreshBadges()
+  if (removing.value || !confirm(`Remove the ${connection.bank.name} connection? Imported transactions stay in Firefly.`)) return
+  removing.value = connection.name
+  try {
+    await del(`bank-connections/${connection.name}`)
+    toast('Removed')
+    await reload()
+    refreshBadges()
+  } catch {
+    // Toasted by the api
+  } finally {
+    removing.value = null
+  }
+}
+
+// Back from the setup page: show which connection was just saved
+async function highlight(name) {
+  highlighted.value = name
+  await nextTick()
+  document.getElementById(`connection-${name}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  setTimeout(() => highlighted.value === name && (highlighted.value = null), 2500)
 }
 
 // Follow a running import until it is over
@@ -182,12 +220,13 @@ onBeforeUnmount(() => document.removeEventListener('visibilitychange', onVisible
 
 onMounted(async () => {
   // Back from the bank: ?connection=…&result=ok|failed&reason=…
-  const { result, reason, connection } = route.query
+  const { result, reason, connection, highlight: saved } = route.query
   if (result === 'ok') toast('The bank confirmed the consent', { timeout: 3000 })
   else if (result) toastError(FAILURE[reason] ?? FAILURE.unknown)
-  if (result) router.replace({ query: {} })
-  load('accounts')
+  if (result || saved) router.replace({ query: {} })
+  load('accounts').catch(() => null)
   await reload()
+  if (saved && connections.value?.some((item) => item.name === saved)) highlight(saved)
   const fresh = connections.value?.find((item) => item.name === connection && item.status === 'needs_mapping')
   if (result === 'ok' && fresh) router.push({ path: '/bank-connections/setup', query: { connection: fresh.name } })
 })
@@ -214,8 +253,23 @@ onMounted(async () => {
   padding: 8px 0;
   border-top: 1px solid var(--line);
 }
+.connection-accounts .account-name {
+  min-width: 0;
+}
+/* A long Firefly account name shrinks instead of pushing the row wider than the card */
 .connection-accounts .target {
   font-weight: 600;
+  min-width: 0;
+  max-width: 55%;
+}
+.connection {
+  transition: box-shadow 0.3s;
+}
+.connection.highlighted {
+  box-shadow: 0 0 0 2px var(--accent), var(--card-shadow);
+}
+.error-text {
+  overflow-wrap: anywhere;
 }
 .import-line {
   display: flex;

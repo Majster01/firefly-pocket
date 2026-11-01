@@ -39,8 +39,10 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
+            \App\Http\Middleware\ServerTiming::class,
 //             \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
             \Illuminate\Routing\Middleware\ThrottleRequests::class.':300,1', // 300 per minute
+            \App\Http\Middleware\CacheFireflyResponses::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
     ];

@@ -20,14 +20,19 @@
 
 <script setup>
 import { ref, watch } from 'vue'
-import { cachedGet } from '../../../lib/data.js'
+import { get } from '../../../lib/api.js'
 import { money } from '../../../lib/format.js'
 
 const props = defineProps({ version: Number })
 const piggies = ref(null)
 watch(
   () => props.version,
-  async () => (piggies.value = (await cachedGet('piggy-banks', { limit: 50 }))?.data ?? []),
+  async (_, __, onCleanup) => {
+    let stale = false
+    onCleanup(() => (stale = true))
+    const json = await get('piggy-banks', { limit: 50 })
+    if (!stale) piggies.value = json?.data ?? []
+  },
   { immediate: true },
 )
 </script>

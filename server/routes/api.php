@@ -6,7 +6,9 @@ use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\CustomIconController;
+use App\Http\Controllers\DataVersionController;
 use App\Http\Controllers\FireflyProxyController;
+use App\Http\Controllers\FireflyWebhookController;
 use App\Http\Controllers\InternalNotifyController;
 use App\Http\Controllers\PiggyBankController;
 use App\Http\Controllers\ProfileController;
@@ -14,6 +16,7 @@ use App\Http\Controllers\PushController;
 use App\Http\Controllers\RecurrenceController;
 use App\Http\Controllers\RuleSuggestionController;
 use App\Http\Controllers\BankConnectionController;
+use App\Http\Controllers\BatchController;
 use App\Http\Controllers\SystemStatusController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TransactionController;
@@ -39,6 +42,8 @@ use Illuminate\Support\Facades\Route;
 // Own resources
 Route::get('info', [VersionController::class, 'getInfo']);
 Route::get('user', [UserController::class, 'getUser']);
+Route::get('data-version', [DataVersionController::class, 'get']);
+Route::post('batch', [BatchController::class, 'read']);
 
 RouteUtils::makeCRUD("transaction-templates", TransactionTemplateController::class);
 
@@ -99,6 +104,8 @@ Route::get('push/preferences', [PushController::class, 'getPreferences']);
 Route::put('push/preferences', [PushController::class, 'savePreferences']);
 // Not behind the user login: the FireflyX importer/suggester calls it with NOTIFY_API_TOKEN. The reverse proxy hides /api/internal/*
 Route::post('internal/notify', [InternalNotifyController::class, 'notify']);
+// Not behind the user login either: Firefly's webhook, checked by its signature (FIREFLY_WEBHOOK_SECRET)
+Route::post('internal/firefly-webhook', [FireflyWebhookController::class, 'receive']);
 
 Route::get('system-status', [SystemStatusController::class, 'get']);
 
@@ -112,6 +119,7 @@ Route::post('assistant/interpret-transactions', [AssistantController::class, 'in
 Route::post('assistant/test-llm', [AssistantController::class, 'testLlm']);
 Route::post('assistant/test-transcription', [AssistantController::class, 'testTranscription']);
 
+// FireflyX's deploy smoke test calls this (no login, no Firefly call): keep it, or change scripts/deploy.sh there first
 Route::get('/test', function (Request $request) {
     return "Test!";
 });
