@@ -48,6 +48,19 @@ Pocket keeps Firefly's answers so that opening a page does not wait on Firefly f
 - Opening Home again with nothing changed sends only the version check and Pocket's own requests (profile, bank connections, exchange rates).
 - Another token or signing out throws away what was kept.
 
+**One request per page.** The app sends the reads a page asks for at the same moment as one `POST /api/batch` (`server/app/Services/BatchReader.php`).
+- Pocket answers the kept ones from its cache and asks Firefly for the others in parallel.
+- It then runs each read through its usual route, so the answers and the caching are the same as for single requests.
+- Rule suggestions and search totals are left out: Pocket works those out with several calls one after another, and they would hold up the whole batch.
+
+**Warm-up after a change** (`server/app/Services/CacheWarmUp.php`). Pocket remembers which reads each token's Home asked for in the last 8 days. `WARMUP_DELAY` seconds (default 60) after the data version moves on, a queued job fetches them again, so the first open after the nightly import finds them kept. Many changes in a row (an import) lead to a single warm-up.
+
+What it needs:
+- `WARMUP_FIREFLY_TOKEN`: a Firefly personal access token of the same user, used only for this. Pocket does not store the app's tokens: it fetches with this token and keeps the answers for each remembered token that belongs to the same Firefly user.
+- A queue worker: the Docker image's Horizon with `QUEUE_CONNECTION=redis`. With the `sync` queue the warm-up is off.
+
+The remembered reads are for whole months, so on the first day of a month the warm-up still fetches the month before.
+
 In production use Redis, which the Docker image already runs for Horizon: `CACHE_DRIVER=redis`. Firefly III can use Redis for its own cache too (`CACHE_DRIVER=redis` and `REDIS_*` in Firefly's environment).
 
 **Firefly webhook.** Webhooks may be switched off in Firefly III (`allow_webhooks`; the site owner turns them on in Firefly's administration settings). Then add one under Automation → Webhooks:

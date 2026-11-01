@@ -26,14 +26,17 @@ class ResponseCache
 
     // Pocket's own data or data that is not Firefly's: never cached here (paths after /api/)
     const NOT_CACHED = [
-        'assistant', 'bank-connections', 'currencies/exchange', 'custom-icons', 'data-version', 'info', 'internal', 'profiles', 'push',
+        'assistant', 'bank-connections', 'batch', 'currencies/exchange', 'custom-icons', 'data-version', 'info', 'internal', 'profiles', 'push',
         'system-status', 'test', 'transaction-templates', 'user', 'accounts/groups',
     ];
 
     // Requests other than GET that change nothing in Firefly or in what is cached: no new version
     const NO_CHANGE = [
-        'assistant', 'internal', 'profiles', 'push', 'rule-suggestions/preview', 'transaction-templates',
+        'assistant', 'batch', 'internal', 'profiles', 'push', 'rule-suggestions/preview', 'transaction-templates',
     ];
+
+    // Set on a request whose answers are kept for another token of the same Firefly user (CacheWarmUp)
+    const OWNER_ATTRIBUTE = 'pocket.cache_owner';
 
     public function enabled(): bool
     {
@@ -64,6 +67,8 @@ class ResponseCache
         }
         $this->version();
         $this->store()->increment(self::VERSION_KEY);
+        // Fetch again, a little later, what Home asks for, so the next open finds it kept
+        app(CacheWarmUp::class)->schedule();
     }
 
     public function isCacheable(Request $request): bool
@@ -118,7 +123,8 @@ class ResponseCache
     private function key(int $version, Request $request): string
     {
         $day = now(config('app.response_cache_timezone'))->toDateString();
-        return self::KEY_PREFIX . $version . ':' . $day . ':' . getAuthTokenHash() . ':' . hash('sha256', $request->getRequestUri());
+        $owner = $request->attributes->get(self::OWNER_ATTRIBUTE) ?? hash('sha256', (string) $request->bearerToken());
+        return self::KEY_PREFIX . $version . ':' . $day . ':' . $owner . ':' . hash('sha256', $request->getRequestUri());
     }
 
     private function matches(Request $request, array $prefixes): bool

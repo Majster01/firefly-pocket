@@ -28,6 +28,8 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
+        <!-- Tests that need the cache warm-up turn it on themselves -->
+        <env name="WARMUP_FIREFLY_TOKEN" value=""/>
         <!-- The dev .env turns on dummy rates; the exchange rate tests fake the rate APIs instead -->
         <env name="EXCHANGE_RATES_MOCK" value="false"/>
     </php>
