@@ -1,5 +1,7 @@
 # Firefly Pocket Next
 
+## Note: this is vibe coded for personal use. If there is any adoption I can generalize this and expose my e2e stack for easier deploys on own server
+
 A redesign of [Firefly Pocket](https://github.com/Majster01/firefly-pocket) (a Firefly Pico fork) for Firefly III: a mobile-first PWA for the iPhone Home Screen plus a desktop layout for macOS browsers, in the "Frosted glass" design language of [firefly-money](https://github.com/Muffy0906/firefly-money) (MIT): warm translucent glass over a soft-focus room, ink pills for the main action, a white pill on the current tab. Light and Night themes, or follow the system.
 
 - `web/`: the UI (Vue 3 + Vite, installable PWA with Web Push)
