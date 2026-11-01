@@ -19,7 +19,8 @@ class ServerTiming
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (!config('app.server_timing')) {
+        // A read inside POST /api/batch: the batch request is timed as a whole
+        if (!config('app.server_timing') || $request->attributes->get('pocket.batch_item')) {
             return $next($request);
         }
         $start = defined('LARAVEL_START') ? LARAVEL_START : (float) $request->server('REQUEST_TIME_FLOAT', microtime(true));

@@ -78,6 +78,10 @@ return [
     'response_cache_ttl' => (int) env('RESPONSE_CACHE_TTL', 60 * 60 * 12),
     // Firefly's timezone: nothing is kept past its midnight (Pocket itself runs on UTC)
     'response_cache_timezone' => env('RESPONSE_CACHE_TIMEZONE') ?: env('TZ') ?: 'UTC',
+    // Warm-up after a change (app/Services/CacheWarmUp.php): a Firefly personal access token of the same user, used only
+    // to fetch again what Home asked for; empty = off. Runs WARMUP_DELAY seconds after the first change, on the queue
+    'warmup_firefly_token' => env('WARMUP_FIREFLY_TOKEN', ''),
+    'warmup_delay' => (int) env('WARMUP_DELAY', 60),
     // How long a token Firefly accepted is trusted without asking Firefly again (seconds, 0 = every request)
     'user_cache_ttl' => (int) env('USER_CACHE_TTL', 600),
     // The secret Firefly shows for the webhook that calls POST /api/internal/firefly-webhook

@@ -16,6 +16,7 @@ use App\Http\Controllers\PushController;
 use App\Http\Controllers\RecurrenceController;
 use App\Http\Controllers\RuleSuggestionController;
 use App\Http\Controllers\BankConnectionController;
+use App\Http\Controllers\BatchController;
 use App\Http\Controllers\SystemStatusController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TransactionController;
@@ -42,6 +43,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('info', [VersionController::class, 'getInfo']);
 Route::get('user', [UserController::class, 'getUser']);
 Route::get('data-version', [DataVersionController::class, 'get']);
+Route::post('batch', [BatchController::class, 'read']);
 
 RouteUtils::makeCRUD("transaction-templates", TransactionTemplateController::class);
 

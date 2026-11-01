@@ -44,7 +44,7 @@ async function keptRead(url, quiet) {
   if (data !== undefined) return data
   const shareKey = `${version}|${key}`
   if (!inflight.has(shareKey)) {
-    const reading = send('GET', url, { quiet })
+    const reading = (isBatched(url) ? viaBatch(url, quiet) : send('GET', url, { quiet }))
       .then(({ json, size }) => {
         keep(key, version, json, size)
         return json
@@ -53,6 +53,51 @@ async function keptRead(url, quiet) {
     inflight.set(shareKey, reading)
   }
   return inflight.get(shareKey)
+}
+
+// ------------------------------------------------------------------ batch
+
+// Reads asked within BATCH_WAIT_MS of each other (a page's tiles, all at once) go to Pocket as one POST /api/batch,
+// which asks Firefly for them side by side. Reads Pocket works out itself one call after another are left out: the
+// batch answers when its slowest read is done.
+const BATCH_WAIT_MS = 12
+const BATCH_MAX = 40
+const NOT_BATCHED = ['rule-suggestions', 'search/transactions/total']
+const batchQueue = []
+let batchTimer = null
+
+const apiPath = (url) => url.pathname.replace(/^\/api\//, '') + url.search
+const isBatched = (url) => !NOT_BATCHED.some((prefix) => apiPath(url).split('?')[0] === prefix)
+
+function viaBatch(url, quiet) {
+  return new Promise((resolve, reject) => {
+    batchQueue.push({ url, quiet, resolve, reject })
+    if (batchQueue.length >= BATCH_MAX) flushBatch()
+    else batchTimer ??= setTimeout(flushBatch, BATCH_WAIT_MS)
+  })
+}
+
+async function flushBatch() {
+  clearTimeout(batchTimer)
+  batchTimer = null
+  const items = batchQueue.splice(0)
+  if (!items.length) return
+  let answers = {}
+  if (items.length > 1) {
+    try {
+      // The page is what the server remembers Home by, to fetch it again after the next import
+      const batchUrl = new URL('/api/batch', location.origin)
+      answers = (await send('POST', batchUrl, { body: { paths: items.map((item) => apiPath(item.url)), page: location.pathname }, quiet: true })).json?.data ?? {}
+    } catch {
+      // An older Pocket, or the batch failed: each read asks on its own
+    }
+  }
+  for (const item of items) {
+    const answer = answers[apiPath(item.url)]
+    // Anything but a 200 is asked again on its own, so it fails (and is reported) the usual way
+    if (answer?.status === 200) item.resolve({ json: answer.body, size: answer.size })
+    else send('GET', item.url, { quiet: item.quiet }).then(item.resolve, item.reject)
+  }
 }
 
 async function send(method, url, { body, quiet, token }) {

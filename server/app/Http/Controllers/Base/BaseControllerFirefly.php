@@ -36,7 +36,13 @@ class BaseControllerFirefly extends BaseController
 
     protected function getFullUrl($baseUrl = null)
     {
-        $fullUrl = request()->fullUrl();
+        return self::fireflyUrlFor(request());
+    }
+
+    /** The Firefly URL a request to Pocket's /api/... is forwarded to: the same path and query under /api/v1/ */
+    public static function fireflyUrlFor(Request $request)
+    {
+        $fullUrl = $request->fullUrl();
         $pattern = "#(.*)/api/(.*)#";
         $regexResult = preg_match($pattern, $fullUrl, $matches);
         if (!$regexResult) {
