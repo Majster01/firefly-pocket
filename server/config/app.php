@@ -71,6 +71,8 @@ return [
     'vapid_subject' => env('VAPID_SUBJECT') ?: env('APP_URL', 'http://localhost'),
     // Shared secret (32+ characters) of the FireflyX importer/suggester for POST /api/internal/notify
     'notify_api_token' => env('NOTIFY_API_TOKEN', ''),
+    // The weekday of a weekly digest is read in this timezone (compose passes TZ)
+    'notify_timezone' => env('NOTIFY_TIMEZONE') ?: env('TZ') ?: 'UTC',
     // Folder with admin provided icons (svg, png, ...). In Docker, mount a volume here.
     'custom_icons_path' => env('CUSTOM_ICONS_PATH', storage_path('app/custom-icons')),
     'asset_url' => env('ASSET_URL'),

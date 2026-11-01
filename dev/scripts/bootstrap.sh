@@ -81,6 +81,8 @@ set_env DB_CONNECTION sqlite
 set_env DB_DATABASE "$ROOT_DIR/server/database/data/database.sqlite"
 # Dev only: no outbound calls for exchange rates, fixed dummy rates instead
 set_env EXCHANGE_RATES_MOCK true
+# Web Push: a VAPID keypair and the token FireflyX's senders use (dev/scripts/notify-test.sh plays them)
+"$DEV_DIR/scripts/push-keys.sh"
 
 echo "Seeding dummy data…"
 FIREFLY_URL="$FIREFLY_URL" FIREFLY_TOKEN="$MOCK_TOKEN" node "$DEV_DIR/scripts/seed.mjs"
