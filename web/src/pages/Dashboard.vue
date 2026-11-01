@@ -15,7 +15,7 @@
       </div>
       <div class="period-nav">
         <button class="btn icon small" :aria-label="`Previous ${view}`" @click="setOffset(offset - 1)"><Icon name="back" :size="18" /></button>
-        <button class="period-label" :disabled="offset === 0" :title="offset === 0 ? '' : 'Back to now'" @click="setOffset(0)">{{ periodLabel(view, offset) }}</button>
+        <button class="period-label" :disabled="offset === 0" :title="offset === 0 ? '' : 'Back to now'" @click="setOffset(0)"><span class="period-full">{{ periodLabel(view, offset) }}</span><span class="period-compact" aria-hidden="true">{{ periodLabel(view, offset, { compact: true }) }}</span></button>
         <button class="btn icon small" :aria-label="`Next ${view}`" :disabled="offset >= 0" @click="setOffset(offset + 1)"><Icon name="chevron" :size="18" /></button>
       </div>
     </div>
@@ -281,6 +281,9 @@ onMounted(() => {
 .period-label:disabled {
   cursor: default;
 }
+.period-compact {
+  display: none;
+}
 .edit-banner {
   display: flex;
   align-items: center;
@@ -333,6 +336,19 @@ onMounted(() => {
   .period-label {
     min-width: 0;
     font-size: 15px;
+  }
+  /* "Nov 2026" instead of "November 2026", so the Month/Year toggle never gets pushed off screen */
+  .period-full {
+    display: none;
+  }
+  .period-compact {
+    display: inline;
+  }
+  .period-bar {
+    flex-wrap: wrap;
+  }
+  .period-nav {
+    min-width: 0;
   }
 }
 </style>

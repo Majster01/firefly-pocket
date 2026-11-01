@@ -261,12 +261,14 @@ export function periodRange(view, offset) {
 }
 
 const monthName = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' })
-const monthOnly = new Intl.DateTimeFormat(undefined, { month: 'long' })
+const monthCompact = new Intl.DateTimeFormat(undefined, { month: 'short', year: 'numeric' })
+const monthOnly =new Intl.DateTimeFormat(undefined, { month: 'long' })
 
-export function periodLabel(view, offset, { short = false } = {}) {
+export function periodLabel(view, offset, { short = false, compact = false } = {}) {
   const range = periodRange(view, offset)
   if (view === 'year') return range.start.slice(0, 4)
   const date = new Date(`${range.start}T12:00:00`)
+  if (compact) return monthCompact.format(date)
   return short && date.getFullYear() === new Date().getFullYear() ? monthOnly.format(date) : monthName.format(date)
 }
 
