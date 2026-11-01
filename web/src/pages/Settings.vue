@@ -45,6 +45,53 @@
           </span>
           <input type="checkbox" class="switch" :checked="push?.subscribed" :disabled="!push?.configured || pushBusy" @change="togglePush" />
         </label>
+        <template v-if="push?.subscribed && prefs">
+          <label class="row setting-row">
+            <span class="grow">
+              Import succeeded
+              <span class="tiny muted" style="display: block">“NLB import succeeded” and how many transactions it brought</span>
+            </span>
+            <input v-model="prefs.import_success" type="checkbox" class="switch" @change="savePrefs" />
+          </label>
+          <label v-if="prefs.import_success" class="row setting-row sub-row">
+            <span class="grow">
+              Only when something new came in
+              <span class="tiny muted" style="display: block">Off: also tell me about nights with nothing new</span>
+            </span>
+            <input v-model="prefs.import_success_only_new" type="checkbox" class="switch" @change="savePrefs" />
+          </label>
+          <label class="row setting-row">
+            <span class="grow">
+              Import problems
+              <span class="tiny muted" style="display: block">What went wrong and what to do; the exact error is in the logs</span>
+            </span>
+            <input v-model="prefs.import_failure" type="checkbox" class="switch" @change="savePrefs" />
+          </label>
+          <div class="setting-row">
+            <div class="row">
+              <span class="grow">
+                Category suggestions waiting
+                <span class="tiny muted" style="display: block">How many suggestions are waiting for your review</span>
+              </span>
+            </div>
+            <div class="row wrap digest-row">
+              <div class="seg">
+                <button v-for="option in DIGEST" :key="option.value" :class="{ on: prefs.suggestions.frequency === option.value }" @click="setDigest({ frequency: option.value })">{{ option.label }}</button>
+              </div>
+              <select v-if="prefs.suggestions.frequency === 'weekly'" class="input digest-day" :value="prefs.suggestions.weekday" aria-label="Weekday" @change="setDigest({ weekday: Number($event.target.value) })">
+                <option v-for="(name, index) in WEEKDAYS" :key="name" :value="index + 1">{{ name }}</option>
+              </select>
+            </div>
+          </div>
+          <label class="row setting-row">
+            <span class="grow">
+              Upgrades
+              <span class="tiny muted" style="display: block">“Upgrade successful” and which package changed</span>
+            </span>
+            <input v-model="prefs.upgrade_success" type="checkbox" class="switch" @change="savePrefs" />
+          </label>
+          <p class="tiny muted" style="margin: 4px 0 0">Warnings about backups, expiring bank consents and failed deploys always come through. These choices are for this device.</p>
+        </template>
       </template>
     </div>
 
@@ -74,7 +121,7 @@ import Icon from '../components/Icon.vue'
 import { get } from '../lib/api.js'
 import { load, store } from '../lib/data.js'
 import { settings } from '../lib/settings.js'
-import { isStandalone, pushStatus, pushSupported, subscribePush, unsubscribePush } from '../lib/push.js'
+import { isStandalone, loadPreferences, pushStatus, pushSupported, savePreferences, subscribePush, unsubscribePush } from '../lib/push.js'
 import { toast, toastError } from '../lib/toast.js'
 
 const THEMES = [
@@ -96,6 +143,14 @@ const router = useRouter()
 const isIos = /iPhone|iPad/.test(navigator.userAgent)
 const push = ref(null)
 const pushBusy = ref(false)
+const prefs = ref(null)
+
+const DIGEST = [
+  { value: 'off', label: 'Off' },
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+]
+const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 const about = ref(null)
 const pocket = ref(null)
 
@@ -117,8 +172,28 @@ async function togglePush(event) {
     toastError(error.message)
   } finally {
     push.value = await pushStatus().catch(() => push.value)
+    await refreshPrefs()
     pushBusy.value = false
   }
+}
+
+async function refreshPrefs() {
+  prefs.value = push.value?.subscribed ? await loadPreferences().catch(() => null) : null
+}
+
+// Saved as soon as it changes; what the server answers (defaults filled in) is what stays on screen
+async function savePrefs() {
+  try {
+    prefs.value = await savePreferences(prefs.value)
+  } catch (error) {
+    toastError(error.message)
+    await refreshPrefs()
+  }
+}
+
+function setDigest(change) {
+  prefs.value.suggestions = { ...prefs.value.suggestions, ...change }
+  return savePrefs()
 }
 
 function signOut() {
@@ -130,6 +205,7 @@ function signOut() {
 onMounted(async () => {
   load('user')
   if (pushSupported()) push.value = await pushStatus().catch(() => ({ configured: false }))
+  await refreshPrefs()
   about.value = (await get('about', undefined, { quiet: true }).catch(() => null))?.data ?? null
   pocket.value = await get('info', undefined, { quiet: true }).catch(() => null)
 })
@@ -182,6 +258,17 @@ onMounted(async () => {
 .card > .setting-row:first-child {
   border-top: 0;
   padding-top: 0;
+}
+.sub-row {
+  padding-left: 14px;
+}
+.digest-row {
+  gap: 8px;
+  margin-top: 8px;
+}
+.digest-day {
+  width: auto;
+  min-width: 130px;
 }
 .settings-actions {
   gap: 8px;

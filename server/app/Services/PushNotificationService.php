@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\PushSubscription;
+use App\Services\Push\PushPreferences;
 use App\Services\Push\PushSender;
 
 /**
@@ -39,15 +40,40 @@ class PushNotificationService
         PushSubscription::allowed()->where('endpoint', $endpoint)->delete();
     }
 
+    public function preferences($endpoint): ?array
+    {
+        $subscription = PushSubscription::allowed()->where('endpoint', $endpoint)->first();
+        return $subscription ? PushPreferences::for($subscription) : null;
+    }
+
+    public function savePreferences($endpoint, array $input): ?array
+    {
+        $subscription = PushSubscription::allowed()->where('endpoint', $endpoint)->first();
+        if (!$subscription) {
+            return null;
+        }
+        $subscription->update(['preferences' => PushPreferences::merge($input)]);
+        return PushPreferences::for($subscription);
+    }
+
     /**
-     * Sends to every stored subscription. $message: title, body, path, and optionally badge and tag.
+     * Sends to the stored subscriptions that want this kind of message. $message: title, body, path, and optionally
+     * badge, tag, and the kind of message (event, with count for the number of new transactions), which only decides who
+     * gets it and is not part of what the device receives.
      * Subscriptions the push service reports gone are deleted.
      */
     public function notify(array $message): array
     {
-        $subscriptions = PushSubscription::all();
+        $event = $message['event'] ?? null;
+        $count = isset($message['count']) ? (int) $message['count'] : null;
+        unset($message['event'], $message['count']);
+
+        $now = now(config('app.notify_timezone'));
+        $all = PushSubscription::all();
+        $subscriptions = $all->filter(fn($subscription) => PushPreferences::wants($subscription, $event, $count, $now))->values();
+        $skipped = $all->count() - $subscriptions->count();
         if ($subscriptions->isEmpty()) {
-            return ['sent' => 0, 'failed' => 0, 'removed' => 0];
+            return ['sent' => 0, 'failed' => 0, 'removed' => 0, 'skipped' => $skipped];
         }
 
         $results = collect($this->sender->send($subscriptions, json_encode($message)));
@@ -58,6 +84,7 @@ class PushNotificationService
             'sent' => $results->filter(fn($result) => $result === PushSender::SENT)->count(),
             'failed' => $subscriptions->count() - $results->filter(fn($result) => $result === PushSender::SENT)->count() - $gone->count(),
             'removed' => $gone->count(),
+            'skipped' => $skipped,
         ];
     }
 }

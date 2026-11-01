@@ -165,6 +165,8 @@ class PushNotificationTest extends TestCase
             ['title' => 'T', 'body' => 'B', 'badge' => -1],
             ['title' => 'T', 'body' => 'B', 'badge' => 'many'],
             ['title' => 'T', 'body' => 'B', 'tag' => str_repeat('a', 65)],
+            ['title' => 'T', 'body' => 'B', 'event' => 'import.exploded'],
+            ['title' => 'T', 'body' => 'B', 'event' => 'import.success', 'count' => -1],
         ];
         foreach ($invalid as $body) {
             $this->notify($body)->assertUnprocessable();
@@ -177,7 +179,7 @@ class PushNotificationTest extends TestCase
     {
         $sender = $this->fakePushSender();
 
-        $this->notify()->assertOk()->assertExactJson(['sent' => 0, 'failed' => 0, 'removed' => 0]);
+        $this->notify()->assertOk()->assertExactJson(['sent' => 0, 'failed' => 0, 'removed' => 0, 'skipped' => 0]);
         $this->assertSame([], $sender->payloads);
     }
 
@@ -187,7 +189,7 @@ class PushNotificationTest extends TestCase
         $this->subscription('https://push.example/1');
         $this->subscription('https://push.example/2', '2');
 
-        $this->notify()->assertOk()->assertExactJson(['sent' => 2, 'failed' => 0, 'removed' => 0]);
+        $this->notify()->assertOk()->assertExactJson(['sent' => 2, 'failed' => 0, 'removed' => 0, 'skipped' => 0]);
 
         $this->assertEqualsCanonicalizing(['https://push.example/1', 'https://push.example/2'], $sender->endpoints);
         $this->assertSame([['title' => 'Imported', 'body' => '12 new transactions', 'path' => '/']], $sender->payloads);
@@ -215,10 +217,121 @@ class PushNotificationTest extends TestCase
             $this->subscription('https://push.example/' . $name);
         }
 
-        $this->notify()->assertOk()->assertExactJson(['sent' => 2, 'failed' => 1, 'removed' => 1]);
+        $this->notify()->assertOk()->assertExactJson(['sent' => 2, 'failed' => 1, 'removed' => 1, 'skipped' => 0]);
 
         $this->assertCount(4, $sender->endpoints);
         $this->assertDatabaseMissing('push_subscriptions', ['endpoint' => 'https://push.example/gone']);
         $this->assertDatabaseCount('push_subscriptions', 3);
+    }
+
+    // ---- preferences ----
+
+    private function subscriptionWith($endpoint, array $preferences, $userId = '1')
+    {
+        return PushSubscription::create(['user_id' => $userId, 'endpoint' => $endpoint, 'p256dh' => 'p', 'auth' => 'a', 'preferences' => $preferences]);
+    }
+
+    public function test_preferences_default_to_everything_on_weekly_on_monday()
+    {
+        $this->subscription('https://push.example/1');
+
+        $this->getJson('api/push/preferences?endpoint=' . urlencode('https://push.example/1'), $this->headers())
+            ->assertOk()
+            ->assertExactJson(['data' => [
+                'import_success' => true,
+                'import_success_only_new' => true,
+                'import_failure' => true,
+                'upgrade_success' => true,
+                'suggestions' => ['frequency' => 'weekly', 'weekday' => 1],
+            ]]);
+    }
+
+    public function test_preferences_are_saved_per_device_and_merged_over_the_defaults()
+    {
+        $this->subscription('https://push.example/1');
+        $this->subscription('https://push.example/2');
+
+        $this->putJson('api/push/preferences', [
+            'endpoint' => 'https://push.example/1',
+            'preferences' => ['import_success_only_new' => false, 'suggestions' => ['frequency' => 'daily']],
+        ], $this->headers())->assertOk()->assertJsonPath('data.suggestions', ['frequency' => 'daily', 'weekday' => 1]);
+
+        $this->getJson('api/push/preferences?endpoint=' . urlencode('https://push.example/1'), $this->headers())
+            ->assertJsonPath('data.import_success_only_new', false)
+            ->assertJsonPath('data.import_failure', true);
+        $this->getJson('api/push/preferences?endpoint=' . urlencode('https://push.example/2'), $this->headers())
+            ->assertJsonPath('data.import_success_only_new', true);
+    }
+
+    public function test_preferences_validate_the_body_and_need_the_own_subscription()
+    {
+        $this->subscription('https://push.example/mine');
+        $this->subscription('https://push.example/other', '2');
+
+        $this->putJson('api/push/preferences', ['endpoint' => 'https://push.example/mine', 'preferences' => ['suggestions' => ['frequency' => 'hourly']]], $this->headers())->assertUnprocessable();
+        $this->putJson('api/push/preferences', ['endpoint' => 'https://push.example/mine', 'preferences' => ['suggestions' => ['weekday' => 8]]], $this->headers())->assertUnprocessable();
+        $this->putJson('api/push/preferences', ['endpoint' => 'https://push.example/other', 'preferences' => ['import_failure' => false]], $this->headers())->assertNotFound();
+        $this->getJson('api/push/preferences?endpoint=' . urlencode('https://push.example/unknown'), $this->headers())->assertNotFound();
+    }
+
+    public function test_preferences_need_a_signed_in_user()
+    {
+        $this->getJson('api/push/preferences?endpoint=x', $this->headers('bad-token'))->assertUnauthorized();
+    }
+
+    public function test_an_alert_without_an_event_goes_to_every_device_whatever_they_chose()
+    {
+        $sender = $this->fakePushSender();
+        $this->subscriptionWith('https://push.example/1', ['import_failure' => false, 'import_success' => false, 'upgrade_success' => false, 'suggestions' => ['frequency' => 'off']]);
+
+        $this->notify()->assertOk()->assertExactJson(['sent' => 1, 'failed' => 0, 'removed' => 0, 'skipped' => 0]);
+    }
+
+    public function test_events_reach_only_the_devices_that_want_them_and_are_not_part_of_the_payload()
+    {
+        $sender = $this->fakePushSender();
+        $this->subscriptionWith('https://push.example/wants', ['upgrade_success' => true]);
+        $this->subscriptionWith('https://push.example/declines', ['upgrade_success' => false]);
+
+        $this->notify(['title' => 'Upgrade successful', 'body' => 'Firefly III 6.6.6 → 6.7.0', 'event' => 'upgrade.success'])
+            ->assertOk()->assertExactJson(['sent' => 1, 'failed' => 0, 'removed' => 0, 'skipped' => 1]);
+
+        $this->assertSame(['https://push.example/wants'], $sender->endpoints);
+        $this->assertSame([['title' => 'Upgrade successful', 'body' => 'Firefly III 6.6.6 → 6.7.0', 'path' => '/']], $sender->payloads);
+    }
+
+    public function test_an_import_without_new_transactions_is_only_sent_when_asked_for()
+    {
+        $sender = $this->fakePushSender();
+        $this->subscriptionWith('https://push.example/quiet', ['import_success_only_new' => true]);
+        $this->subscriptionWith('https://push.example/every-night', ['import_success_only_new' => false]);
+
+        $this->notify(['title' => 'NLB import succeeded', 'body' => 'No new transactions', 'event' => 'import.success', 'count' => 0])
+            ->assertOk()->assertExactJson(['sent' => 1, 'failed' => 0, 'removed' => 0, 'skipped' => 1]);
+        $this->assertSame(['https://push.example/every-night'], $sender->endpoints);
+
+        $this->notify(['title' => 'NLB import succeeded', 'body' => '3 new transactions', 'event' => 'import.success', 'count' => 3])
+            ->assertOk()->assertExactJson(['sent' => 2, 'failed' => 0, 'removed' => 0, 'skipped' => 0]);
+    }
+
+    public function test_the_suggestions_digest_follows_each_devices_frequency_and_weekday()
+    {
+        config(['app.notify_timezone' => 'Europe/Ljubljana']);
+        $sender = $this->fakePushSender();
+        $this->subscriptionWith('https://push.example/daily', ['suggestions' => ['frequency' => 'daily']]);
+        $this->subscriptionWith('https://push.example/monday', ['suggestions' => ['frequency' => 'weekly', 'weekday' => 1]]);
+        $this->subscriptionWith('https://push.example/tuesday', ['suggestions' => ['frequency' => 'weekly', 'weekday' => 2]]);
+        $this->subscriptionWith('https://push.example/off', ['suggestions' => ['frequency' => 'off']]);
+        $digest = ['title' => 'Suggestions', 'body' => '4 waiting', 'event' => 'suggestions.digest', 'badge' => 4];
+
+        // 2026-11-02 is a Monday; 21:30 UTC is already Tuesday in Ljubljana
+        $this->travelTo(\Carbon\Carbon::parse('2026-11-02 10:00:00', 'UTC'));
+        $this->notify($digest)->assertOk()->assertJsonPath('sent', 2)->assertJsonPath('skipped', 2);
+        $this->assertEqualsCanonicalizing(['https://push.example/daily', 'https://push.example/monday'], $sender->endpoints);
+
+        $sender->endpoints = [];
+        $this->travelTo(\Carbon\Carbon::parse('2026-11-02 23:30:00', 'UTC'));
+        $this->notify($digest)->assertOk()->assertJsonPath('sent', 2);
+        $this->assertEqualsCanonicalizing(['https://push.example/daily', 'https://push.example/tuesday'], $sender->endpoints);
     }
 }

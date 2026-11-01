@@ -95,6 +95,8 @@ Route::delete('bank-connections/{name}', [BankConnectionController::class, 'dele
 Route::get('push/public-key', [PushController::class, 'getPublicKey']);
 Route::post('push/subscriptions', [PushController::class, 'subscribe']);
 Route::delete('push/subscriptions', [PushController::class, 'unsubscribe']);
+Route::get('push/preferences', [PushController::class, 'getPreferences']);
+Route::put('push/preferences', [PushController::class, 'savePreferences']);
 // Not behind the user login: the FireflyX importer/suggester calls it with NOTIFY_API_TOKEN. The reverse proxy hides /api/internal/*
 Route::post('internal/notify', [InternalNotifyController::class, 'notify']);
 

@@ -7,7 +7,11 @@ use Illuminate\Database\Eloquent\Builder;
 class PushSubscription extends BaseModel
 {
     protected $fillable = [
-        'user_id', 'endpoint', 'p256dh', 'auth', 'user_agent',
+        'user_id', 'endpoint', 'p256dh', 'auth', 'user_agent', 'preferences',
+    ];
+
+    protected $casts = [
+        'preferences' => 'array',
     ];
 
     public function scopeAllowed(Builder $query)
