@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Base\BaseController;
 use App\Services\PushNotificationService;
+use App\Services\ResponseCache;
 use App\Validations\PushValidation;
 use Illuminate\Http\Request;
 
@@ -26,6 +27,9 @@ class InternalNotifyController extends BaseController
         if (!hash_equals($token, (string) $request->bearerToken())) {
             return $this->fail('Unauthorized', self::HTTP_CODE_UNAUTHORIZED);
         }
+
+        // The importer and the suggester call this after a run: what they wrote into Firefly must not wait for the TTL
+        app(ResponseCache::class)->bump();
 
         $service = app(PushNotificationService::class);
         if (!$service->isConfigured()) {

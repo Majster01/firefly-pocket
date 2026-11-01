@@ -24,6 +24,35 @@ A redesign of [Firefly Pocket](https://github.com/Majster01/firefly-pocket) (a F
 
 Open the app in Safari and use Share → Add to Home Screen. The layout pads for the notch and home indicator (`viewport-fit=cover`, safe-area insets), inputs are 16px so Safari never zooms, sheets slide up from the bottom, and Web Push works from the Home Screen app (iOS 16.4+). From 900px wide the tab bar becomes a floating sidebar and sheets become centered dialogs.
 
+## Caching
+
+Pocket keeps Firefly's answers so that opening a page does not wait on Firefly for data that has not changed (`server/app/Services/ResponseCache.php`, `server/app/Http/Middleware/CacheFireflyResponses.php`).
+
+- Every GET Pocket forwards to Firefly is kept per token, under the current **data version**. Pocket's own data (profiles, templates, bank connections, system status, push, the assistant) is not.
+- The data version moves on, and everything kept so far is out of date, when:
+  - something is saved, changed or deleted through Pocket (adding a transaction, approving or rejecting a suggestion, an import started from Bank connections). Saving the Home layout and previewing a suggestion's conditions do not count;
+  - the importer or suggester calls `POST /api/internal/notify`;
+  - Firefly's webhook calls `POST /api/internal/firefly-webhook`, for changes made outside Pocket (Firefly's own pages, the data importer).
+- Answers expire after `RESPONSE_CACHE_TTL` (12 hours) in any case.
+- Answers carry an ETag, so the browser gets an empty 304 when nothing changed. A request with `Cache-Control: no-cache` skips the kept answer.
+- A token Firefly accepted is trusted for `USER_CACHE_TTL` (10 minutes) before Pocket asks Firefly again. A token revoked in Firefly can read kept answers for at most that long.
+
+In production use Redis, which the Docker image already runs for Horizon: `CACHE_DRIVER=redis`. Firefly III can use Redis for its own cache too (`CACHE_DRIVER=redis` and `REDIS_*` in Firefly's environment).
+
+**Firefly webhook.** In Firefly III, add a webhook under Automation → Webhooks:
+- URL: `http://<pocket>/api/internal/firefly-webhook`, an address reachable on the compose network;
+- trigger: "After any event", which covers transactions, budgets and budgeted amounts;
+- response: "No details" (Pocket reads only the signature, not the content).
+
+Copy its secret to `FIREFLY_WEBHOOK_SECRET`. Like `/api/internal/notify`, keep the path off the public reverse proxy.
+
+**Timing.** Every API answer has a `Server-Timing` header, shown in the browser's network panel:
+- `total`: the time in Pocket;
+- `upstream`: the time waiting on Firefly and the importer, with the number of calls;
+- `cache`: hit, miss or bypass.
+
+`SERVER_TIMING_LOG=true` also logs one line per request.
+
 ## Local development
 
 Needs Docker, Node 22 and PHP 8.2+ with Composer. Nothing here talks to a real bank, a real Firefly or an LLM.
