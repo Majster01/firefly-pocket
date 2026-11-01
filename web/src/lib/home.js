@@ -44,6 +44,8 @@ export const TILES = {
     desktop: ['third', 'half', 'twothirds', 'full'],
     options: { metric: { label: 'Show', type: 'choice', choices: [['spending', 'Spending'], ['income', 'Income']], default: 'spending' } },
   },
+  // view: only offered in that period view (a calendar of days has no yearly form)
+  calendar: { title: 'Calendar', icon: 'calendar', view: 'month', phone: ['full'], desktop: ['third', 'half', 'twothirds', 'full'] },
   budgets: { title: 'Budgets', icon: 'pie', phone: ['full'], desktop: ['third', 'half', 'twothirds', 'full'], feature: 'budgets' },
   recent: {
     title: 'Latest transactions',
@@ -74,6 +76,7 @@ const DEFAULTS = {
       tile('suggestions', 'full'),
       tile('connections', 'full'),
       tile('cashflow', 'full'),
+      tile('calendar', 'full'),
       tile('categories', 'full', true, { chart: 'bars', limit: 5 }),
       tile('networth', 'full'),
       tile('budgets', 'full'),
@@ -93,6 +96,7 @@ const DEFAULTS = {
       tile('connections', 'half'),
       tile('categories', 'half', true, { chart: 'donut' }),
       tile('trend', 'half'),
+      tile('calendar', 'half'),
       tile('budgets', 'third'),
       tile('recent', 'third', true, { count: 8 }),
       tile('accounts', 'third'),
