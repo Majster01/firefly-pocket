@@ -7,6 +7,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\CustomIconController;
 use App\Http\Controllers\FireflyProxyController;
+use App\Http\Controllers\FireflyWebhookController;
 use App\Http\Controllers\InternalNotifyController;
 use App\Http\Controllers\PiggyBankController;
 use App\Http\Controllers\ProfileController;
@@ -97,6 +98,8 @@ Route::post('push/subscriptions', [PushController::class, 'subscribe']);
 Route::delete('push/subscriptions', [PushController::class, 'unsubscribe']);
 // Not behind the user login: the FireflyX importer/suggester calls it with NOTIFY_API_TOKEN. The reverse proxy hides /api/internal/*
 Route::post('internal/notify', [InternalNotifyController::class, 'notify']);
+// Not behind the user login either: Firefly's webhook, checked by its signature (FIREFLY_WEBHOOK_SECRET)
+Route::post('internal/firefly-webhook', [FireflyWebhookController::class, 'receive']);
 
 Route::get('system-status', [SystemStatusController::class, 'get']);
 
