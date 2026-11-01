@@ -49,10 +49,7 @@
 
       <label class="field">
         <span>Description</span>
-        <input v-model="form.description" list="pocket-descriptions" autocomplete="off" placeholder="What was it?" />
-        <datalist id="pocket-descriptions">
-          <option v-for="name in counterpartyNames" :key="name" :value="name" />
-        </datalist>
+        <SuggestInput v-model="form.description" :options="counterpartyNames" placeholder="What was it?" />
       </label>
 
       <div class="field-row">
@@ -61,22 +58,16 @@
           <select v-if="form.type !== 'deposit'" v-model="form.source_id">
             <option v-for="account in ownAccountList" :key="account.id" :value="account.id">{{ account.attributes.name }}</option>
           </select>
-          <input v-else v-model="form.source_name" list="pocket-revenue" placeholder="Payer" autocomplete="off" />
+          <SuggestInput v-else v-model="form.source_name" :options="revenueNames" placeholder="Payer" />
         </label>
         <label class="field">
           <span>{{ form.type === 'withdrawal' ? 'Paid to' : 'To' }}</span>
           <select v-if="form.type !== 'withdrawal'" v-model="form.destination_id">
             <option v-for="account in ownAccountList" :key="account.id" :value="account.id">{{ account.attributes.name }}</option>
           </select>
-          <input v-else v-model="form.destination_name" list="pocket-expense" placeholder="Payee" autocomplete="off" />
+          <SuggestInput v-else v-model="form.destination_name" :options="expenseNames" placeholder="Payee" />
         </label>
       </div>
-      <datalist id="pocket-expense">
-        <option v-for="account in accountsOfType('expense')" :key="account.id" :value="account.attributes.name" />
-      </datalist>
-      <datalist id="pocket-revenue">
-        <option v-for="account in accountsOfType('revenue')" :key="account.id" :value="account.attributes.name" />
-      </datalist>
 
       <label v-if="needsForeign" class="field">
         <span>Amount in {{ destinationCurrency }}</span>
@@ -109,16 +100,13 @@
         </label>
         <label v-if="settings.features.tags" class="field">
           <span>Tags</span>
-          <input v-model="form.tags" list="pocket-tags" placeholder="comma, separated" autocomplete="off" />
+          <SuggestInput v-model="form.tags" :options="tagNames" multiple placeholder="comma, separated" />
         </label>
       </div>
       <label v-else-if="settings.features.tags" class="field">
         <span>Tags</span>
-        <input v-model="form.tags" list="pocket-tags" placeholder="comma, separated" autocomplete="off" />
+        <SuggestInput v-model="form.tags" :options="tagNames" multiple placeholder="comma, separated" />
       </label>
-      <datalist id="pocket-tags">
-        <option v-for="tag in store.tags" :key="tag.id" :value="tag.attributes.tag" />
-      </datalist>
 
       <label class="field">
         <span>Notes</span>
@@ -137,6 +125,7 @@ import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import Sheet from './Sheet.vue'
 import Icon from './Icon.vue'
+import SuggestInput from './SuggestInput.vue'
 import { closeComposer, composer, saved } from '../lib/composer.js'
 import { accountById, accountsOfType, assetAccounts, invalidate, isBookkeeping, load, loadAll, ownAccounts, signedAmount, store, vwcePrice } from '../lib/data.js'
 import { del, get, post, put } from '../lib/api.js'
@@ -194,7 +183,11 @@ const openAccount = () => {
   router.push(`/accounts/${readOnly.value.account.id}`)
   closeComposer()
 }
-const counterpartyNames = computed(() => [...new Set(accountsOfType(form.type === 'deposit' ? 'revenue' : 'expense').map((account) => account.attributes.name))].slice(0, 200))
+const namesOf = (type) => [...new Set(accountsOfType(type).map((account) => account.attributes.name))]
+const expenseNames = computed(() => namesOf('expense'))
+const revenueNames = computed(() => namesOf('revenue'))
+const counterpartyNames = computed(() => (form.type === 'deposit' ? revenueNames.value : expenseNames.value))
+const tagNames = computed(() => store.tags.map((tag) => tag.attributes.tag))
 
 const sourceCurrency = computed(() => accountById(form.type === 'deposit' ? form.destination_id : form.source_id)?.attributes.currency_code ?? 'EUR')
 const destinationCurrency = computed(() => (form.type === 'transfer' ? accountById(form.destination_id)?.attributes.currency_code : sourceCurrency.value) ?? 'EUR')

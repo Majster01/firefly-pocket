@@ -44,15 +44,9 @@
             <option value="">No default</option>
             <option v-for="category in store.categories" :key="category.id" :value="category.attributes.name">{{ category.attributes.name }}</option>
           </select>
-          <input v-else v-model="settings.defaults[group.key][field.key]" :list="`defaults-${field.list}`" :placeholder="field.placeholder" autocomplete="off" />
+          <SuggestInput v-else v-model="settings.defaults[group.key][field.key]" :options="namesOf(field.list)" :placeholder="field.placeholder" />
         </label>
       </template>
-      <datalist id="defaults-expense">
-        <option v-for="account in accountsOfType('expense')" :key="account.id" :value="account.attributes.name" />
-      </datalist>
-      <datalist id="defaults-revenue">
-        <option v-for="account in accountsOfType('revenue')" :key="account.id" :value="account.attributes.name" />
-      </datalist>
     </div>
 
     <h2 class="section-title">Features</h2>
@@ -150,11 +144,14 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import PageHeader from '../components/PageHeader.vue'
 import Icon from '../components/Icon.vue'
+import SuggestInput from '../components/SuggestInput.vue'
 import { get } from '../lib/api.js'
 import { accountsOfType, load, loadAll, ownAccounts, store } from '../lib/data.js'
 import { settings } from '../lib/settings.js'
 import { isStandalone, loadPreferences, pushStatus, pushSupported, savePreferences, subscribePush, unsubscribePush } from '../lib/push.js'
 import { toast, toastError } from '../lib/toast.js'
+
+const namesOf = (type) => [...new Set(accountsOfType(type).map((account) => account.attributes.name))]
 
 const THEMES = [
   { value: 'system', label: 'System', icon: 'device' },
