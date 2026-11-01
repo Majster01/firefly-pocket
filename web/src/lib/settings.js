@@ -9,6 +9,7 @@ const DEFAULTS = {
   features: {
     bankConnections: true,
     ruleSuggestions: true,
+    rules: true,
     piggyBanks: true,
     recurring: true,
     templates: true,

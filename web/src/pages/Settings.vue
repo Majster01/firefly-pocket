@@ -194,6 +194,7 @@ const DEFAULT_GROUPS = [
 const FEATURES = [
   { key: 'bankConnections', label: 'Bank connections', hint: 'Consents, imports and the system status (FireflyX importer)' },
   { key: 'ruleSuggestions', label: 'Category suggestions', hint: 'Review what the suggester proposes' },
+  { key: 'rules', label: 'Rules', hint: "Firefly's own rules: conditions and actions run on new transactions" },
   { key: 'budgets', label: 'Budgets', hint: 'Monthly limits on Home and in the composer' },
   { key: 'tags', label: 'Tags', hint: '' },
   { key: 'piggyBanks', label: 'Piggy banks', hint: '' },
