@@ -70,6 +70,7 @@ import TileLibrarySheet from '../components/home/TileLibrarySheet.vue'
 import NetWorthTile from '../components/home/tiles/NetWorthTile.vue'
 import CashflowTile from '../components/home/tiles/CashflowTile.vue'
 import CategoriesTile from '../components/home/tiles/CategoriesTile.vue'
+import CalendarTile from '../components/home/tiles/CalendarTile.vue'
 import TrendTile from '../components/home/tiles/TrendTile.vue'
 import BudgetsTile from '../components/home/tiles/BudgetsTile.vue'
 import RecentTile from '../components/home/tiles/RecentTile.vue'
@@ -89,6 +90,7 @@ const COMPONENTS = {
   cashflow: CashflowTile,
   categories: CategoriesTile,
   trend: TrendTile,
+  calendar: CalendarTile,
   budgets: BudgetsTile,
   recent: RecentTile,
   accounts: AccountsTile,
@@ -136,7 +138,7 @@ const setOffset = (value) => router.replace({ query: { view: view.value, ...(val
 
 // ------------------------------------------------------------------- tiles
 
-const enabled = (entry) => !TILES[entry.id].feature || settings.features[TILES[entry.id].feature]
+const enabled = (entry) => (!TILES[entry.id].feature || settings.features[TILES[entry.id].feature]) && (!TILES[entry.id].view || TILES[entry.id].view === view.value)
 // A notice with nothing to say takes no room, except while customizing
 const hasNotice = (entry) => (entry.id === 'suggestions' ? badges.suggestions > 0 : entry.id === 'connections' ? badges.connections > 0 : true)
 const shownTiles = computed(() => layout.value.tiles.filter((entry) => enabled(entry) && (editing.value || (entry.visible && hasNotice(entry)))))
