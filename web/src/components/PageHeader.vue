@@ -73,11 +73,19 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
   margin-left: auto;
 }
 @media (min-width: 900px) {
-  .page-head {
-    margin: 0 -32px 12px;
-    padding: 22px 32px 14px;
+  /* The floating sidebar already gives context, so the header scrolls away with the page instead of overlaying it */
+  .page-head,
+  .page-head.scrolled {
+    position: static;
+    margin: 0 0 12px;
+    padding: 22px 0 14px;
+    background: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
   }
-  .page-title {
+  .page-title,
+  .page-head.scrolled .page-title {
     font-size: 32px;
   }
 }
