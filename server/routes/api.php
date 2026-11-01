@@ -117,6 +117,7 @@ Route::post('assistant/interpret-transactions', [AssistantController::class, 'in
 Route::post('assistant/test-llm', [AssistantController::class, 'testLlm']);
 Route::post('assistant/test-transcription', [AssistantController::class, 'testTranscription']);
 
+// FireflyX's deploy smoke test calls this (no login, no Firefly call): keep it, or change scripts/deploy.sh there first
 Route::get('/test', function (Request $request) {
     return "Test!";
 });

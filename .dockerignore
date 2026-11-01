@@ -1,0 +1,15 @@
+.git
+.github
+dev
+**/node_modules
+web/dist
+server/vendor
+server/.env
+server/database/data/*.sqlite
+server/storage/logs/*
+server/storage/framework/cache/*
+server/storage/framework/sessions/*
+server/storage/framework/views/*
+server/bootstrap/cache/*.php
+*.md
+!server/README.md
