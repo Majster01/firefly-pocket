@@ -14,6 +14,7 @@ use App\Http\Controllers\PiggyBankController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PushController;
 use App\Http\Controllers\RecurrenceController;
+use App\Http\Controllers\RuleController;
 use App\Http\Controllers\RuleSuggestionController;
 use App\Http\Controllers\BankConnectionController;
 use App\Http\Controllers\BatchController;
@@ -88,7 +89,22 @@ Route::post('rule-suggestions/{id}/approve', [RuleSuggestionController::class, '
 Route::post('rule-suggestions/{id}/categorize', [RuleSuggestionController::class, 'categorize'])->where('id', '[0-9]+');
 Route::delete('rule-suggestions/{id}', [RuleSuggestionController::class, 'delete'])->where('id', '[0-9]+');
 
-Route::get('bank-connections', [BankConnectionController::class, 'getAll']);
+// Firefly's own rules, without the suggester's group above (RuleController)
+Route::get('rule-groups', [RuleController::class, 'getGroups']);
+Route::post('rule-groups', [RuleController::class, 'createGroup']);
+Route::get('rule-groups/{id}', [RuleController::class, 'getGroup'])->where('id', '[0-9]+');
+Route::get('rule-groups/{id}/rules', [RuleController::class, 'getGroupRules'])->where('id', '[0-9]+');
+Route::match(['put', 'delete'], 'rule-groups/{id}', [RuleController::class, 'changeGroup'])->where('id', '[0-9]+');
+Route::get('rule-groups/{id}/test', [RuleController::class, 'changeGroup'])->where('id', '[0-9]+');
+Route::post('rule-groups/{id}/trigger', [RuleController::class, 'changeGroup'])->where('id', '[0-9]+');
+Route::get('rules', [RuleController::class, 'getRules']);
+Route::post('rules', [RuleController::class, 'createRule']);
+Route::get('rules/{id}', [RuleController::class, 'getRule'])->where('id', '[0-9]+');
+Route::match(['put', 'delete'], 'rules/{id}', [RuleController::class, 'changeRule'])->where('id', '[0-9]+');
+Route::get('rules/{id}/test', [RuleController::class, 'changeRule'])->where('id', '[0-9]+');
+Route::post('rules/{id}/trigger', [RuleController::class, 'changeRule'])->where('id', '[0-9]+');
+
+Route::get('bank-connections',[BankConnectionController::class, 'getAll']);
 Route::get('bank-connections/banks', [BankConnectionController::class, 'getBanks']);
 Route::post('bank-connections', [BankConnectionController::class, 'create']);
 Route::get('bank-connections/{name}', [BankConnectionController::class, 'getOne'])->where('name', '[a-z0-9-]+');

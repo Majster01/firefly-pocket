@@ -30,7 +30,8 @@ class BatchReader
     const MAX_PATHS = 50;
     // Parallel calls to Firefly at a time
     const CONCURRENCY = 8;
-    const PREFETCHABLE = ['getAll', 'getOne', 'getBudgetLimits', 'proxyRequest'];
+    // Controller methods whose only Firefly call is a GET of the same path: that call can be made ahead, in parallel
+    const PREFETCHABLE = ['getAll', 'getOne', 'getBudgetLimits', 'proxyRequest', 'getGroups', 'getGroup', 'getGroupRules', 'getRules', 'getRule'];
 
     public function __construct(private ResponseCache $cache, private UpstreamPrefetch $prefetch)
     {

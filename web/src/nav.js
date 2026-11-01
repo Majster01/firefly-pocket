@@ -25,6 +25,7 @@ export const NAV = [
     items: [
       { to: '/bank-connections', label: 'Bank connections', icon: 'bank', feature: 'bankConnections' },
       { to: '/suggestions', label: 'Suggestions', icon: 'sparkles', feature: 'ruleSuggestions', badge: 'suggestions' },
+      { to: '/rules', label: 'Rules', icon: 'bolt', feature: 'rules' },
       { to: '/system-status', label: 'System status', icon: 'pulse', feature: 'bankConnections' },
     ],
   },

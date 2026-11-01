@@ -19,6 +19,10 @@ const routes = [
   { path: '/currencies', name: 'currencies', component: page('Currencies'), meta: { title: 'Exchange rates' } },
   { path: '/suggestions', name: 'suggestions', component: page('Suggestions'), meta: { title: 'Suggestions', feature: 'ruleSuggestions' } },
   { path: '/suggestions/:id', name: 'suggestion', component: page('Suggestion'), meta: { title: 'Suggestion', feature: 'ruleSuggestions' } },
+  { path: '/rules', name: 'rules', component: page('Rules'), meta: { title: 'Rules', feature: 'rules' } },
+  // "new" before :id; ?group=<id> picks the group of a new rule
+  { path: '/rules/new', name: 'rule-new', component: page('Rule'), meta: { title: 'New rule', feature: 'rules' } },
+  { path: '/rules/:id(\\d+)', name: 'rule', component: page('Rule'), meta: { title: 'Rule', feature: 'rules' } },
   { path: '/bank-connections', name: 'bank-connections', component: page('BankConnections'), meta: { title: 'Bank connections', feature: 'bankConnections' } },
   // The importer sends the browser back here after the bank's consent page
   { path: '/bank-connections/list', redirect: (to) => ({ name: 'bank-connections', query: to.query }) },
