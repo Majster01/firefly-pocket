@@ -261,6 +261,7 @@ watch(
     else if (composer.preset) Object.assign(form, composer.preset)
     await loadAll('accounts', 'categories', 'budgets', 'tags')
     load('rates')
+    if (!composer.split && !composer.preset) applyDefaults()
     form.source_id ||= defaultAccount()
     form.destination_id ||= defaultAccount()
     if (!composer.split && settings.features.templates) {
@@ -272,6 +273,28 @@ watch(
     if (!composer.split && matchMedia('(min-width: 900px)').matches) amountInput.value?.focus()
   },
 )
+
+// The starting values chosen in Settings; anything that no longer exists in Firefly is skipped
+function applyDefaults() {
+  const d = settings.defaults
+  const type = TYPES.some((option) => option.value === d.type) ? d.type : 'withdrawal'
+  form.type = type
+  const own = (id) => (isOwnId(id) ? String(id) : '')
+  const category = (name) => (store.categories.some((c) => c.attributes.name === name) ? name : '')
+  if (type === 'withdrawal') {
+    form.source_id = own(d.expense.account)
+    form.destination_name = d.expense.payee
+    form.category_name = category(d.expense.category)
+  } else if (type === 'deposit') {
+    form.destination_id = own(d.income.account)
+    form.source_name = d.income.payer
+    form.category_name = category(d.income.category)
+  } else {
+    form.source_id = own(d.transfer.source)
+    form.destination_id = own(d.transfer.destination)
+    if (form.destination_id && form.destination_id === form.source_id) form.destination_id = ''
+  }
+}
 
 function fill(split) {
   Object.assign(form, {
