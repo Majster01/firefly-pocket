@@ -14,7 +14,8 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import BarChart from '../../BarChart.vue'
-import { cachedGet, insightTotal } from '../../../lib/data.js'
+import { get } from '../../../lib/api.js'
+import { insightTotal } from '../../../lib/data.js'
 import { isoDate, money, monthRange } from '../../../lib/format.js'
 import { periodLabel } from '../../../lib/home.js'
 
@@ -36,7 +37,7 @@ watch(
     const months = props.view === 'year' ? Array.from({ length: 12 }, (_, index) => index - anchor.getMonth()) : [-5, -4, -3, -2, -1, 0]
     const today = isoDate()
     const path = props.options.metric === 'income' ? 'insight/income/total' : 'insight/expense/total'
-    const totals = await Promise.all(months.map((offset) => (monthRange(offset, anchor).start > today ? [] : cachedGet(path, monthRange(offset, anchor)).catch(() => []))))
+    const totals = await Promise.all(months.map((offset) => (monthRange(offset, anchor).start > today ? [] : get(path, monthRange(offset, anchor)).catch(() => []))))
     if (stale) return
     items.value = months.map((offset, index) => {
       const range = monthRange(offset, anchor)

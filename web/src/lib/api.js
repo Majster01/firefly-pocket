@@ -1,5 +1,6 @@
 import { settings } from './settings.js'
 import { toastError } from './toast.js'
+import { changed, isKept, keep, kept } from './cache.js'
 
 export class ApiError extends Error {
   constructor(status, message, body) {
@@ -15,12 +16,46 @@ export const setUnauthorizedHandler = (handler) => (onUnauthorized = handler)
 /**
  * Calls Pocket's API (server/), which forwards the Firefly token to Firefly III or answers itself.
  * Firefly resources keep Firefly's JSON:API shape: {data: {id, type, attributes}}.
+ *
+ * Reads of Firefly data come from what this browser kept while Pocket's data version is the same (lib/cache.js);
+ * fresh: true always asks. Anything saved makes the app ask Pocket for the version again.
  */
-export async function api(method, path, { query, body, quiet = false, token } = {}) {
+export async function api(method, path, { query, body, quiet = false, token, fresh = false } = {}) {
   const url = new URL(`/api/${path.replace(/^\//, '')}`, location.origin)
   for (const [key, value] of Object.entries(query ?? {})) {
     if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, value)
   }
+  if (method === 'GET' && !token && !fresh && isKept(path)) return keptRead(url, quiet)
+  if (method === 'GET' || token) return (await send(method, url, { body, quiet, token })).json
+  try {
+    return (await send(method, url, { body, quiet, token })).json
+  } finally {
+    // Even a save that failed halfway may have changed something
+    changed()
+  }
+}
+
+// The same read asked by several tiles at once is one request
+const inflight = new Map()
+
+async function keptRead(url, quiet) {
+  const key = url.pathname + url.search
+  const { version, data } = await kept(key)
+  if (data !== undefined) return data
+  const shareKey = `${version}|${key}`
+  if (!inflight.has(shareKey)) {
+    const reading = send('GET', url, { quiet })
+      .then(({ json, size }) => {
+        keep(key, version, json, size)
+        return json
+      })
+      .finally(() => inflight.delete(shareKey))
+    inflight.set(shareKey, reading)
+  }
+  return inflight.get(shareKey)
+}
+
+async function send(method, url, { body, quiet, token }) {
   let response
   try {
     response = await fetch(url, {
@@ -57,7 +92,7 @@ export async function api(method, path, { query, body, quiet = false, token } = 
     } else if (!quiet) toastError(message)
     throw new ApiError(response.status, message, json)
   }
-  return json
+  return { json, size: text.length }
 }
 
 async function tokenStillWorks() {

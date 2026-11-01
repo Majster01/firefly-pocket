@@ -32,7 +32,8 @@
 import { computed, ref, watch } from 'vue'
 import DonutChart from '../DonutChart.vue'
 import CategorySheet from '../CategorySheet.vue'
-import { cachedGet, insightTotal } from '../../../lib/data.js'
+import { get } from '../../../lib/api.js'
+import { insightTotal } from '../../../lib/data.js'
 import { money } from '../../../lib/format.js'
 import { periodLabel } from '../../../lib/home.js'
 
@@ -49,7 +50,7 @@ watch(
     let stale = false
     onCleanup(() => (stale = true))
     rows.value = null
-    const [byCategory, none] = await Promise.all([cachedGet('insight/expense/category', props.range), cachedGet('insight/expense/no-category', props.range).catch(() => [])])
+    const [byCategory, none] = await Promise.all([get('insight/expense/category', props.range), get('insight/expense/no-category', props.range).catch(() => [])])
     if (stale) return
     const list = (byCategory ?? []).filter((row) => row.currency_code === 'EUR').map((row) => ({ id: row.id, name: row.name, amount: Math.abs(Number(row.difference_float)) }))
     const uncategorized = insightTotal(none)

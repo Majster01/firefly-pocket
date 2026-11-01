@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Services\ResponseCache;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
@@ -244,6 +245,33 @@ class ResponseCacheTest extends TestCase
         $this->getJson('api/accounts', $this->headers());
 
         $this->assertEquals(2, $this->calls('GET accounts'));
+    }
+
+    public function test_nothing_is_kept_past_midnight_in_fireflys_timezone()
+    {
+        Config::set('app.response_cache_timezone', 'Europe/Ljubljana');
+        // 23:30 in Ljubljana (22:30 UTC), then 00:30 there: still the same day in UTC
+        $this->travelTo(Carbon::parse('2026-10-31 22:30:00', 'UTC'));
+        $this->getJson('api/recurrences', $this->headers());
+        $this->getJson('api/recurrences', $this->headers())->assertHeader('X-Pocket-Cache', 'hit');
+
+        $this->travelTo(Carbon::parse('2026-10-31 23:30:00', 'UTC'));
+        $this->getJson('api/recurrences', $this->headers())->assertHeader('X-Pocket-Cache', 'miss');
+    }
+
+    public function test_the_data_version_moves_with_a_change()
+    {
+        $first = $this->getJson('api/data-version', $this->headers())->assertOk()->assertHeaderMissing('X-Pocket-Cache');
+        $this->assertIsString($first->json('data.version'));
+        $this->assertEquals(43200, $first->json('data.ttl'));
+        $this->getJson('api/data-version', $this->headers())->assertJsonPath('data.version', $first->json('data.version'));
+
+        $this->postJson('api/transactions', [], $this->headers());
+        $this->assertNotEquals($first->json('data.version'), $this->getJson('api/data-version', $this->headers())->json('data.version'));
+
+        $this->getJson('api/data-version', $this->headers('stolen'))->assertUnauthorized();
+        Config::set('app.response_cache', false);
+        $this->getJson('api/data-version', $this->headers())->assertJsonPath('data.version', null);
     }
 
     public function test_answers_carry_server_timing()

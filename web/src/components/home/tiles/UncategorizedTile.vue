@@ -8,7 +8,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { cachedGet } from '../../../lib/data.js'
+import { get } from '../../../lib/api.js'
 import { periodLabel, periodQuery } from '../../../lib/home.js'
 
 const props = defineProps({ view: String, offset: Number, range: Object, version: Number })
@@ -21,7 +21,7 @@ watch(
     let stale = false
     onCleanup(() => (stale = true))
     count.value = null
-    const json = await cachedGet('search/transactions', { query: `has_no_category:true type:withdrawal ${periodQuery(props.range)}`, limit: 1 })
+    const json = await get('search/transactions', { query: `has_no_category:true type:withdrawal ${periodQuery(props.range)}`, limit: 1 })
     if (!stale) count.value = json.meta?.pagination?.total ?? 0
   },
   { immediate: true },

@@ -6,6 +6,7 @@ use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\CustomIconController;
+use App\Http\Controllers\DataVersionController;
 use App\Http\Controllers\FireflyProxyController;
 use App\Http\Controllers\FireflyWebhookController;
 use App\Http\Controllers\InternalNotifyController;
@@ -40,6 +41,7 @@ use Illuminate\Support\Facades\Route;
 // Own resources
 Route::get('info', [VersionController::class, 'getInfo']);
 Route::get('user', [UserController::class, 'getUser']);
+Route::get('data-version', [DataVersionController::class, 'get']);
 
 RouteUtils::makeCRUD("transaction-templates", TransactionTemplateController::class);
 

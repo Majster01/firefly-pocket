@@ -76,6 +76,8 @@ return [
     'response_cache' => (bool) env('RESPONSE_CACHE', true),
     'response_cache_store' => env('RESPONSE_CACHE_STORE') ?: null,
     'response_cache_ttl' => (int) env('RESPONSE_CACHE_TTL', 60 * 60 * 12),
+    // Firefly's timezone: nothing is kept past its midnight (Pocket itself runs on UTC)
+    'response_cache_timezone' => env('RESPONSE_CACHE_TIMEZONE') ?: env('TZ') ?: 'UTC',
     // How long a token Firefly accepted is trusted without asking Firefly again (seconds, 0 = every request)
     'user_cache_ttl' => (int) env('USER_CACHE_TTL', 600),
     // The secret Firefly shows for the webhook that calls POST /api/internal/firefly-webhook
