@@ -36,6 +36,10 @@ const expired = (limit) => !lastActive || Date.now() - lastActive > limit
 
 let lastActive = 0
 let persistedAt = 0
+// The prompt opens by itself once each time the lock screen comes up or the app comes back to the screen. If the
+// browser refuses it (it may want a tap) or it is cancelled, the Unlock button is what is left: never a retry loop.
+let autoTried = false
+let autoTimer = null
 
 function persist() {
   persistedAt = Date.now()
@@ -68,7 +72,19 @@ export function lockNow() {
   if (!enabled()) return
   forget()
   lock.error = ''
+  autoTried = false
   lock.locked = true
+}
+
+/** The lock screen's own start: opens the passkey prompt without a tap, once, if the setting is on and the app is on screen. */
+export function autoUnlock() {
+  clearTimeout(autoTimer)
+  // A moment for the app to be the one in front (coming back from the background), then look again
+  autoTimer = setTimeout(() => {
+    if (!lock.locked || lock.busy || document.hidden || autoTried || !settings.lock.auto) return
+    autoTried = true
+    unlock({ quiet: true })
+  }, 300)
 }
 
 function opened() {
@@ -104,8 +120,12 @@ function onHidden() {
 
 function onVisible() {
   document.documentElement.classList.remove('shielded')
-  if (!enabled() || lock.locked) return
-  if (expired(timeoutMs())) lockNow()
+  if (!enabled()) return
+  if (!lock.locked && expired(timeoutMs())) lockNow()
+  if (lock.locked) {
+    autoTried = false
+    autoUnlock()
+  }
 }
 
 /** As the app starts: decide whether it opens locked, and watch for touches and for leaving the app. */
@@ -185,14 +205,15 @@ async function assertPasskey() {
 }
 
 /** The lock screen's button. Resolves true when the app is open. */
-export function unlock() {
+export function unlock({ quiet = false } = {}) {
   return busy(async () => {
     try {
       await assertPasskey()
       opened()
       return true
     } catch (error) {
-      lock.error = passkeyError(error)
+      // An automatic try that the browser refused or the user cancelled says nothing: the Unlock button is there
+      if (!(quiet && (error?.name === 'NotAllowedError' || error?.name === 'AbortError'))) lock.error = passkeyError(error)
       return false
     }
   })

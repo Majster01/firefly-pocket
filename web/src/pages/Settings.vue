@@ -138,6 +138,13 @@
           </select>
           <span class="tiny muted" style="font-weight: 400">Counted from the last time you touched the app. “Immediately” locks as soon as you leave it, and after a minute without a touch while it is open.</span>
         </label>
+        <label class="row setting-row">
+          <span class="grow">
+            Ask automatically
+            <span class="tiny muted" style="display: block">Opens the Face ID or Touch ID prompt by itself when the lock screen appears. If this browser wants a tap first, tap Unlock.</span>
+          </span>
+          <input v-model="settings.lock.auto" type="checkbox" class="switch" />
+        </label>
         <div class="row setting-row">
           <span class="grow">Lock now</span>
           <button class="btn small" @click="lockNow"><Icon name="lock" :size="17" /> Lock</button>

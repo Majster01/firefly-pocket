@@ -18,8 +18,8 @@ const DEFAULTS = {
   },
   notifications: { enabled: false },
   dashboard: { hideBalances: false },
-  // Require a passkey (Face ID, Touch ID) to open the app on this device; timeout: minutes without a touch before it locks again, 0 = as soon as the app is left (lib/lock.js)
-  lock: { enabled: false, credentialId: '', timeout: 5 },
+  // Require a passkey (Face ID, Touch ID) to open the app on this device; timeout: minutes without a touch before it locks again, 0 = as soon as the app is left; auto: open the prompt by itself on the lock screen (lib/lock.js)
+  lock: { enabled: false, credentialId: '', timeout: 5, auto: true },
   // Starting values for a new transaction (empty = no preference). Accounts are kept by Firefly id, payee/payer by name
   defaults: {
     type: 'withdrawal',
