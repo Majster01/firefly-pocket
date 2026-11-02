@@ -72,12 +72,12 @@ const secondText = computed(() => {
   padding: 0 6px;
   font-size: 11px;
 }
-/* A long category name shrinks with an ellipsis instead of pushing the row wide */
+/* The category tag has priority over the text beside it: it keeps its full width and the
+   subtitle gives way first. Only a very long name is cut, at 70% of the row. */
 .cat-tag {
-  flex: 0 1 auto;
+  flex: none;
   display: block;
-  min-width: 0;
-  max-width: 45%;
+  max-width: 70%;
   overflow: hidden;
   text-overflow: ellipsis;
 }
