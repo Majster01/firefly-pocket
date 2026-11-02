@@ -764,3 +764,21 @@ select.input {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Phones can't be locked to portrait everywhere (iOS ignores it): cover the app in landscape and ask to rotate back */
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 500px) {
+  body::after {
+    content: 'Rotate your phone to portrait';
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    text-align: center;
+    font-weight: 600;
+    background: var(--bg, #d9c7b3);
+    color: var(--text, #222);
+  }
+}
