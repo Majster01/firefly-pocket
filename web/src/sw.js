@@ -4,7 +4,20 @@ import { NavigationRoute, registerRoute } from 'workbox-routing'
 
 // The app shell works offline; /api never comes from the cache
 precacheAndRoute(self.__WB_MANIFEST)
-registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html'), { denylist: [/^\/api\//] }))
+
+// The app always opens with its amounts hidden: the shell is served with <html data-amounts-pending class="amounts-hidden">,
+// and the app lifts it (lib/lock.js) once it has decided the lock is open or not needed. Nothing readable can flash
+// when the Home Screen app comes back, whatever the cache has to show. Without this worker the page just opens as before.
+const shell = createHandlerBoundToURL('/index.html')
+async function hiddenShell(options) {
+  const response = await shell(options)
+  if (!response?.ok || !response.headers.get('content-type')?.includes('text/html')) return response
+  const html = (await response.text()).replace(/<html(?=[\s>])/i, '<html data-amounts-pending class="amounts-hidden"')
+  const headers = new Headers(response.headers)
+  headers.delete('content-length')
+  return new Response(html, { status: response.status, statusText: response.statusText, headers })
+}
+registerRoute(new NavigationRoute(hiddenShell, { denylist: [/^\/api\//] }))
 
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (event) => event.waitUntil(clients.claim()))

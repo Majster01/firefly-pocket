@@ -6,8 +6,9 @@ import { lock } from './lock.js'
 // - every amount shown goes through here, with its digits turned to dots (the currency, the sign and the length stay,
 //   so a page lays out as it does with the amounts shown). Reading the settings here makes whatever shows an amount
 //   draw again when they change;
+// - while the lock is not yet looked at (lock.pending: the page came from the service worker with amounts hidden) they are hidden too;
 // - html.amounts-hidden blurs what is marked class="blurable" (styles.css), which is every element that shows one.
-export const amountsHidden = () => settings.dashboard.hideBalances || lock.locked
+export const amountsHidden = () => settings.dashboard.hideBalances || lock.locked || lock.pending
 export const hideDigits = (text) => (amountsHidden() ? text.replace(/\d/g, '•') : text)
 watch(amountsHidden, (hidden) => document.documentElement.classList.toggle('amounts-hidden', hidden), { immediate: true })
 
