@@ -18,12 +18,12 @@ class BankConnectionService
 
     public function getAll()
     {
-        return $this->importer('get', 'connections')['data'];
+        return array_map([$this, 'forgiveEmptyImport'], $this->importer('get', 'connections')['data']);
     }
 
     public function getOne($name)
     {
-        return $this->importer('get', "connections/$name")['data'];
+        return $this->forgiveEmptyImport($this->importer('get', "connections/$name")['data']);
     }
 
     public function getBanks($country)
@@ -75,7 +75,37 @@ class BankConnectionService
      */
     public function getStatus($days)
     {
-        return $this->importer('get', 'status', ['days' => $days])['data'];
+        $status = $this->importer('get', 'status', ['days' => $days])['data'];
+        if (isset($status['connections']) && is_array($status['connections'])) {
+            $status['connections'] = array_map([$this, 'forgiveEmptyImport'], $status['connections']);
+        }
+
+        return $status;
+    }
+
+    /**
+     * Enable Banking answers eb003 when a bank has no new transactions. That is a successful import of 0 new, not an error.
+     * The importer reports it as a failure, so it is turned into a success here, on both the connection list and the system status.
+     */
+    private function forgiveEmptyImport($connection)
+    {
+        if (!is_array($connection)) {
+            return $connection;
+        }
+        $isEmpty = fn ($message) => is_string($message) && (stripos($message, 'eb003') !== false || stripos($message, 'No transactions were downloaded') !== false);
+
+        if (isset($connection['last_import']) && is_array($connection['last_import']) && empty($connection['last_import']['ok'])
+            && $isEmpty($connection['last_import']['summary']['first_error'] ?? null)) {
+            $connection['last_import']['ok'] = true;
+            $connection['last_import']['summary']['messages'] = $connection['last_import']['summary']['messages'] ?? 0;
+            $connection['last_import']['summary']['first_error'] = null;
+        }
+        if (array_key_exists('last_import_ok', $connection) && $connection['last_import_ok'] === false && $isEmpty($connection['last_error'] ?? null)) {
+            $connection['last_import_ok'] = true;
+            $connection['last_error'] = null;
+        }
+
+        return $connection;
     }
 
     private function importer($method, $path, $data = [], $expectedStatus = BaseController::HTTP_CODE_OK)
