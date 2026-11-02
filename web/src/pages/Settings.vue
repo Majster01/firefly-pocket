@@ -121,6 +121,21 @@
       </template>
     </div>
 
+    <h2 class="section-title">Data</h2>
+    <div class="card">
+      <div class="row setting-row">
+        <span class="grow">
+          Sync everything
+          <span class="tiny muted" style="display: block">Throws away what Pocket and this device kept of Firefly III, so every page reads it again when you open it. For when something looks out of date.</span>
+        </span>
+        <button class="btn small" :disabled="syncing" @click="syncAll">
+          <span v-if="syncing" class="spinner" />
+          <Icon v-else name="refresh" :size="17" />
+          Sync
+        </button>
+      </div>
+    </div>
+
     <h2 class="section-title">Firefly III</h2>
     <div class="card">
       <div class="row setting-row">
@@ -145,9 +160,10 @@ import { useRouter } from 'vue-router'
 import PageHeader from '../components/PageHeader.vue'
 import Icon from '../components/Icon.vue'
 import SuggestInput from '../components/SuggestInput.vue'
-import { get } from '../lib/api.js'
+import { ApiError, get } from '../lib/api.js'
 import { accountsOfType, load, loadAll, ownAccounts, store } from '../lib/data.js'
 import { settings } from '../lib/settings.js'
+import { syncEverything } from '../lib/sync.js'
 import { isStandalone, loadPreferences, pushStatus, pushSupported, savePreferences, subscribePush, unsubscribePush } from '../lib/push.js'
 import { toast, toastError } from '../lib/toast.js'
 
@@ -257,6 +273,21 @@ async function savePrefs() {
 function setDigest(change) {
   prefs.value.suggestions = { ...prefs.value.suggestions, ...change }
   return savePrefs()
+}
+
+const syncing = ref(false)
+
+async function syncAll() {
+  syncing.value = true
+  try {
+    await syncEverything()
+    toast('Synced. Pages read Firefly III again as you open them.')
+  } catch (error) {
+    // A failed request has already said why
+    if (!(error instanceof ApiError)) toastError(error.message)
+  } finally {
+    syncing.value = false
+  }
 }
 
 function signOut() {

@@ -44,6 +44,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('info', [VersionController::class, 'getInfo']);
 Route::get('user', [UserController::class, 'getUser']);
 Route::get('data-version', [DataVersionController::class, 'get']);
+Route::post('data-version', [DataVersionController::class, 'renew']);
 Route::post('batch', [BatchController::class, 'read']);
 
 RouteUtils::makeCRUD("transaction-templates", TransactionTemplateController::class);
