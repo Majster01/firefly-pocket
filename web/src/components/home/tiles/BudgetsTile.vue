@@ -24,7 +24,7 @@ import { budgetMonth, meterClass } from '../../../lib/data.js'
 import { money } from '../../../lib/format.js'
 import { periodLabel } from '../../../lib/home.js'
 
-// In the yearly view a budget's limits of all twelve months add up
+// Monthly view only (see TILES.budgets.view)
 const props = defineProps({ view: String, offset: Number, range: Object, options: Object, version: Number })
 const budgets = ref(null)
 const periodName = computed(() => periodLabel(props.view, props.offset))
