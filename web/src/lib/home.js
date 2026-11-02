@@ -43,6 +43,7 @@ export const TILES = {
   trend: {
     title: 'Over time',
     icon: 'chart',
+    view: 'year',
     phone: ['full'],
     desktop: ['third', 'half', 'twothirds', 'full'],
     options: { metric: { label: 'Show', type: 'choice', choices: [['spending', 'Spending'], ['income', 'Income']], default: 'spending' } },
