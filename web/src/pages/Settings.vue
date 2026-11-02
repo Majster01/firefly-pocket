@@ -126,7 +126,7 @@
       <div class="row setting-row">
         <span class="grow">
           Sync everything
-          <span class="tiny muted" style="display: block">Throws away what Pocket and this device kept of Firefly III, so every page reads it again when you open it. For when something looks out of date.</span>
+          <span class="tiny muted" style="display: block">Throws away what Pocket and this device kept of Firefly III, so every page reads it again when you open it, and looks for a newer Pocket. For when something looks out of date.</span>
         </span>
         <button class="btn small" :disabled="syncing" @click="syncAll">
           <span v-if="syncing" class="spinner" />
@@ -279,14 +279,23 @@ const syncing = ref(false)
 
 async function syncAll() {
   syncing.value = true
+  let reloading = false
   try {
-    await syncEverything()
-    toast('Synced. Pages read Firefly III again as you open them.')
+    const update = await syncEverything()
+    if (update === 'newer') {
+      // Loading the page again is what runs it. Settings are saved as they change, so nothing is lost
+      reloading = true
+      toast('Synced. A newer Pocket is ready, reloading…')
+      setTimeout(() => location.reload(), 1200)
+    } else {
+      toast(update === 'current' ? 'Synced. Pocket is up to date.' : 'Synced. Pages read Firefly III again as you open them.')
+    }
   } catch (error) {
     // A failed request has already said why
     if (!(error instanceof ApiError)) toastError(error.message)
   } finally {
-    syncing.value = false
+    // Stays pressed until the page reloads
+    if (!reloading) syncing.value = false
   }
 }
 

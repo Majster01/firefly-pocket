@@ -36,7 +36,7 @@ Pocket keeps Firefly's answers so that opening a page does not wait on Firefly f
 - Every GET Pocket forwards to Firefly is kept per token, under the current **data version**. Pocket's own data (profiles, templates, bank connections, system status, push, the assistant) is not.
 - The data version moves on, and everything kept so far is out of date, when:
   - something is saved, changed or deleted through Pocket (adding a transaction, approving or rejecting a suggestion, an import started from Bank connections). Saving the Home layout and previewing a suggestion's conditions do not count;
-  - Settings → Data → **Sync everything** is pressed (`POST /api/data-version`). It also throws away what this browser kept, and reads again the lists the app has loaded; every page then reads Firefly again when it is opened;
+  - Settings → Data → **Sync everything** is pressed (`POST /api/data-version`). It also throws away what this browser kept, and reads again the lists the app has loaded; every page then reads Firefly again when it is opened. It looks for a newer app too (`web/src/lib/update.js`: the service worker installs a new version by itself, but an open page keeps the old code), and reloads into it when there is one;
   - the importer or suggester calls `POST /api/internal/notify`;
   - Firefly's webhook calls `POST /api/internal/firefly-webhook`, for changes made outside Pocket (Firefly's own pages, the data importer).
 - Answers expire after `RESPONSE_CACHE_TTL` (12 hours) in any case, and at midnight in Firefly's timezone (`RESPONSE_CACHE_TIMEZONE`, else `TZ`), since some answers move with the date alone.
