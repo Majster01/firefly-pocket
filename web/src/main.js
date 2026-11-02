@@ -12,6 +12,9 @@ import './styles.css'
 // iOS Safari ignores user-scalable=no; gesturestart fires only on pinch, so this costs nothing while scrolling
 document.addEventListener('gesturestart', (e) => e.preventDefault())
 
+// Android (installed PWA / fullscreen) honours this; iOS and plain browser tabs reject it, hence the CSS fallback below
+screen.orientation?.lock?.('portrait').catch(() => {})
+
 initLock()
 warmUp()
 watchForUpdate()
