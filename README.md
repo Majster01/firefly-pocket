@@ -20,7 +20,7 @@ A redesign of [Firefly Pocket](https://github.com/Majster01/firefly-pocket) (a F
 | Budgets, Categories, Tags, Piggy banks, Recurring, Templates | Browse and edit; budgets per month with limits, piggy bank add/take out, recurring pause/resume |
 | Exchange rates | VWCE price and holding, price history stored in Firefly, a converter, rates of your currencies (EUR base) |
 | Suggestions | Review `pico-suggestion:v1` rules: edit category and conditions with a live match count, approve as rule, set category only, or reject ([contract](https://github.com/Majster01/firefly-pocket/blob/main/docs/rule-suggestions.md)) |
-| Rules | Firefly III's own rules, by group: turn on and off, reorder, edit conditions (any or all, "not") and actions, find the transactions a rule matches and run it on a date range. The suggester's Suggestions group stays out of sight (`RULE_GROUP_SUGGESTIONS`) |
+| Rules | Firefly III's own rules, by group: turn on and off, reorder, edit conditions (any or all, "not") and actions, find the transactions its conditions match in a date range, also before they are saved, and run a saved rule on that range. The suggester's Suggestions group stays out of sight (`RULE_GROUP_SUGGESTIONS`) |
 | Bank connections | Connect a bank (consent at the bank), map its accounts, import a date range now, renew or remove consents |
 | System status | Nightly imports, missed nights, connections, bank activity, the suggester's runs and outcomes |
 | Settings | Theme, feature switches, push notifications (per device: import results, problems, the suggestions digest daily or weekly, upgrades; [docs/web-push.md](docs/web-push.md)), the Firefly token |

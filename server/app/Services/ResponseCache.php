@@ -32,7 +32,7 @@ class ResponseCache
 
     // Requests other than GET that change nothing in Firefly or in what is cached: no new version
     const NO_CHANGE = [
-        'assistant', 'batch', 'internal', 'profiles', 'push', 'rule-suggestions/preview', 'transaction-templates',
+        'assistant', 'batch', 'internal', 'profiles', 'push', 'rule-suggestions/preview', 'rules/test', 'transaction-templates',
     ];
 
     // Set on a request whose answers are kept for another token of the same Firefly user (CacheWarmUp)

@@ -99,6 +99,7 @@ Route::get('rule-groups/{id}/test', [RuleController::class, 'changeGroup'])->whe
 Route::post('rule-groups/{id}/trigger', [RuleController::class, 'changeGroup'])->where('id', '[0-9]+');
 Route::get('rules', [RuleController::class, 'getRules']);
 Route::post('rules', [RuleController::class, 'createRule']);
+Route::post('rules/test', [RuleController::class, 'testConditions']);
 Route::get('rules/{id}', [RuleController::class, 'getRule'])->where('id', '[0-9]+');
 Route::match(['put', 'delete'], 'rules/{id}', [RuleController::class, 'changeRule'])->where('id', '[0-9]+');
 Route::get('rules/{id}/test', [RuleController::class, 'changeRule'])->where('id', '[0-9]+');
