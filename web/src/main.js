@@ -8,6 +8,9 @@ import { warmUp } from './lib/cache.js'
 import { watchForUpdate } from './lib/update.js'
 import './styles.css'
 
+// iOS Safari ignores user-scalable=no; gesturestart fires only on pinch, so this costs nothing while scrolling
+document.addEventListener('gesturestart', (e) => e.preventDefault())
+
 warmUp()
 watchForUpdate()
 applyTheme()
