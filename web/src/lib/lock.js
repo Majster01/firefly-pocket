@@ -30,7 +30,8 @@ export const TIMEOUTS = [
 
 // While locked the app is shown as usual with its amounts hidden (lib/format.js), and a bar over the navigation bar
 // asks for the passkey (components/LockBar.vue). Nothing can be touched behind it.
-export const lock = reactive({ locked: false, busy: false, error: '' })
+// pending: the service worker served the page with its amounts hidden (sw.js) and the lock has not been looked at yet
+export const lock = reactive({ locked: false, busy: false, error: '', pending: document.documentElement.hasAttribute('data-amounts-pending') })
 
 const enabled = () => Boolean(settings.lock.enabled && settings.lock.credentialId)
 const timeoutMs = () => Math.max(0, Number(settings.lock.timeout) || 0) * 60_000
@@ -138,6 +139,9 @@ export function initLock() {
     lastActive = readStored()
     lock.locked = timeoutMs() === 0 || expired(timeoutMs())
   }
+  // Now it is known whether the app is open: only now may the amounts the service worker hid be shown (unless locked)
+  lock.pending = false
+  document.documentElement.removeAttribute('data-amounts-pending')
   for (const type of ['pointerdown', 'keydown', 'touchstart', 'wheel', 'scroll']) {
     window.addEventListener(type, onActivity, { capture: true, passive: true })
   }
