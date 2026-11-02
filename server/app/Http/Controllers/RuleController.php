@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exceptions\GeneralException;
 use App\Http\Controllers\Base\BaseController;
 use App\Http\Controllers\Base\BaseControllerFirefly;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response as FireflyResponse;
 use Illuminate\Http\Request;
 
@@ -15,6 +16,10 @@ use Illuminate\Http\Request;
  */
 class RuleController extends BaseControllerFirefly
 {
+    // Testing or running a rule makes Firefly search every transaction in the dates (up to 31,337) and write the
+    // answer out in full, which takes far longer than a read. nginx gives a request 60 seconds (docker/conf/nginx).
+    const SLOW_SECONDS = 55;
+
     public function __construct()
     {
         parent::__construct('/api/v1/');
@@ -176,7 +181,16 @@ class RuleController extends BaseControllerFirefly
     /** The request as it came (method, path, query, body), sent on to Firefly */
     private function forward(Request $request): FireflyResponse
     {
-        return $this->getHttpClient()->send($request->method(), self::fireflyUrlFor($request), ['body' => $request->getContent()]);
+        $slow = (bool)preg_match('#/(test|trigger)$#', $request->path());
+        $client = $this->getHttpClient();
+        try {
+            return ($slow ? $client->timeout(self::SLOW_SECONDS) : $client)->send($request->method(), self::fireflyUrlFor($request), ['body' => $request->getContent()]);
+        } catch (ConnectionException $e) {
+            if (!$slow) {
+                throw $e;
+            }
+            throw new GeneralException('Firefly took too long to search these dates. Try a shorter date range.', 504, null, $e);
+        }
     }
 
     private function firefly($method, $path): FireflyResponse

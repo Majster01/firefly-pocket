@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -12,6 +13,7 @@ class RuleTest extends TestCase
 {
     private $groups;
     private $rules;
+    private $fireflyIsSlow = false;
 
     protected function setUp(): void
     {
@@ -70,7 +72,7 @@ class RuleTest extends TestCase
                     return Http::response(['message' => 'Unauthenticated.'], 401);
                 }
                 return match ($matches[2] ?? '') {
-                    '/test' => Http::response($this->page([['id' => '285', 'type' => 'transactions', 'attributes' => ['transactions' => []]]])),
+                    '/test' => $this->fireflyIsSlow ? throw new ConnectionException('cURL error 28: Operation timed out') : Http::response($this->page([['id' => '285', 'type' => 'transactions', 'attributes' => ['transactions' => []]]])),
                     '/trigger' => Http::response(null, 204),
                     default => match ($method) {
                         'GET', 'PUT' => Http::response(['data' => $rule]),
@@ -139,6 +141,14 @@ class RuleTest extends TestCase
         $this->getJson('api/rules/21', $this->headers())->assertOk()->assertJsonPath('data.attributes.title', 'Tag trips');
         $this->getJson('api/rules/21/test?start=2026-08-01&end=2026-10-31', $this->headers())->assertOk()->assertJsonPath('data.0.id', '285');
         $this->assertStringContainsString('start=2026-08-01', (string)$this->sent('GET', 'rules/21/test')->first()->url());
+    }
+
+    public function test_testing_a_rule_says_so_when_firefly_takes_too_long()
+    {
+        $this->fireflyIsSlow = true;
+        $this->getJson('api/rules/21/test?start=2026-08-01&end=2026-10-31', $this->headers())
+            ->assertStatus(504)
+            ->assertJsonPath('message', 'Firefly took too long to search these dates. Try a shorter date range.');
     }
 
     public function test_the_suggestions_group_and_its_rules_cannot_be_opened()
