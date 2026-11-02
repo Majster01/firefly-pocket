@@ -25,6 +25,9 @@
 <script>
 // Open sheets, oldest first, shared by every Sheet: a sheet opened from another sheet makes the one below inert too
 const stack = []
+// Everything any sheet made inert. When the last sheet closes, all of it is released, so a missed release can never
+// leave the page (and the tab bar) dead to touch
+const inerted = new Set()
 </script>
 
 <script setup>
@@ -50,13 +53,17 @@ let silenced = []
 async function activate() {
   opener = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null
   await nextTick()
-  if (!props.open) return
+  // Closed again while waiting, or a quick close and reopen already activated this sheet
+  if (!props.open || mine || !layer.value) return
   mine = layer.value
   stack.push(mine)
   document.documentElement.classList.add('sheet-open')
   // The sheet lives in <body>; everything else (except the toasts, whose Undo must stay reachable) goes inert
   const behind = [...document.querySelectorAll('#app > :not(.toasts), body > .sheet-layer')].filter((el) => el !== mine && !el.inert)
-  behind.forEach((el) => (el.inert = true))
+  behind.forEach((el) => {
+    el.inert = true
+    inerted.add(el)
+  })
   silenced = behind
   panel.value?.focus({ preventScroll: true })
 }
@@ -66,9 +73,16 @@ function deactivate() {
   if (at === -1) return
   stack.splice(at, 1)
   mine = null
-  silenced.forEach((el) => (el.inert = false))
+  silenced.forEach((el) => {
+    el.inert = false
+    inerted.delete(el)
+  })
   silenced = []
-  if (!stack.length) document.documentElement.classList.remove('sheet-open')
+  if (!stack.length) {
+    inerted.forEach((el) => (el.inert = false))
+    inerted.clear()
+    document.documentElement.classList.remove('sheet-open')
+  }
   // Back to the button or row that opened it, when that is still on the page
   if (opener?.isConnected) opener.focus({ preventScroll: true })
   opener = null
