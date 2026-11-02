@@ -49,9 +49,6 @@
           <span :class="{ good: connection.manual_import.status === 'done', bad: connection.manual_import.status === 'failed' }">{{ IMPORT_STATUS[connection.manual_import.status] }}</span>
           <span class="muted">· {{ shortDate(connection.manual_import.date_from) }} – {{ shortDate(connection.manual_import.date_to) }}{{ manualDetail(connection.manual_import) }}</span>
         </div>
-        <RouterLink v-if="connection.manual_import?.suggestions?.written > 0 && settings.features.ruleSuggestions" to="/suggestions" class="small review-link">
-          <Icon name="sparkles" :size="15" /> Review {{ plural(connection.manual_import.suggestions.written, 'new suggestion') }}
-        </RouterLink>
 
         <footer class="row wrap connection-actions">
           <RouterLink v-if="connection.status === 'needs_mapping'" :to="{ path: '/bank-connections/setup', query: { connection: connection.name } }" class="btn small primary grow">Set up accounts</RouterLink>
@@ -95,7 +92,6 @@ import Sheet from '../components/Sheet.vue'
 import { del, get, post } from '../lib/api.js'
 import { accountById, load } from '../lib/data.js'
 import { isoDate, shortDate, timeAgo } from '../lib/format.js'
-import { settings } from '../lib/settings.js'
 import { toast, toastError } from '../lib/toast.js'
 import { refreshBadges } from '../lib/badges.js'
 import { FAILURE, IMPORT_ACTIVE, IMPORT_STATUS, STATUS } from '../lib/bank.js'
@@ -277,13 +273,6 @@ onMounted(async () => {
   gap: 6px;
   align-items: center;
   flex-wrap: wrap;
-}
-.review-link {
-  display: inline-flex;
-  gap: 6px;
-  align-items: center;
-  color: var(--accent);
-  font-weight: 600;
 }
 .connection-actions {
   margin-top: auto;
