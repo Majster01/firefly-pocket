@@ -1,12 +1,11 @@
 <template>
   <section
     class="tile"
-    :class="[`size-${entry.size}`, { editing, hidden: !entry.visible, dragging, bare: tile.notice && !editing }]"
+    :class="[`size-${entry.size}`, { editing, hidden: !entry.visible, bare: tile.notice && !editing }]"
     :style="{ gridColumn: `span ${span}` }"
     :data-tile-id="entry.id"
   >
     <div v-if="editing" class="tile-bar">
-      <button class="tile-handle" aria-label="Drag to move" title="Drag to move" @pointerdown="$emit('drag', $event)"><Icon name="grid" :size="18" /></button>
       <span class="grow ellipsis tile-name">{{ tile.title }}</span>
       <!-- The phone layout reads down one column, the desktop one across rows -->
       <button class="btn small icon" :aria-label="column ? 'Move up' : 'Move earlier'" :disabled="first" @click="$emit('move', -1)">
@@ -28,8 +27,8 @@ import { computed } from 'vue'
 import Icon from '../Icon.vue'
 import { DEVICES, SIZE_LABELS, TILES } from '../../lib/home.js'
 
-const props = defineProps({ entry: { type: Object, required: true }, device: { type: String, required: true }, editing: Boolean, dragging: Boolean, first: Boolean, last: Boolean })
-defineEmits(['drag', 'move', 'resize', 'options', 'toggle'])
+const props = defineProps({ entry: { type: Object, required: true }, device: { type: String, required: true }, editing: Boolean, first: Boolean, last: Boolean })
+defineEmits(['move', 'resize', 'options', 'toggle'])
 
 const tile = computed(() => TILES[props.entry.id])
 const sizes = computed(() => tile.value[props.device])
@@ -71,10 +70,6 @@ const column = computed(() => props.device === 'phone')
   opacity: 0.35;
   filter: grayscale(1);
 }
-.tile.dragging {
-  opacity: 0.6;
-  box-shadow: inset 0 0 0 2px var(--accent);
-}
 .tile-bar {
   display: flex;
   align-items: center;
@@ -84,18 +79,6 @@ const column = computed(() => props.device === 'phone')
 .tile-name {
   font-size: 13px;
   font-weight: 650;
-}
-.tile-handle {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border: 0;
-  border-radius: 10px;
-  background: var(--ink);
-  color: var(--on-ink);
-  cursor: grab;
-  touch-action: none;
 }
 .tile-size {
   min-width: 46px;
