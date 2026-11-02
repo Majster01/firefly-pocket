@@ -1,7 +1,7 @@
 <template>
   <div>
     <PageHeader title="Suggestions" eyebrow="Categories for new transactions">
-      <button class="btn icon small" aria-label="Refresh" @click="reload"><Icon name="refresh" :size="18" /></button>
+      <RefreshButton @click="reload" />
     </PageHeader>
 
     <div v-if="loadError" class="card empty">
@@ -35,6 +35,7 @@
 import { onMounted, ref } from 'vue'
 import PageHeader from '../components/PageHeader.vue'
 import Icon from '../components/Icon.vue'
+import RefreshButton from '../components/RefreshButton.vue'
 import Confidence from '../components/Confidence.vue'
 import { get } from '../lib/api.js'
 import { money } from '../lib/format.js'

@@ -1,7 +1,7 @@
 <template>
   <div>
     <PageHeader title="System status" eyebrow="Importer and suggester">
-      <button class="btn icon small" aria-label="Refresh" @click="reload"><Icon name="refresh" :size="18" /></button>
+      <RefreshButton @click="reload" />
     </PageHeader>
 
     <div class="seg window-seg">
@@ -108,6 +108,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import PageHeader from '../components/PageHeader.vue'
 import Icon from '../components/Icon.vue'
+import RefreshButton from '../components/RefreshButton.vue'
 import { get } from '../lib/api.js'
 import { isoDate, shortDate, timeAgo } from '../lib/format.js'
 import { STATUS } from '../lib/bank.js'
