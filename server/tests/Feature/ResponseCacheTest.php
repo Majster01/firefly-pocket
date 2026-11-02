@@ -274,6 +274,26 @@ class ResponseCacheTest extends TestCase
         $this->getJson('api/data-version', $this->headers())->assertJsonPath('data.version', null);
     }
 
+    public function test_sync_everything_starts_one_new_version()
+    {
+        $this->getJson('api/accounts', $this->headers())->assertOk();
+        $before = (int) $this->getJson('api/data-version', $this->headers())->json('data.version');
+
+        // Only a token Firefly accepts can empty the cache
+        $this->postJson('api/data-version', [], $this->headers('stolen'))->assertUnauthorized();
+        $this->postJson('api/data-version', [])->assertUnauthorized();
+        $this->getJson('api/accounts', $this->headers())->assertHeader('X-Pocket-Cache', 'hit');
+
+        $renewed = $this->postJson('api/data-version', [], $this->headers())->assertOk()->assertHeaderMissing('X-Pocket-Cache');
+        // One step, not two: the middleware leaves this route's version to the controller
+        $this->assertSame((string) ($before + 1), $renewed->json('data.version'));
+        $this->assertEquals(43200, $renewed->json('data.ttl'));
+        $this->getJson('api/data-version', $this->headers())->assertJsonPath('data.version', $renewed->json('data.version'));
+
+        $this->getJson('api/accounts', $this->headers())->assertHeader('X-Pocket-Cache', 'miss');
+        $this->assertEquals(2, $this->calls('GET accounts'));
+    }
+
     public function test_answers_carry_server_timing()
     {
         $miss = $this->getJson('api/accounts', $this->headers());

@@ -88,6 +88,13 @@ function currentVersion() {
 /** After this app changed something: Pocket has most likely moved the version on. */
 export const changed = () => recheck()
 
+/** Throws away every kept answer, even one under the current version, and asks the version again. */
+export async function forgetAll() {
+  await ensureLoaded()
+  clearKept({ keepOwner: true })
+  return recheck()
+}
+
 // ------------------------------------------------------------------ reads
 
 /** The kept answer for key if it is still right: { version, data }, data undefined when there is none. */
