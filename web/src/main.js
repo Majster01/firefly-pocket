@@ -5,9 +5,11 @@ import { applyTheme } from './lib/settings.js'
 import { setUnauthorizedHandler } from './lib/api.js'
 import { registerServiceWorker } from './lib/push.js'
 import { warmUp } from './lib/cache.js'
+import { watchForUpdate } from './lib/update.js'
 import './styles.css'
 
 warmUp()
+watchForUpdate()
 applyTheme()
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme)
 setUnauthorizedHandler(() => {

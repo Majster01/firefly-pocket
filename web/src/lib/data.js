@@ -44,6 +44,9 @@ export function invalidate(...names) {
   for (const name of names) store.loaded[name] = false
 }
 
+/** Every list is read again the next time a page asks for it. */
+export const invalidateAll = () => invalidate(...Object.keys(store.loaded))
+
 // ------------------------------------------------------------- currencies
 
 export const PRIMARY = 'EUR'
