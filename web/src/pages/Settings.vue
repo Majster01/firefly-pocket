@@ -26,32 +26,6 @@
       </label>
     </div>
 
-    <h2 class="section-title">New transaction</h2>
-    <div class="card">
-      <p class="tiny muted" style="margin: 0 0 8px">Starting values when you add a transaction by hand. Templates and edits are not affected. These choices are for this device.</p>
-      <label class="setting-row field">
-        <span>Starts as</span>
-        <select v-model="settings.defaults.type">
-          <option v-for="option in DEFAULT_TYPES" :key="option.value" :value="option.value">{{ option.label }}</option>
-        </select>
-      </label>
-      <template v-for="group in DEFAULT_GROUPS" :key="group.key">
-        <h3 class="tiny muted" style="margin: 12px 0 4px">{{ group.label }}</h3>
-        <label v-for="field in group.fields" :key="field.key" class="setting-row field">
-          <span>{{ field.label }}</span>
-          <select v-if="field.kind === 'account'" v-model="settings.defaults[group.key][field.key]">
-            <option value="">No default</option>
-            <option v-for="account in ownAccounts()" :key="account.id" :value="String(account.id)">{{ account.attributes.name }}</option>
-          </select>
-          <select v-else-if="field.kind === 'category'" v-model="settings.defaults[group.key][field.key]">
-            <option value="">No default</option>
-            <option v-for="category in store.categories" :key="category.id" :value="category.attributes.name">{{ category.attributes.name }}</option>
-          </select>
-          <SuggestInput v-else v-model="settings.defaults[group.key][field.key]" :options="namesOf(field.list)" :placeholder="field.placeholder" />
-        </label>
-      </template>
-    </div>
-
     <h2 class="section-title">Features</h2>
     <div class="card">
       <label v-for="feature in FEATURES" :key="feature.key" class="row setting-row">
@@ -194,54 +168,19 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import PageHeader from '../components/PageHeader.vue'
 import Icon from '../components/Icon.vue'
-import SuggestInput from '../components/SuggestInput.vue'
 import { ApiError, get } from '../lib/api.js'
-import { accountsOfType, load, loadAll, ownAccounts, store } from '../lib/data.js'
+import { load, store } from '../lib/data.js'
 import { settings } from '../lib/settings.js'
 import { syncEverything } from '../lib/sync.js'
 import { isStandalone, loadPreferences, pushStatus, pushSupported, savePreferences, subscribePush, unsubscribePush } from '../lib/push.js'
 import { toast, toastError } from '../lib/toast.js'
 import { TIMEOUTS, confirmPasskey, disable as disableLock, enroll, lock, lockNow, passkeyAvailable, passkeyError, passkeySupported } from '../lib/lock.js'
 
-const namesOf = (type) => [...new Set(accountsOfType(type).map((account) => account.attributes.name))]
 
 const THEMES = [
   { value: 'system', label: 'System', icon: 'device' },
   { value: 'light', label: 'Light', icon: 'sun' },
   { value: 'night', label: 'Night', icon: 'moon' },
-]
-const DEFAULT_TYPES = [
-  { value: 'withdrawal', label: 'Expense' },
-  { value: 'deposit', label: 'Income' },
-  { value: 'transfer', label: 'Transfer' },
-]
-const DEFAULT_GROUPS = [
-  {
-    key: 'expense',
-    label: 'Expense',
-    fields: [
-      { key: 'account', label: 'Paid from', kind: 'account' },
-      { key: 'payee', label: 'Paid to', kind: 'text', list: 'expense', placeholder: 'Payee' },
-      { key: 'category', label: 'Category', kind: 'category' },
-    ],
-  },
-  {
-    key: 'income',
-    label: 'Income',
-    fields: [
-      { key: 'payer', label: 'From', kind: 'text', list: 'revenue', placeholder: 'Payer' },
-      { key: 'account', label: 'Paid into', kind: 'account' },
-      { key: 'category', label: 'Category', kind: 'category' },
-    ],
-  },
-  {
-    key: 'transfer',
-    label: 'Transfer',
-    fields: [
-      { key: 'source', label: 'From', kind: 'account' },
-      { key: 'destination', label: 'To', kind: 'account' },
-    ],
-  },
 ]
 const FEATURES = [
   { key: 'bankConnections', label: 'Bank connections', hint: 'Consents, imports and the system status (FireflyX importer)' },
@@ -372,7 +311,6 @@ function signOut() {
 onMounted(async () => {
   passkeyAvailable().then((ok) => (lockCanUse.value = ok))
   load('user').catch(() => null)
-  loadAll('accounts', 'categories').catch(() => null)
   if (pushSupported()) push.value = await pushStatus().catch(() => ({ configured: false }))
   await refreshPrefs()
   about.value = (await get('about', undefined, { quiet: true }).catch(() => null))?.data ?? null
