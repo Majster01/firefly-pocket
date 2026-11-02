@@ -77,6 +77,7 @@ const column = computed(() => props.device === 'phone')
   margin: 0 0 6px;
 }
 .tile-name {
+  padding-left: 8px;
   font-size: 13px;
   font-weight: 650;
 }
