@@ -43,7 +43,7 @@
       <label class="amount-field" :class="form.type">
         <span class="sr-only">Amount</span>
         <span class="amount-sign">{{ form.type === 'withdrawal' ? '−' : form.type === 'deposit' ? '+' : '' }}</span>
-        <input ref="amountInput" v-model="form.amount" :style="{ width: `${Math.max(4, form.amount.length + 0.5)}ch` }" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Amount" @keydown.enter="save" />
+        <input ref="amountInput" v-model="form.amount" :style="{ width: `${Math.max(4, form.amount.length + 1) * 0.65}em` }" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Amount" @keydown.enter="save" />
         <span class="amount-code">{{ sourceCurrency }}</span>
       </label>
 
@@ -425,6 +425,7 @@ async function remove() {
 .amount-field input {
   min-width: 0;
   max-width: 70%;
+  padding: 0;
   border: 0;
   background: transparent;
   color: var(--text);
