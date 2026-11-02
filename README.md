@@ -23,7 +23,7 @@ A redesign of [Firefly Pocket](https://github.com/Majster01/firefly-pocket) (a F
 | Rules | Firefly III's own rules, by group: turn on and off, reorder, edit conditions (any or all, "not") and actions, find the transactions its conditions match in a date range, also before they are saved, and run a saved rule on that range. The suggester's Suggestions group stays out of sight (`RULE_GROUP_SUGGESTIONS`) |
 | Bank connections | Connect a bank (consent at the bank), map its accounts, import a date range now, renew or remove consents |
 | System status | Nightly imports, missed nights, connections, bank activity, the suggester's runs and outcomes |
-| Settings | Theme, feature switches, **Require passkey** (Face ID or Touch ID to open the app on this device, and again after 1 minute to 4 hours without a touch; [docs/app-lock.md](docs/app-lock.md)), push notifications (per device: import results, problems, the suggestions digest daily or weekly, upgrades; [docs/web-push.md](docs/web-push.md)), the Firefly token |
+| Settings | Theme, hide amounts (everywhere in the app), feature switches, **Require passkey** (Face ID or Touch ID to open the app on this device, and again after 1 minute to 4 hours without a touch; locked, the app shows as usual with amounts hidden and an Unlock bar over the navigation bar; [docs/app-lock.md](docs/app-lock.md)), push notifications (per device: import results, problems, the suggestions digest daily or weekly, upgrades; [docs/web-push.md](docs/web-push.md)), the Firefly token |
 
 ### iPhone
 

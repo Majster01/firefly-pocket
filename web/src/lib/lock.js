@@ -28,6 +28,8 @@ export const TIMEOUTS = [
   { value: 240, label: '4 hours' },
 ]
 
+// While locked the app is shown as usual with its amounts hidden (lib/format.js), and a bar over the navigation bar
+// asks for the passkey (components/LockBar.vue). Nothing can be touched behind it.
 export const lock = reactive({ locked: false, busy: false, error: '' })
 
 const enabled = () => Boolean(settings.lock.enabled && settings.lock.credentialId)
@@ -74,6 +76,8 @@ export function lockNow() {
   lock.error = ''
   autoTried = false
   lock.locked = true
+  // A field that was being typed in must not keep the keyboard up behind the bar
+  if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
 }
 
 /** The lock screen's own start: opens the passkey prompt without a tap, once, if the setting is on and the app is on screen. */
@@ -141,6 +145,8 @@ export function initLock() {
   window.addEventListener('pagehide', onHidden)
   window.addEventListener('pageshow', (event) => event.persisted && onVisible())
   setInterval(check, TICK_MS)
+  // Sheets are hidden while locked (styles.css), and come back as they were
+  watch(() => lock.locked, (on) => document.documentElement.classList.toggle('app-locked', on), { immediate: true })
   watch(
     () => settings.lock.enabled && settings.lock.credentialId,
     (on) => {

@@ -1,3 +1,12 @@
+import { settings } from './settings.js'
+import { lock } from './lock.js'
+
+// "Hide amounts" (Settings), and the app while it is locked: every amount shown goes through here, with its digits
+// turned to dots. The currency, the sign and the length stay, so a page lays out as it does with the amounts shown.
+// Reading the settings here makes whatever shows an amount draw again when they change.
+export const amountsHidden = () => settings.dashboard.hideBalances || lock.locked
+export const hideDigits = (text) => (amountsHidden() ? text.replace(/\d/g, '•') : text)
+
 const formatters = new Map()
 
 function formatter(code, decimals) {
@@ -20,11 +29,11 @@ export function money(amount, code = 'EUR', { decimals, signed = false } = {}) {
   const value = Number(amount ?? 0)
   const places = decimals ?? (code === 'VWCE' ? 4 : 2)
   const text = formatter(code || 'EUR', places).format(Math.abs(value))
-  if (value < 0) return `−${text}`
-  return signed && value > 0 ? `+${text}` : text
+  if (value < 0) return hideDigits(`−${text}`)
+  return hideDigits(signed && value > 0 ? `+${text}` : text)
 }
 
-export const shares = (amount) => `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 4 }).format(Number(amount ?? 0))}`
+export const shares = (amount) => hideDigits(`${new Intl.NumberFormat(undefined, { maximumFractionDigits: 4 }).format(Number(amount ?? 0))}`)
 
 const dayFormat = new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long' })
 const dayFormatYear = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'long', year: 'numeric' })

@@ -1,62 +1,59 @@
 <template>
-  <LockScreen v-if="lock.locked" />
-  <!-- Locked, the app stays as it was (a half-written transaction, the scroll) but is not shown or read out -->
-  <div v-show="!lock.locked" class="app-root">
-    <RouterView v-if="route.meta.bare" />
-    <div v-else class="shell">
-      <aside class="side glass" aria-label="Sections">
-        <RouterLink to="/" class="brand">
-          <img src="/favicon.svg" alt="" width="34" height="34" />
-          <div>
-            <div class="brand-name">Pocket</div>
-            <div class="tiny muted">Firefly III</div>
-          </div>
-        </RouterLink>
-        <button class="btn primary block side-add" @click="compose()"><Icon name="plus" :size="20" /> New transaction</button>
-        <nav ref="sideNav" class="side-nav" :class="{ 'more-below': moreBelow }" @scroll.passive="measureSide">
-          <template v-for="section in sections" :key="section.title">
-            <div class="side-section">{{ section.title }}</div>
-            <RouterLink v-for="item in section.items" :key="item.to" :to="item.to" class="side-link" :class="{ on: isActive(item.to) }" :aria-current="isActive(item.to) ? 'page' : null">
-              <Icon :name="item.icon" :size="20" />
-              <span class="grow">{{ item.label }}</span>
-              <span v-if="badgeFor(item)" class="side-badge">{{ badgeFor(item) }}</span>
-            </RouterLink>
-          </template>
-        </nav>
-      </aside>
-
-      <main class="main">
-        <RouterView v-slot="{ Component }">
-          <component :is="Component" :key="route.path" />
-        </RouterView>
-      </main>
-
-      <nav class="tabbar" aria-label="Tabs">
-        <RouterLink v-for="tab in tabs.slice(0, 2)" :key="tab.to" :to="tab.to" class="tab" :class="{ on: tabOn(tab) }" :aria-current="tabOn(tab) ? 'page' : null">
-          <span class="tab-pill"><Icon :name="tab.icon" :size="23" /></span>
-          <span class="tab-label">{{ tab.label }}</span>
-        </RouterLink>
-        <button class="tab-plus" aria-label="New transaction" @click="compose()"><Icon name="plus" :size="26" :stroke="2.2" /></button>
-        <RouterLink v-for="tab in tabs.slice(2)" :key="tab.to" :to="tab.to" class="tab" :class="{ on: tabOn(tab) }" :aria-current="tabOn(tab) ? 'page' : null">
-          <span class="tab-pill">
-            <Icon :name="tab.icon" :size="23" />
-            <i v-if="tab.to === '/more' && moreDot" class="tab-dot" />
-          </span>
-          <span class="tab-label">{{ tab.label }}</span>
-        </RouterLink>
+  <RouterView v-if="route.meta.bare" :inert="lock.locked" />
+  <div v-else class="shell">
+    <aside class="side glass" aria-label="Sections" :inert="lock.locked">
+      <RouterLink to="/" class="brand">
+        <img src="/favicon.svg" alt="" width="34" height="34" />
+        <div>
+          <div class="brand-name">Pocket</div>
+          <div class="tiny muted">Firefly III</div>
+        </div>
+      </RouterLink>
+      <button class="btn primary block side-add" @click="compose()"><Icon name="plus" :size="20" /> New transaction</button>
+      <nav ref="sideNav" class="side-nav" :class="{ 'more-below': moreBelow }" @scroll.passive="measureSide">
+        <template v-for="section in sections" :key="section.title">
+          <div class="side-section">{{ section.title }}</div>
+          <RouterLink v-for="item in section.items" :key="item.to" :to="item.to" class="side-link" :class="{ on: isActive(item.to) }" :aria-current="isActive(item.to) ? 'page' : null">
+            <Icon :name="item.icon" :size="20" />
+            <span class="grow">{{ item.label }}</span>
+            <span v-if="badgeFor(item)" class="side-badge">{{ badgeFor(item) }}</span>
+          </RouterLink>
+        </template>
       </nav>
+    </aside>
 
-      <TransactionSheet />
-    </div>
-    <Toasts />
+    <main class="main" :inert="lock.locked">
+      <RouterView v-slot="{ Component }">
+        <component :is="Component" :key="route.path" />
+      </RouterView>
+    </main>
+
+    <nav class="tabbar" aria-label="Tabs" :inert="lock.locked">
+      <RouterLink v-for="tab in tabs.slice(0, 2)" :key="tab.to" :to="tab.to" class="tab" :class="{ on: tabOn(tab) }" :aria-current="tabOn(tab) ? 'page' : null">
+        <span class="tab-pill"><Icon :name="tab.icon" :size="23" /></span>
+        <span class="tab-label">{{ tab.label }}</span>
+      </RouterLink>
+      <button class="tab-plus" aria-label="New transaction" @click="compose()"><Icon name="plus" :size="26" :stroke="2.2" /></button>
+      <RouterLink v-for="tab in tabs.slice(2)" :key="tab.to" :to="tab.to" class="tab" :class="{ on: tabOn(tab) }" :aria-current="tabOn(tab) ? 'page' : null">
+        <span class="tab-pill">
+          <Icon :name="tab.icon" :size="23" />
+          <i v-if="tab.to === '/more' && moreDot" class="tab-dot" />
+        </span>
+        <span class="tab-label">{{ tab.label }}</span>
+      </RouterLink>
+    </nav>
+
+    <TransactionSheet />
   </div>
+  <Toasts />
+  <LockBar v-if="lock.locked" />
 </template>
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import Icon from './components/Icon.vue'
-import LockScreen from './components/LockScreen.vue'
+import LockBar from './components/LockBar.vue'
 import Toasts from './components/Toasts.vue'
 import TransactionSheet from './components/TransactionSheet.vue'
 import { NAV } from './nav.js'
@@ -113,10 +110,6 @@ watch(() => route.path, () => refreshBadges())
 </script>
 
 <style>
-/* Only there for v-show: the page lays out as if the wrapper were not */
-.app-root {
-  display: contents;
-}
 .shell {
   min-height: 100dvh;
 }

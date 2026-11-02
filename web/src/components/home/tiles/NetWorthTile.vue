@@ -20,10 +20,10 @@ import { money, shares } from '../../../lib/format.js'
 
 const netWorth = computed(() => netWorthEur())
 // The cents are the last separator and two digits, before any currency sign after them ("14.294,57 €"):
-// the first match would be a thousands group in "€12,848.57"
+// the first match would be a thousands group in "€12,848.57" (hidden amounts have dots for digits, lib/format.js)
 const parts = computed(() => {
   const text = money(netWorth.value.total)
-  const match = text.match(/^(.*?)([.,]\d{2})(\D*)$/)
+  const match = text.match(/^(.*?)([.,][\d•]{2})([^\d•]*)$/)
   return match ? { whole: match[1], cents: match[2], after: match[3] } : { whole: text, cents: '', after: '' }
 })
 // The figure's width in ems (the cents are smaller): it takes the font size that fits it in the tile

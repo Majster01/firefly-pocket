@@ -18,7 +18,10 @@
         <Icon name="chevron" class="chev" :size="18" />
       </RouterLink>
       <label class="row setting-row">
-        <span class="grow">Hide amounts on Home</span>
+        <span class="grow">
+          Hide amounts
+          <span class="tiny muted" style="display: block">Everywhere in Pocket: the digits turn to dots. Pocket does this by itself while it is locked.</span>
+        </span>
         <input v-model="settings.dashboard.hideBalances" type="checkbox" class="switch" />
       </label>
     </div>

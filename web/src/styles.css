@@ -167,6 +167,11 @@ html.shielded #app {
   visibility: hidden;
 }
 
+/* Locked (lib/lock.js): the app shows as it is, amounts hidden, but a sheet with a form in it does not */
+html.app-locked .sheet-layer {
+  visibility: hidden;
+}
+
 body::after {
   content: '';
   position: fixed;
