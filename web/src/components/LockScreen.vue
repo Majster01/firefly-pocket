@@ -5,7 +5,7 @@
       <h1 id="lock-title" tabindex="-1">Pocket is locked</h1>
       <p class="muted">Confirm with Face ID, Touch ID or this device's passcode to open it.</p>
       <!-- Browsers only open the passkey prompt from a tap -->
-      <button class="btn primary block" :disabled="lock.busy" @click="unlock">
+      <button class="btn primary block" :disabled="lock.busy" @click="unlock()">
         <span v-if="lock.busy" class="spinner" />
         <template v-else><Icon name="lock" :size="19" /> Unlock</template>
       </button>
@@ -16,8 +16,12 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
 import Icon from './Icon.vue'
-import { lock, unlock } from '../lib/lock.js'
+import { autoUnlock, lock, unlock } from '../lib/lock.js'
+
+// Cold start, or the lock came up while the app was open (the app coming back from the background is lib/lock.js)
+onMounted(autoUnlock)
 </script>
 
 <style>
