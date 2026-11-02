@@ -13,11 +13,11 @@
     <template v-else-if="kind === 'own'">
       <section class="card hero accounts-hero">
         <div class="hero-label">Net worth</div>
-        <div class="hero-value">{{ money(netWorth.total) }}</div>
+        <div class="hero-value blurable">{{ money(netWorth.total) }}</div>
         <div class="kpis totals">
           <div v-for="group in ownGroups" :key="group.key">
             <div class="kpi-label">{{ group.title }}</div>
-            <div class="kpi-value num" :class="{ neg: group.total < 0 }">{{ money(group.total) }}</div>
+            <div class="kpi-value num blurable" :class="{ neg: group.total < 0 }">{{ money(group.total) }}</div>
           </div>
         </div>
         <p v-if="excludedCount" class="small muted excluded-note">{{ excludedCount === 1 ? 'One account is' : `${excludedCount} accounts are` }} not in net worth or these totals.</p>
@@ -37,8 +37,8 @@
               </span>
             </span>
             <span class="item-end">
-              <span class="num item-title" :class="{ bad: balanceOf(account) < 0 && group.key === 'asset' }">{{ money(balanceOf(account), account.attributes.currency_code) }}</span>
-              <span v-if="account.attributes.currency_code !== 'EUR'" class="item-sub num" style="display: block">{{ eurText(account) }}</span>
+              <span class="num item-title blurable" :class="{ bad: balanceOf(account) < 0 && group.key === 'asset' }">{{ money(balanceOf(account), account.attributes.currency_code) }}</span>
+              <span v-if="account.attributes.currency_code !== 'EUR'" class="item-sub num blurable" style="display: block">{{ eurText(account) }}</span>
               <span v-if="!inNetWorth(account)" class="item-sub" style="display: block">not in net worth</span>
             </span>
             <Icon name="chevron" class="chev" :size="18" />
@@ -56,7 +56,7 @@
         <RouterLink v-for="account in counterparties" :key="account.id" :to="`/accounts/${account.id}`" class="item">
           <span class="avatar">{{ initials(account.attributes.name) }}</span>
           <span class="grow item-title ellipsis">{{ account.attributes.name }}</span>
-          <span class="item-end num muted">{{ money(Math.abs(balanceOf(account)), account.attributes.currency_code) }}</span>
+          <span class="item-end num muted blurable">{{ money(Math.abs(balanceOf(account)), account.attributes.currency_code) }}</span>
         </RouterLink>
         <div v-if="!counterparties.length" class="empty">Nothing found</div>
       </div>

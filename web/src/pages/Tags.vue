@@ -14,7 +14,7 @@
           <strong class="grow ellipsis">{{ tag.attributes.tag }}</strong>
         </div>
         <p v-if="tag.attributes.description" class="small muted">{{ tag.attributes.description }}</p>
-        <div class="num tag-total">{{ totals[tag.id] !== undefined ? money(totals[tag.id]) : '' }}</div>
+        <div class="num tag-total blurable">{{ totals[tag.id] !== undefined ? money(totals[tag.id]) : '' }}</div>
       </button>
     </div>
 

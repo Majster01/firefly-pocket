@@ -3,11 +3,11 @@
     <template v-if="category">
       <!-- "Other" in the donut, or the rest of the bar list: pick one of the folded categories -->
       <template v-if="category.others">
-        <p class="small muted sheet-lead">{{ category.others.length }} smaller categories · {{ money(category.amount) }} in {{ periodName }}</p>
+        <p class="small muted sheet-lead">{{ category.others.length }} smaller categories · <span class="blurable">{{ money(category.amount) }}</span> in {{ periodName }}</p>
         <div class="card flush">
           <button v-for="other in category.others" :key="other.name" class="item" @click="$emit('close'), pickLater(other)">
             <span class="grow item-title">{{ other.name }}</span>
-            <span class="item-end num">{{ money(other.amount) }}</span>
+            <span class="item-end num blurable">{{ money(other.amount) }}</span>
             <Icon name="chevron" class="chev" :size="18" />
           </button>
         </div>
@@ -16,8 +16,8 @@
       <template v-else>
         <div class="cat-head">
           <div class="hero-label">Spent in {{ periodName }}</div>
-          <div class="hero-value">{{ money(category.amount) }}</div>
-          <div class="small muted">{{ count === null ? '…' : `${count} ${count === 1 ? 'transaction' : 'transactions'}` }}<template v-if="count"> · {{ money(category.amount / count) }} on average</template></div>
+          <div class="hero-value blurable">{{ money(category.amount) }}</div>
+          <div class="small muted">{{ count === null ? '…' : `${count} ${count === 1 ? 'transaction' : 'transactions'}` }}<template v-if="count"> · <span class="blurable">{{ money(category.amount / count) }}</span> on average</template></div>
         </div>
 
         <button class="btn primary block" @click="showAll">

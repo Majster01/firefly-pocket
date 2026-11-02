@@ -24,7 +24,7 @@ import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getAll } from '../../../lib/api.js'
 import { PRIMARY, flatten, isBookkeeping } from '../../../lib/data.js'
-import { isoDate, money } from '../../../lib/format.js'
+import { hideDigits, isoDate, money } from '../../../lib/format.js'
 import { periodLabel } from '../../../lib/home.js'
 
 // Monthly view only (see TILES.calendar.view): one cell per day of the month shown, with what came in and went out
@@ -39,7 +39,7 @@ const weekdays = Array.from({ length: 7 }, (_, index) => new Intl.DateTimeFormat
 const lead = computed(() => (new Date(`${props.range.start}T12:00:00`).getDay() + 6) % 7)
 
 const compact = new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 })
-const short = (value) => (value >= 1000 ? compact.format(value) : String(Math.round(value)))
+const short = (value) => hideDigits(value >= 1000 ? compact.format(value) : String(Math.round(value)))
 const label = (day) => `${day.date}: in ${money(day.in)}, out ${money(day.out)}`
 
 watch(

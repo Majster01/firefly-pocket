@@ -28,7 +28,7 @@
       <button class="btn small" @click="libraryOpen = true"><Icon name="plus" :size="16" /> Tiles<span v-if="hiddenCount" class="lib-count">{{ hiddenCount }} hidden</span></button>
     </div>
 
-    <TransitionGroup tag="div" name="tile-move" class="home-grid" :class="[`device-${device}`, { hidden: settings.dashboard.hideBalances, editing }]">
+    <TransitionGroup tag="div" name="tile-move" class="home-grid" :class="[`device-${device}`, { editing }]">
       <HomeTile
         v-for="(entry, index) in shownTiles"
         :key="entry.id"
@@ -248,20 +248,10 @@ onMounted(() => {
 .home-grid .card + .card {
   margin-top: 0;
 }
-.home-grid.hidden .blurable,
-.home-grid.hidden .tx .item-end {
-  filter: blur(9px);
-}
-.home-grid .tx .item-end {
-  transition: filter 0.2s ease;
-}
 /* "All" and "Details" in a tile's title: a 44px target around 17px of text, without growing the title */
 .home-grid .card-title > a {
   padding: 13px 12px;
   margin: -13px -12px;
-}
-.blurable {
-  transition: filter 0.2s ease;
 }
 .tile-move-move {
   transition: transform 0.25s ease;

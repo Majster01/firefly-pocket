@@ -17,13 +17,13 @@
           </div>
           <button class="btn icon small" aria-label="Edit" @click="open(piggy)"><Icon name="edit" :size="17" /></button>
         </div>
-        <div class="piggy-amount num">
+        <div class="piggy-amount num blurable">
           {{ money(current(piggy), piggy.attributes.currency_code) }}
           <span v-if="target(piggy)" class="muted">/ {{ money(target(piggy), piggy.attributes.currency_code) }}</span>
         </div>
         <div v-if="target(piggy)" class="track"><i class="ink" :style="{ width: `${Math.min(100, (current(piggy) / target(piggy)) * 100)}%` }" /></div>
         <div class="row small muted piggy-foot">
-          <span class="grow">{{ footnote(piggy) }}</span>
+          <span class="grow blurable">{{ footnote(piggy) }}</span>
           <button class="btn small" :disabled="busy[piggy.id]" @click="move(piggy, -1)">Take out</button>
           <button class="btn small primary" :disabled="busy[piggy.id]" @click="move(piggy, 1)">Add</button>
         </div>

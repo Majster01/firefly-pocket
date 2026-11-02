@@ -10,7 +10,7 @@
     <!-- Opening balances and reconciliations are Firefly's bookkeeping: saved as an edit they would turn into income
          from a new "Initial balance for …" payer -->
     <template v-if="readOnly">
-      <div class="readonly-amount num">{{ money(signedAmount(composer.split), composer.split.currency_code, { signed: true }) }}</div>
+      <div class="readonly-amount num blurable">{{ money(signedAmount(composer.split), composer.split.currency_code, { signed: true }) }}</div>
       <div class="card flush readonly-facts">
         <div class="item"><span class="grow muted">Account</span><span>{{ readOnly.account?.attributes.name ?? readOnly.accountName }}</span></div>
         <div class="item"><span class="grow muted">Date</span><span>{{ shortDate(composer.split.date) }}</span></div>

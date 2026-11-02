@@ -6,8 +6,8 @@
 
     <section v-if="items" class="card hero">
       <div class="hero-label">Fixed costs a month</div>
-      <div class="hero-value">{{ money(monthlyOut) }}</div>
-      <div class="small muted">{{ money(monthlyIn) }} comes in every month</div>
+      <div class="hero-value blurable">{{ money(monthlyOut) }}</div>
+      <div class="small muted"><span class="blurable">{{ money(monthlyIn) }}</span> comes in every month</div>
     </section>
 
     <div v-if="loadError" class="banner bad"><Icon name="alert" :size="18" /> {{ loadError }}</div>

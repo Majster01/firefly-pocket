@@ -162,8 +162,21 @@ body {
 
 /* The room: wood, a bright window, a dark screen, a plant, a rug.
    Kept soft by day: section titles and day headers sit straight on it and must stay readable over its darkest spot */
+/* Amounts, when hidden (lib/format.js): over the dots the digits were turned into */
+.blurable {
+  transition: filter 0.2s ease;
+}
+html.amounts-hidden .blurable {
+  filter: blur(9px);
+}
+
 /* The app has just left the screen (lib/lock.js): the app switcher's picture shows the room, not the app */
 html.shielded #app {
+  visibility: hidden;
+}
+
+/* Locked (lib/lock.js): the app shows as it is, amounts hidden, but a sheet with a form in it does not */
+html.app-locked .sheet-layer {
   visibility: hidden;
 }
 

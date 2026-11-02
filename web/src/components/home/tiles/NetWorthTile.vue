@@ -6,7 +6,7 @@
       <span v-else class="skeleton networth-skeleton" />
     </div>
     <div class="small muted hero-sub">
-      <span v-if="vwce">VWCE <span class="blurable">{{ shares(vwce.shares) }} shares · {{ money(vwce.eur) }}</span> at {{ money(vwcePrice()) }}</span>
+      <span v-if="vwce">VWCE <span class="blurable">{{ shares(vwce.shares) }} shares · {{ money(vwce.eur) }}</span> at <span class="blurable">{{ money(vwcePrice()) }}</span></span>
       <span v-if="netWorth.missing"> · some balances have no exchange rate</span>
     </div>
     <p class="tiny muted networth-note">Today, whatever period Home shows</p>
@@ -20,10 +20,10 @@ import { money, shares } from '../../../lib/format.js'
 
 const netWorth = computed(() => netWorthEur())
 // The cents are the last separator and two digits, before any currency sign after them ("14.294,57 €"):
-// the first match would be a thousands group in "€12,848.57"
+// the first match would be a thousands group in "€12,848.57" (hidden amounts have dots for digits, lib/format.js)
 const parts = computed(() => {
   const text = money(netWorth.value.total)
-  const match = text.match(/^(.*?)([.,]\d{2})(\D*)$/)
+  const match = text.match(/^(.*?)([.,][\d•]{2})([^\d•]*)$/)
   return match ? { whole: match[1], cents: match[2], after: match[3] } : { whole: text, cents: '', after: '' }
 })
 // The figure's width in ems (the cents are smaller): it takes the font size that fits it in the tile
