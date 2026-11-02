@@ -27,11 +27,17 @@ class BaseControllerFirefly extends BaseController
 
     public function getHeaders()
     {
-        return [
+        $contentType = request()->headers->get('content-type');
+        if (!$contentType && !request()->isMethod('GET') && !request()->isMethod('HEAD')) {
+            // A body-less POST (e.g. rules/{id}/trigger) arrives without Content-Type; Firefly refuses an empty one (415)
+            $contentType = 'application/json';
+        }
+        // Never forward an empty header: Firefly reads it as Content-Type ""
+        return array_filter([
             "authorization" => request()->headers->get('authorization'),
-            "content-type" => request()->headers->get('content-type'),
+            "content-type" => $contentType,
             "accept" => request()->headers->get('accept')
-        ];
+        ]);
     }
 
     protected function getFullUrl($baseUrl = null)
