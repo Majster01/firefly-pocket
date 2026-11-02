@@ -121,6 +121,31 @@
       </template>
     </div>
 
+    <h2 class="section-title">Security</h2>
+    <div class="card">
+      <label class="row setting-row">
+        <span class="grow">
+          Require passkey
+          <span class="tiny muted" style="display: block">{{ lockHint }}</span>
+        </span>
+        <input type="checkbox" class="switch" :checked="lockOn" :disabled="(!lockCanUse && !lockOn) || lock.busy" @change="toggleLock" />
+      </label>
+      <template v-if="lockOn">
+        <label class="setting-row field">
+          <span>Lock after</span>
+          <select v-model.number="settings.lock.timeout" class="input">
+            <option v-for="option in TIMEOUTS" :key="option.value" :value="option.value">{{ option.label }}</option>
+          </select>
+          <span class="tiny muted" style="font-weight: 400">Counted from the last time you touched the app. “Immediately” locks as soon as you leave it, and after a minute without a touch while it is open.</span>
+        </label>
+        <div class="row setting-row">
+          <span class="grow">Lock now</span>
+          <button class="btn small" @click="lockNow"><Icon name="lock" :size="17" /> Lock</button>
+        </div>
+      </template>
+      <p class="tiny muted" style="margin: 4px 0 0">This device only. It hides the app; the Firefly token and what the browser kept stay on the device as before. Notifications can still show their text on the lock screen.</p>
+    </div>
+
     <h2 class="section-title">Data</h2>
     <div class="card">
       <div class="row setting-row">
@@ -166,6 +191,7 @@ import { settings } from '../lib/settings.js'
 import { syncEverything } from '../lib/sync.js'
 import { isStandalone, loadPreferences, pushStatus, pushSupported, savePreferences, subscribePush, unsubscribePush } from '../lib/push.js'
 import { toast, toastError } from '../lib/toast.js'
+import { TIMEOUTS, confirmPasskey, disable as disableLock, enroll, lock, lockNow, passkeyAvailable, passkeyError, passkeySupported } from '../lib/lock.js'
 
 const namesOf = (type) => [...new Set(accountsOfType(type).map((account) => account.attributes.name))]
 
@@ -299,6 +325,34 @@ async function syncAll() {
   }
 }
 
+// ---- require passkey (lib/lock.js)
+const lockOn = computed(() => Boolean(settings.lock.enabled && settings.lock.credentialId))
+const lockCanUse = ref(false)
+const lockHint = computed(() => {
+  if (lockOn.value) return 'Face ID, Touch ID or the device passcode opens Pocket on this device.'
+  if (!passkeySupported()) return 'This browser cannot make a passkey here. It needs HTTPS.'
+  if (!lockCanUse.value) return 'This device has no Face ID, Touch ID or screen lock to use.'
+  return 'Ask for Face ID or Touch ID to open Pocket, and again after it has been left alone for a while.'
+})
+async function toggleLock(event) {
+  const input = event.target
+  const turnOn = input.checked
+  try {
+    if (turnOn) {
+      await enroll()
+      toast('Passkey required')
+    } else {
+      // Whoever has the unlocked app must not be able to switch the lock off
+      await confirmPasskey()
+      disableLock()
+      toast('Passkey not required')
+    }
+  } catch (error) {
+    input.checked = !turnOn
+    toastError(passkeyError(error))
+  }
+}
+
 function signOut() {
   settings.token = ''
   Object.keys(store.loaded).forEach((key) => (store.loaded[key] = false))
@@ -306,6 +360,7 @@ function signOut() {
 }
 
 onMounted(async () => {
+  passkeyAvailable().then((ok) => (lockCanUse.value = ok))
   load('user').catch(() => null)
   loadAll('accounts', 'categories').catch(() => null)
   if (pushSupported()) push.value = await pushStatus().catch(() => ({ configured: false }))

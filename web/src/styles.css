@@ -162,6 +162,11 @@ body {
 
 /* The room: wood, a bright window, a dark screen, a plant, a rug.
    Kept soft by day: section titles and day headers sit straight on it and must stay readable over its darkest spot */
+/* The app has just left the screen (lib/lock.js): the app switcher's picture shows the room, not the app */
+html.shielded #app {
+  visibility: hidden;
+}
+
 body::after {
   content: '';
   position: fixed;
