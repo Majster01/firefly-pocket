@@ -23,7 +23,7 @@
     <div v-if="editing" class="card edit-banner">
       <div class="grow">
         <strong>Customizing the {{ DEVICES[device].label.toLowerCase() }} layout</strong>
-        <p class="small muted">Drag <Icon name="grid" :size="13" /> to move, tap the size to resize, <Icon name="eye" :size="13" /> to hide. The {{ device === 'phone' ? 'desktop' : 'phone' }} layout is separate.</p>
+        <p class="small muted">Use the arrows to move, tap the size to resize, <Icon name="eye" :size="13" /> to hide. The {{ device === 'phone' ? 'desktop' : 'phone' }} layout is separate.</p>
       </div>
       <button class="btn small" @click="libraryOpen = true"><Icon name="plus" :size="16" /> Tiles<span v-if="hiddenCount" class="lib-count">{{ hiddenCount }} hidden</span></button>
     </div>
@@ -37,8 +37,6 @@
         :editing="editing"
         :first="index === 0"
         :last="index === shownTiles.length - 1"
-        :dragging="dragId === entry.id"
-        @drag="startDrag(entry, $event)"
         @move="move(entry, $event)"
         @resize="resize(entry)"
         @options="optionsFor = entry"
@@ -60,7 +58,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import PageHeader from '../components/PageHeader.vue'
 import Icon from '../components/Icon.vue'
@@ -112,7 +110,6 @@ const todayLabel = new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'n
 const editing = ref(route.query.customize === '1')
 const optionsFor = ref(null)
 const libraryOpen = ref(false)
-const dragId = ref(null)
 const version = ref(0)
 
 // ------------------------------------------------------------------ period
@@ -175,69 +172,7 @@ function toggle(entry) {
 
 function finishEditing() {
   editing.value = false
-  dragId.value = null
 }
-
-// ---------------------------------------------------------------- dragging
-
-// Pointer events rather than HTML drag and drop, which iOS Safari does not do. The tile under the finger takes the
-// dragged tile's place as it moves; near the screen's edge the page scrolls.
-let scrollTimer = null
-function startDrag(entry, event) {
-  event.preventDefault()
-  dragId.value = entry.id
-  // Scroll anchoring would chase the moving tiles and scroll the page on its own
-  document.documentElement.style.overflowAnchor = 'none'
-  window.addEventListener('pointermove', onDrag)
-  window.addEventListener('pointerup', endDrag, { once: true })
-  window.addEventListener('pointercancel', endDrag, { once: true })
-}
-let lastPoint = null
-function reorderUnder({ x, y }) {
-  // At the screen's edges the finger is over the sticky header or the tab bar, not a tile: look just inside them
-  const top = document.querySelector('.page-head')?.getBoundingClientRect().bottom ?? 0
-  const bottom = document.querySelector('.tabbar')?.getBoundingClientRect().top ?? innerHeight
-  const grid = document.querySelector('.home-grid')?.getBoundingClientRect()
-  const clampedY = Math.min(Math.max(y, top + 12), (bottom > 0 && bottom < innerHeight ? bottom : innerHeight) - 12)
-  const clampedX = grid ? Math.min(Math.max(x, grid.left + 12), grid.right - 12) : x
-  const under = document.elementFromPoint(clampedX, clampedY)?.closest('[data-tile-id]')
-  const targetId = under?.dataset.tileId
-  if (!targetId || targetId === dragId.value) return
-  const tiles = layout.value.tiles
-  const from = tiles.findIndex((entry) => entry.id === dragId.value)
-  const to = tiles.findIndex((entry) => entry.id === targetId)
-  // Swap only past the target's middle, so two tiles do not trade places back and forth under a still finger.
-  // Tiles side by side compare across, tiles above and below compare down.
-  const rect = under.getBoundingClientRect()
-  const dragged = document.querySelector(`[data-tile-id="${dragId.value}"]`)?.getBoundingClientRect()
-  const sideBySide = dragged && dragged.top < rect.bottom - 8 && rect.top < dragged.bottom - 8
-  const past = sideBySide ? (to < from ? clampedX < rect.left + rect.width / 2 : clampedX > rect.left + rect.width / 2) : to < from ? clampedY < rect.top + rect.height / 2 : clampedY > rect.top + rect.height / 2
-  if (!past) return
-  const [moved] = tiles.splice(from, 1)
-  tiles.splice(to, 0, moved)
-}
-function onDrag(event) {
-  lastPoint = { x: event.clientX, y: event.clientY }
-  reorderUnder(lastPoint)
-  const edge = 90
-  const speed = event.clientY < edge ? -14 : event.clientY > innerHeight - edge - 70 ? 14 : 0
-  clearInterval(scrollTimer)
-  // While the page scrolls under a finger that holds still, the tile under it changes too
-  scrollTimer = speed
-    ? setInterval(() => {
-        scrollBy(0, speed)
-        reorderUnder(lastPoint)
-      }, 16)
-    : null
-}
-function endDrag() {
-  window.removeEventListener('pointermove', onDrag)
-  clearInterval(scrollTimer)
-  document.documentElement.style.overflowAnchor = ''
-  if (dragId.value) touch()
-  dragId.value = null
-}
-onBeforeUnmount(endDrag)
 
 // -------------------------------------------------------------------- data
 
