@@ -18,6 +18,8 @@ const DEFAULTS = {
   },
   notifications: { enabled: false },
   dashboard: { hideBalances: false },
+  // Require a passkey (Face ID, Touch ID) to open the app on this device; timeout: minutes without a touch before it locks again, 0 = as soon as the app is left (lib/lock.js)
+  lock: { enabled: false, credentialId: '', timeout: 5 },
   // Starting values for a new transaction (empty = no preference). Accounts are kept by Firefly id, payee/payer by name
   defaults: {
     type: 'withdrawal',
@@ -35,7 +37,7 @@ function mergeDefaults(saved = {}) {
 function load() {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) ?? '{}')
-    return { ...DEFAULTS, ...saved, features: { ...DEFAULTS.features, ...saved.features }, notifications: { ...DEFAULTS.notifications, ...saved.notifications }, dashboard: { ...DEFAULTS.dashboard, ...saved.dashboard }, defaults: mergeDefaults(saved.defaults) }
+    return { ...DEFAULTS, ...saved, features: { ...DEFAULTS.features, ...saved.features }, notifications: { ...DEFAULTS.notifications, ...saved.notifications }, dashboard: { ...DEFAULTS.dashboard, ...saved.dashboard }, lock: { ...DEFAULTS.lock, ...saved.lock }, defaults: mergeDefaults(saved.defaults) }
   } catch {
     return structuredClone(DEFAULTS)
   }
