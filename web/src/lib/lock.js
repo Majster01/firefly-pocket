@@ -143,6 +143,11 @@ export function initLock() {
   }
   document.addEventListener('visibilitychange', () => (document.hidden ? onHidden() : onVisible()))
   window.addEventListener('pagehide', onHidden)
+  // On iOS the app switcher gesture, Control Center, Slide Over and split view take the picture while the page is still
+  // "visible": only the window losing focus is reported, and it is reported early. Shield on that too (nothing locks
+  // from it: leaving the app for real still arrives as visibilitychange), and lift the shield when focus comes back.
+  window.addEventListener('blur', () => enabled() && document.documentElement.classList.add('shielded'))
+  window.addEventListener('focus', () => !document.hidden && document.documentElement.classList.remove('shielded'))
   window.addEventListener('pageshow', (event) => event.persisted && onVisible())
   setInterval(check, TICK_MS)
   // Sheets are hidden while locked (styles.css), and come back as they were
