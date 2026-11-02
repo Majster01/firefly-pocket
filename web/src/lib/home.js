@@ -24,7 +24,10 @@ export const TILES = {
     icon: 'transfer',
     phone: ['full'],
     desktop: ['third', 'half', 'twothirds', 'full'],
-    options: { compare: { label: 'Compare with the period before', type: 'switch', default: true } },
+    options: {
+      compare: { label: 'Compare with the period before', type: 'switch', default: true },
+      kept: { label: 'Show the % kept / overspent under the surplus', type: 'switch', default: true },
+    },
   },
   categories: {
     title: 'Spending by category',

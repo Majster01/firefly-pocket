@@ -20,7 +20,7 @@
         <div class="flow surplus">
           <span class="kpi-label">{{ surplus >= 0 ? 'Surplus' : 'Deficit' }}</span>
           <span class="flow-value num blurable" :class="surplus >= 0 ? 'pos' : 'bad'">{{ money(surplus, 'EUR', { signed: true }) }}</span>
-          <span class="tiny muted">{{ keptText }}</span>
+          <span v-if="options.kept" class="tiny muted">{{ keptText }}</span>
         </div>
       </div>
       <div class="flow-bars" aria-hidden="true">

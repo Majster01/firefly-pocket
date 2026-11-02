@@ -15,7 +15,6 @@
           <span class="cal-out num blurable">{{ day.out ? short(day.out) : '' }}</span>
         </button>
       </div>
-      <p class="tiny muted cal-note"><span class="pos">In</span> above, <span>out</span> below. Transfers between your own accounts are left out.</p>
     </template>
   </div>
 </template>
@@ -121,8 +120,5 @@ button.cal-day:not(:disabled):hover {
 }
 .cal-out {
   color: var(--bad);
-}
-.cal-note {
-  margin: 8px 0 0;
 }
 </style>
