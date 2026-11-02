@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -12,6 +13,8 @@ class RuleTest extends TestCase
 {
     private $groups;
     private $rules;
+    private $fireflyIsSlow = false;
+    private $searchResults = []; // search query => transaction groups
 
     protected function setUp(): void
     {
@@ -64,13 +67,17 @@ class RuleTest extends TestCase
                     },
                 };
             }
+            if ($path === 'search/transactions') {
+                parse_str((string)parse_url($request->url(), PHP_URL_QUERY), $query);
+                return Http::response($this->page($this->searchResults[$query['query']] ?? []));
+            }
             if (preg_match('#^rules/(\d+)(/test|/trigger)?$#', $path, $matches)) {
                 $rule = $this->rules[$matches[1]] ?? null;
                 if (!$rule) {
                     return Http::response(['message' => 'Unauthenticated.'], 401);
                 }
                 return match ($matches[2] ?? '') {
-                    '/test' => Http::response($this->page([['id' => '285', 'type' => 'transactions', 'attributes' => ['transactions' => []]]])),
+                    '/test' => $this->fireflyIsSlow ? throw new ConnectionException('cURL error 28: Operation timed out') : Http::response($this->page([['id' => '285', 'type' => 'transactions', 'attributes' => ['transactions' => []]]])),
                     '/trigger' => Http::response(null, 204),
                     default => match ($method) {
                         'GET', 'PUT' => Http::response(['data' => $rule]),
@@ -139,6 +146,68 @@ class RuleTest extends TestCase
         $this->getJson('api/rules/21', $this->headers())->assertOk()->assertJsonPath('data.attributes.title', 'Tag trips');
         $this->getJson('api/rules/21/test?start=2026-08-01&end=2026-10-31', $this->headers())->assertOk()->assertJsonPath('data.0.id', '285');
         $this->assertStringContainsString('start=2026-08-01', (string)$this->sent('GET', 'rules/21/test')->first()->url());
+    }
+
+    private function group($id, $date)
+    {
+        return ['id' => (string)$id, 'type' => 'transactions', 'attributes' => ['transactions' => [['transaction_journal_id' => (string)($id * 10), 'date' => $date, 'description' => "Transaction $id"]]]];
+    }
+
+    public function test_conditions_that_are_not_saved_are_tested_with_one_search_when_all_must_match()
+    {
+        $query = 'description_contains:"lidl" -has_any_category:true date_after:"2026-08-01" date_before:"2026-10-31"';
+        $this->searchResults[$query] = [$this->group(1, '2026-09-01T00:00:00+02:00'), $this->group(2, '2026-10-01T00:00:00+02:00')];
+
+        $response = $this->postJson('api/rules/test', [
+            'strict' => true,
+            'start' => '2026-08-01',
+            'end' => '2026-10-31',
+            'triggers' => [
+                ['type' => 'description_contains', 'value' => 'lidl', 'prohibited' => false, 'active' => true],
+                ['type' => 'has_any_category', 'value' => 'true', 'prohibited' => true, 'active' => true],
+                ['type' => 'amount_more', 'value' => '5', 'prohibited' => false, 'active' => false],
+            ],
+        ], $this->headers());
+
+        $response->assertOk()->assertJsonPath('meta.truncated', false);
+        $this->assertEquals(['2', '1'], $response->json('data.*.id'), 'newest first');
+        $this->assertCount(1, $this->sent('GET', 'search/transactions'));
+    }
+
+    public function test_conditions_that_are_not_saved_are_tested_one_search_each_when_any_may_match()
+    {
+        $this->searchResults['description_contains:"lidl"'] = [$this->group(1, '2026-09-01T00:00:00+02:00'), $this->group(2, '2026-10-01T00:00:00+02:00')];
+        $this->searchResults['description_contains:"spar \\"bio\\""'] = [$this->group(2, '2026-10-01T00:00:00+02:00'), $this->group(3, '2026-10-05T00:00:00+02:00')];
+
+        $response = $this->postJson('api/rules/test', [
+            'strict' => false,
+            'triggers' => [
+                ['type' => 'description_contains', 'value' => 'lidl'],
+                ['type' => 'description_contains', 'value' => 'spar "bio"'],
+            ],
+        ], $this->headers());
+
+        $response->assertOk();
+        $this->assertEquals(['3', '2', '1'], $response->json('data.*.id'), 'a transaction both conditions find is listed once');
+        $this->assertCount(2, $this->sent('GET', 'search/transactions'));
+    }
+
+    public function test_testing_conditions_needs_a_condition_that_is_on_and_is_not_a_change()
+    {
+        $this->postJson('api/rules/test', ['triggers' => [['type' => 'description_contains', 'value' => 'lidl', 'active' => false]]], $this->headers())->assertStatus(422);
+        $this->postJson('api/rules/test', ['triggers' => [['type' => 'description_contains" OR "x', 'value' => 'lidl']]], $this->headers())->assertStatus(422);
+        $this->assertCount(0, $this->sent('GET', 'search/transactions'));
+
+        $this->postJson('api/rules/test', ['triggers' => [['type' => 'description_contains', 'value' => 'lidl']]], $this->headers())->assertOk();
+        $this->assertCount(0, $this->sent('POST', 'rules/test'), 'nothing is sent to Firefly as it is');
+    }
+
+    public function test_testing_a_rule_says_so_when_firefly_takes_too_long()
+    {
+        $this->fireflyIsSlow = true;
+        $this->getJson('api/rules/21/test?start=2026-08-01&end=2026-10-31', $this->headers())
+            ->assertStatus(504)
+            ->assertJsonPath('message', 'Firefly took too long to search these dates. Try a shorter date range.');
     }
 
     public function test_the_suggestions_group_and_its_rules_cannot_be_opened()

@@ -106,28 +106,29 @@
       </div>
 
       <div class="rule-edit-side">
-        <section v-if="!isNew" class="card">
+        <section class="card">
           <h2 class="card-title">Existing transactions</h2>
           <div class="field-row">
             <label class="field"><span>From</span><input v-model="range.start" type="date" /></label>
             <label class="field"><span>To</span><input v-model="range.end" type="date" /></label>
           </div>
-          <p v-if="dirty" class="tiny muted">Testing and running use the saved rule. Save your changes first.</p>
-          <button class="btn block" :disabled="Boolean(busy) || !rangeValid" @click="test">
+          <p v-if="conditionsProblem" class="tiny muted">{{ conditionsProblem }} to find matches.</p>
+          <button class="btn block" :disabled="Boolean(busy) || !rangeValid || Boolean(conditionsProblem)" @click="test">
             <span v-if="busy === 'test'" class="spinner" />
             <template v-else><Icon name="search" :size="17" /> Find matches</template>
           </button>
-          <button class="btn block rule-secondary" :disabled="Boolean(busy) || !rangeValid || dirty" @click="run">
+          <p v-if="!isNew && dirty" class="tiny muted rule-secondary">Running uses the saved rule. Save your changes first.</p>
+          <button v-if="!isNew" class="btn block rule-secondary" :disabled="Boolean(busy) || !rangeValid || dirty" @click="run">
             <span v-if="busy === 'run'" class="spinner" />
             <template v-else><Icon name="bolt" :size="17" /> Run on these dates</template>
           </button>
           <p v-if="matches" class="small rule-matches" aria-live="polite">
-            {{ matches.length ? `${plural(matches.length, 'transaction')} match` : 'Nothing matches in these dates' }}
+            {{ matches.length ? `${matchCount} match` : 'Nothing matches in these dates' }}
           </p>
         </section>
         <div v-if="matches?.length" class="card flush rule-match-list">
           <TransactionRow v-for="split in matches.slice(0, MAX_SHOWN)" :key="split.transaction_journal_id" :split="split" show-date />
-          <div v-if="matches.length > MAX_SHOWN" class="item item-sub">and {{ matches.length - MAX_SHOWN }} more</div>
+          <div v-if="matches.length > MAX_SHOWN" class="item item-sub">and {{ matches.length - MAX_SHOWN }} more{{ truncated ? ' or more' : '' }}</div>
         </div>
 
         <button v-if="!isNew" class="btn block danger rule-secondary" :disabled="Boolean(busy)" @click="remove">
@@ -168,6 +169,8 @@ const snapshot = ref('') // the form as loaded or last saved, to tell unsaved ch
 const loadError = ref(null)
 const busy = ref(null)
 const matches = ref(null)
+const truncated = ref(false) // Pocket stopped looking: there are more than it lists
+const matchCount = computed(() => `${matches.value.length}${truncated.value ? '+' : ''} ${matches.value.length === 1 && !truncated.value ? 'transaction' : 'transactions'}`)
 
 const threeMonthsAgo = () => {
   const date = new Date()
@@ -217,17 +220,25 @@ function lineProblem(item, definition) {
   return ''
 }
 
+// What stops the conditions from being tested or saved, said in words
+const conditionsProblem = computed(() => {
+  const value = form.value
+  if (!value) return ''
+  if (!value.triggers.some((item) => item.active)) return 'Add a condition that is on'
+  for (const item of value.triggers) {
+    const text = lineProblem(item, conditionType(item.type))
+    if (text) return text
+  }
+  return ''
+})
+
 // The first thing that stops the rule from saving, said in words
 const problem = computed(() => {
   const value = form.value
   if (!value) return ''
   if (!value.title.trim()) return 'Give the rule a name'
-  if (!value.triggers.some((item) => item.active)) return 'Add a condition that is on'
+  if (conditionsProblem.value) return conditionsProblem.value
   if (!value.actions.some((item) => item.active)) return 'Add an action that is on'
-  for (const item of value.triggers) {
-    const text = lineProblem(item, conditionType(item.type))
-    if (text) return text
-  }
   for (const item of value.actions) {
     const text = lineProblem(item, actionType(item.type))
     if (text) return text
@@ -282,13 +293,21 @@ async function save() {
   }
 }
 
+// What the conditions say, to tell an answer that no longer fits them
+const conditionsKey = computed(() => (form.value ? comparable({ ...form.value, actions: [], title: '', description: '' }) : ''))
+
+// The conditions as they are on the screen, saved or not: Firefly can only test a saved rule, as it was saved
 async function test() {
-  if (busy.value) return
+  if (busy.value || conditionsProblem.value) return
   busy.value = 'test'
+  const asked = conditionsKey.value
   try {
-    matches.value = flatten((await get(`rules/${route.params.id}/test`, { start: range.start, end: range.end }, { fresh: true }))?.data ?? [])
-  } catch (error) {
-    if (error?.status === 404) loadError.value = error
+    const answer = await post('rules/test', { triggers: toBody(form.value).triggers, strict: form.value.strict, start: range.start, end: range.end })
+    if (asked !== conditionsKey.value) return
+    matches.value = flatten(answer?.data ?? [])
+    truncated.value = Boolean(answer?.meta?.truncated)
+  } catch {
+    // The toast says why
   } finally {
     busy.value = null
   }
@@ -370,6 +389,11 @@ watch(
     reload()
   },
 )
+
+// Matches found for other conditions say nothing about these
+watch(conditionsKey, () => {
+  matches.value = null
+})
 
 // A transaction edited from the matches may no longer match
 watch(() => composer.version, () => {

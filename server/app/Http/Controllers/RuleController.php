@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\FireflyException;
 use App\Exceptions\GeneralException;
 use App\Http\Controllers\Base\BaseController;
 use App\Http\Controllers\Base\BaseControllerFirefly;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response as FireflyResponse;
 use Illuminate\Http\Request;
 
@@ -15,6 +17,14 @@ use Illuminate\Http\Request;
  */
 class RuleController extends BaseControllerFirefly
 {
+    // Testing or running a rule makes Firefly search every transaction in the dates (up to 31,337) and write the
+    // answer out in full, which takes far longer than a read. nginx gives a request 60 seconds (docker/conf/nginx).
+    const SLOW_SECONDS = 55;
+
+    // The conditions of a rule that is not saved (yet) are tested with Firefly's transaction search
+    const TEST_PAGE_SIZE = 50;
+    const TEST_MAX_TRANSACTIONS = 500;
+
     public function __construct()
     {
         parent::__construct('/api/v1/');
@@ -103,6 +113,85 @@ class RuleController extends BaseControllerFirefly
         return $this->pass($this->forward($request));
     }
 
+    /**
+     * POST rules/test {triggers: [{type, value, prohibited, active}], strict, start, end}
+     *
+     * The transactions the conditions as they are on screen would match, saved or not: Firefly's API can only test a
+     * rule that is saved, and then only as saved. This asks the transaction search what Firefly's rule engine asks it
+     * (SearchRuleEngine): one search with every condition when all must match, one search per condition when any may,
+     * both inside the dates. The answer has the shape of a list of transactions; meta.truncated says there were more.
+     */
+    public function testConditions(Request $request)
+    {
+        $queries = $this->searchQueries(
+            (array)$request->input('triggers', []),
+            $request->input('strict') !== false && $request->input('strict') !== 'false',
+            $request->input('start'),
+            $request->input('end'),
+        );
+        if (!$queries) {
+            throw new GeneralException('Add a condition that is on.', BaseController::HTTP_CODE_UNPROCESSABLE_ENTITY);
+        }
+
+        $groups = [];
+        $truncated = false;
+        try {
+            foreach ($queries as $query) {
+                $page = 1;
+                do {
+                    $response = $this->getHttpClient()->timeout(self::SLOW_SECONDS)->get(config('app.firefly_url') . '/api/v1/search/transactions', ['query' => $query, 'limit' => self::TEST_PAGE_SIZE, 'page' => $page]);
+                    if (!$response->ok()) {
+                        throw new FireflyException($response);
+                    }
+                    $body = $response->json();
+                    foreach (fget($body, 'data') ?? [] as $group) {
+                        $groups[fget($group, 'id')] = $group;
+                    }
+                    if (count($groups) > self::TEST_MAX_TRANSACTIONS) {
+                        $truncated = true;
+                        break 2;
+                    }
+                    $page++;
+                } while ($page <= (fget($body, 'meta.pagination.total_pages') ?? 1) && count(fget($body, 'data') ?? []) > 0);
+            }
+        } catch (ConnectionException $e) {
+            throw new GeneralException('Firefly took too long to search. Try a shorter date range.', 504, null, $e);
+        }
+
+        $date = fn($group) => (string)fget($group, 'attributes.transactions.0.date');
+        $groups = array_values($groups);
+        usort($groups, fn($a, $b) => strcmp($date($b), $date($a)));
+        return response()->json(['data' => array_slice($groups, 0, self::TEST_MAX_TRANSACTIONS), 'meta' => ['truncated' => $truncated]]);
+    }
+
+    /** The searches that find what a rule with these conditions matches: the engine's, written as search queries */
+    private function searchQueries(array $triggers, bool $strict, $start, $end): array
+    {
+        $terms = [];
+        foreach ($triggers as $trigger) {
+            $type = trim((string)fget($trigger, 'type'));
+            // Not an operator the search knows: a name of Firefly's own, never typed by the app
+            if (!preg_match('/^[a-z_]+$/', $type) || fget($trigger, 'active') === false || $type === 'user_action') {
+                continue;
+            }
+            $value = trim((string)(fget($trigger, 'value') ?? ''));
+            // Conditions with nothing to compare (has any category…) are searched as "true", as the rule engine does
+            $operand = in_array($value, ['', 'true'], true) ? 'true' : '"' . addcslashes($value, '"\\') . '"';
+            $terms[] = (filter_var(fget($trigger, 'prohibited'), FILTER_VALIDATE_BOOLEAN) ? '-' : '') . "$type:$operand";
+        }
+        if (!$terms) {
+            return [];
+        }
+
+        $dates = [];
+        foreach (['date_after' => $start, 'date_before' => $end] as $operator => $day) {
+            if (is_string($day) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $day)) {
+                $dates[] = "$operator:\"$day\"";
+            }
+        }
+        return $strict ? [implode(' ', [...$terms, ...$dates])] : array_map(fn($term) => implode(' ', [$term, ...$dates]), $terms);
+    }
+
     // ------------------------------------------------------------------
 
     private function isHidden($groupTitle)
@@ -176,7 +265,16 @@ class RuleController extends BaseControllerFirefly
     /** The request as it came (method, path, query, body), sent on to Firefly */
     private function forward(Request $request): FireflyResponse
     {
-        return $this->getHttpClient()->send($request->method(), self::fireflyUrlFor($request), ['body' => $request->getContent()]);
+        $slow = (bool)preg_match('#/(test|trigger)$#', $request->path());
+        $client = $this->getHttpClient();
+        try {
+            return ($slow ? $client->timeout(self::SLOW_SECONDS) : $client)->send($request->method(), self::fireflyUrlFor($request), ['body' => $request->getContent()]);
+        } catch (ConnectionException $e) {
+            if (!$slow) {
+                throw $e;
+            }
+            throw new GeneralException('Firefly took too long to search these dates. Try a shorter date range.', 504, null, $e);
+        }
     }
 
     private function firefly($method, $path): FireflyResponse
