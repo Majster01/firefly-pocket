@@ -6,7 +6,7 @@
       <span v-else class="skeleton networth-skeleton" />
     </div>
     <div class="small muted hero-sub">
-      <span v-if="vwce">VWCE <span class="blurable">{{ shares(vwce.shares) }} shares · {{ money(vwce.eur) }}</span> at {{ money(vwcePrice()) }}</span>
+      <span v-if="vwce">VWCE <span class="blurable">{{ shares(vwce.shares) }} shares · {{ money(vwce.eur) }}</span> at <span class="blurable">{{ money(vwcePrice()) }}</span></span>
       <span v-if="netWorth.missing"> · some balances have no exchange rate</span>
     </div>
     <p class="tiny muted networth-note">Today, whatever period Home shows</p>

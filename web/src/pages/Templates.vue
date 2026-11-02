@@ -15,7 +15,7 @@
           <span class="item-title" style="display: block">{{ template.name }}</span>
           <span class="item-sub" style="display: block">{{ describe(template) }}</span>
         </button>
-        <span class="item-end num">{{ template.amount ? money(template.amount) : '' }}</span>
+        <span class="item-end num blurable">{{ template.amount ? money(template.amount) : '' }}</span>
         <button class="btn small primary" @click="use(template)">Use</button>
       </div>
     </div>

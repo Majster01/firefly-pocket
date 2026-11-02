@@ -1,11 +1,15 @@
+import { watch } from 'vue'
 import { settings } from './settings.js'
 import { lock } from './lock.js'
 
-// "Hide amounts" (Settings), and the app while it is locked: every amount shown goes through here, with its digits
-// turned to dots. The currency, the sign and the length stay, so a page lays out as it does with the amounts shown.
-// Reading the settings here makes whatever shows an amount draw again when they change.
+// "Hide amounts" (Settings), and the app while it is locked. Two layers, so nothing readable is left:
+// - every amount shown goes through here, with its digits turned to dots (the currency, the sign and the length stay,
+//   so a page lays out as it does with the amounts shown). Reading the settings here makes whatever shows an amount
+//   draw again when they change;
+// - html.amounts-hidden blurs what is marked class="blurable" (styles.css), which is every element that shows one.
 export const amountsHidden = () => settings.dashboard.hideBalances || lock.locked
 export const hideDigits = (text) => (amountsHidden() ? text.replace(/\d/g, '•') : text)
+watch(amountsHidden, (hidden) => document.documentElement.classList.toggle('amounts-hidden', hidden), { immediate: true })
 
 const formatters = new Map()
 

@@ -41,7 +41,7 @@
               <span class="item-sub" style="display: block">{{ transaction.date ? `${transaction.destination_name} · ${shortDate(transaction.date)}` : 'Deleted' }}</span>
             </span>
             <span v-if="opening === transaction.journal_id" class="spinner" style="width: 16px; height: 16px" />
-            <span v-else class="item-end num">{{ transaction.amount ? money(signed(transaction), transaction.currency_code) : '' }}</span>
+            <span v-else class="item-end num blurable">{{ transaction.amount ? money(signed(transaction), transaction.currency_code) : '' }}</span>
           </button>
         </div>
       </div>

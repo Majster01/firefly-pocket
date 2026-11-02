@@ -23,7 +23,7 @@
         <h3 class="suggestion-title">{{ item.attributes.company ?? fallbackName(item) }}</h3>
         <p class="small muted">{{ item.attributes.reason }}</p>
         <div class="row small">
-          <span class="grow muted">{{ count(item) }} · {{ money(total(item), item.attributes.transactions?.[0]?.currency_code) }}</span>
+          <span class="grow muted">{{ count(item) }} · <span class="blurable">{{ money(total(item), item.attributes.transactions?.[0]?.currency_code) }}</span></span>
           <Icon name="chevron" class="chev" :size="18" />
         </div>
       </RouterLink>

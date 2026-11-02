@@ -18,8 +18,8 @@
           <span v-if="category.notes" class="item-sub ellipsis" style="display: block">{{ category.notes }}</span>
         </span>
         <span class="item-end">
-          <span class="num item-title" style="display: block">{{ category.spent ? money(category.spent) : '—' }}</span>
-          <span v-if="category.earned" class="item-sub num pos" style="display: block">+{{ money(category.earned) }}</span>
+          <span class="num item-title blurable" style="display: block">{{ category.spent ? money(category.spent) : '—' }}</span>
+          <span v-if="category.earned" class="item-sub num pos blurable" style="display: block">+{{ money(category.earned) }}</span>
         </span>
       </button>
       <div v-if="!rows.length" class="empty"><h3>No categories yet</h3></div>

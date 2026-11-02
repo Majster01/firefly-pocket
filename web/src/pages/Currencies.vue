@@ -6,7 +6,7 @@
       <div class="row">
         <div class="grow">
           <div class="hero-label">VWCE · Vanguard FTSE All-World (Acc)</div>
-          <div class="hero-value">{{ price ? money(price) : '—' }}</div>
+          <div class="hero-value blurable">{{ price ? money(price) : '—' }}</div>
           <div class="small muted">a share, Xetra</div>
         </div>
         <span class="avatar vwce-badge">📈</span>
@@ -14,11 +14,11 @@
       <div v-if="holding" class="kpis vwce-kpis">
         <div>
           <div class="kpi-label">You hold</div>
-          <div class="kpi-value">{{ shares(holding.shares) }} shares</div>
+          <div class="kpi-value blurable">{{ shares(holding.shares) }} shares</div>
         </div>
         <div>
           <div class="kpi-label">Worth</div>
-          <div class="kpi-value">{{ money(holding.eur) }}</div>
+          <div class="kpi-value blurable">{{ money(holding.eur) }}</div>
         </div>
       </div>
       <table v-if="history.length" class="history">
@@ -29,7 +29,7 @@
         <tbody>
           <tr v-for="row in history" :key="row.date">
             <td>{{ shortDate(row.date) }}</td>
-            <td class="num">{{ money(row.rate) }}</td>
+            <td class="num blurable">{{ money(row.rate) }}</td>
             <td class="num" :class="row.change > 0 ? 'pos' : row.change < 0 ? 'bad' : 'muted'">{{ change(row.change) }}</td>
           </tr>
         </tbody>
@@ -48,7 +48,7 @@
         </label>
       </div>
       <div v-if="Number.isNaN(parsed)" class="small muted convert-hint">Enter an amount like 100 or 1.234,56</div>
-      <div v-else class="convert-result num">= {{ converted === null ? 'no rate' : money(converted) }}</div>
+      <div v-else class="convert-result num blurable">= {{ converted === null ? 'no rate' : money(converted) }}</div>
     </section>
 
     <h2 class="section-title">Your currencies</h2>

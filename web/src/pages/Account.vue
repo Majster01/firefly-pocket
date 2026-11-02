@@ -14,10 +14,10 @@
     <template v-else>
       <section class="card hero">
         <div class="hero-label">{{ isOwn ? 'Balance' : account.attributes.type === 'expense' ? 'Paid in total' : 'Received in total' }}</div>
-        <div class="hero-value">{{ money(isOwn ? balanceOf(account) : Math.abs(balanceOf(account)), account.attributes.currency_code) }}</div>
+        <div class="hero-value blurable">{{ money(isOwn ? balanceOf(account) : Math.abs(balanceOf(account)), account.attributes.currency_code) }}</div>
         <div v-if="account.attributes.currency_code !== 'EUR'" class="muted">
-          <template v-if="account.attributes.currency_code === 'VWCE'">{{ shares(balanceOf(account)) }} shares × {{ money(vwcePrice()) }} = </template>
-          <strong>{{ eur === null ? 'no exchange rate' : money(eur) }}</strong>
+          <template v-if="account.attributes.currency_code === 'VWCE'"><span class="blurable">{{ shares(balanceOf(account)) }}</span> shares × <span class="blurable">{{ money(vwcePrice()) }}</span> = </template>
+          <strong class="blurable">{{ eur === null ? 'no exchange rate' : money(eur) }}</strong>
         </div>
         <div class="row wrap account-meta small muted">
           <span v-if="account.attributes.iban" class="chip num">{{ groupedIban }}</span>

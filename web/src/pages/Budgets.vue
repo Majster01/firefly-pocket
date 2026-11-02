@@ -8,9 +8,9 @@
 
     <section v-if="budgets" class="card hero">
       <div class="hero-label">{{ offset === 0 ? 'Left this month' : `Left in ${monthLabel(range.start)}` }}</div>
-      <div class="hero-value" :class="{ bad: totals.left < 0 }">{{ money(totals.left) }}</div>
+      <div class="hero-value blurable" :class="{ bad: totals.left < 0 }">{{ money(totals.left) }}</div>
       <div class="track hero-track"><i :class="meterClass(totals.ratio)" :style="{ width: `${Math.min(100, totals.ratio * 100)}%` }" /></div>
-      <div class="small muted">{{ money(totals.spent) }} spent of {{ money(totals.limit) }} · {{ daysLeft }}</div>
+      <div class="small muted"><span class="blurable">{{ money(totals.spent) }} spent of {{ money(totals.limit) }}</span> · {{ daysLeft }}</div>
     </section>
 
     <div v-if="loadError" class="banner bad"><Icon name="alert" :size="18" /> {{ loadError }}</div>
@@ -23,12 +23,12 @@
             {{ budget.ratio > 1 ? 'Over' : budget.ratio > 0.85 ? 'Close' : 'On track' }}
           </span>
         </div>
-        <div class="budget-amount num">
+        <div class="budget-amount num blurable">
           {{ money(budget.spent) }}
           <span class="muted"> / {{ budget.limit ? money(budget.limit) : 'no limit' }}</span>
         </div>
         <div v-if="budget.limit" class="track"><i :class="meterClass(budget.ratio)" :style="{ width: `${Math.min(100, budget.ratio * 100)}%` }" /></div>
-        <div v-if="budget.limit" class="small muted budget-left">{{ budget.left >= 0 ? `${money(budget.left)} left` : `${money(-budget.left)} over` }}</div>
+        <div v-if="budget.limit" class="small muted budget-left blurable">{{ budget.left >= 0 ? `${money(budget.left)} left` : `${money(-budget.left)} over` }}</div>
       </button>
     </div>
 

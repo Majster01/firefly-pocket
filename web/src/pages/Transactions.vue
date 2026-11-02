@@ -20,7 +20,7 @@
     </div>
 
     <div v-if="searchTotal !== null" class="small muted total-line">
-      {{ total }} matching · <span class="num">{{ money(searchTotal, 'EUR', { signed: true }) }}</span>
+      {{ total }} matching · <span class="num blurable">{{ money(searchTotal, 'EUR', { signed: true }) }}</span>
     </div>
 
     <div v-if="loading && !splits.length" class="loading"><span class="spinner" /></div>

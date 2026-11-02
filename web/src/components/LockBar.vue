@@ -56,12 +56,12 @@ onMounted(autoUnlock)
   margin: 0;
   text-align: center;
 }
-/* Over the floating sidebar instead, which shows through: the page is the one it is unlocked */
+/* Over the floating sidebar instead, which shows through blurred: the page looks as it does unlocked */
 @media (min-width: 900px) {
   .lockbar {
-    background: color-mix(in srgb, var(--glass-base) 28%, transparent);
-    -webkit-backdrop-filter: blur(2px);
-    backdrop-filter: blur(2px);
+    background: color-mix(in srgb, var(--glass-base) 35%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
+    backdrop-filter: blur(18px) saturate(150%);
     box-shadow: none;
     top: 16px;
     bottom: 16px;
