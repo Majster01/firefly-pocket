@@ -1,7 +1,7 @@
 <template>
   <div>
     <PageHeader title="Bank connections">
-      <button class="btn icon small" aria-label="Refresh" @click="reload"><Icon name="refresh" :size="18" /></button>
+      <RefreshButton @click="reload" />
       <RouterLink to="/bank-connections/new" class="btn small"><Icon name="plus" :size="18" /> Connect</RouterLink>
     </PageHeader>
 
@@ -90,6 +90,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import PageHeader from '../components/PageHeader.vue'
 import Icon from '../components/Icon.vue'
+import RefreshButton from '../components/RefreshButton.vue'
 import Sheet from '../components/Sheet.vue'
 import { del, get, post } from '../lib/api.js'
 import { accountById, load } from '../lib/data.js'

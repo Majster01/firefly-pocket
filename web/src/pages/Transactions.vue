@@ -1,7 +1,7 @@
 <template>
   <div>
     <PageHeader title="Transactions">
-      <button class="btn icon small" aria-label="Refresh" @click="reload"><Icon name="refresh" :size="18" /></button>
+      <RefreshButton @click="reload" />
     </PageHeader>
 
     <div class="toolbar">
@@ -48,6 +48,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import PageHeader from '../components/PageHeader.vue'
 import Icon from '../components/Icon.vue'
+import RefreshButton from '../components/RefreshButton.vue'
 import TransactionFeed from '../components/TransactionFeed.vue'
 import { get } from '../lib/api.js'
 import { flatten, load } from '../lib/data.js'
