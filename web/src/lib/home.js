@@ -49,7 +49,7 @@ export const TILES = {
   },
   // view: only offered in that period view (a calendar of days has no yearly form)
   calendar: { title: 'Calendar', icon: 'calendar', view: 'month', phone: ['full'], desktop: ['third', 'half', 'twothirds', 'full'] },
-  budgets: { title: 'Budgets', icon: 'pie', phone: ['full'], desktop: ['third', 'half', 'twothirds', 'full'], feature: 'budgets' },
+  budgets: { title: 'Budgets', icon: 'pie', view: 'month', phone: ['full'], desktop: ['third', 'half', 'twothirds', 'full'], feature: 'budgets' },
   recent: {
     title: 'Latest transactions',
     icon: 'list',
