@@ -55,3 +55,19 @@ router.afterEach((to, from, failure) => {
   if (from === START_LOCATION || from.path === to.path) return
   nextTick(() => document.querySelector('main h1, h1')?.focus({ preventScroll: true }))
 })
+
+// After an upgrade the open page still asks for the old build's files, which the server no longer has: the page's
+// chunk fails to load and the navigation silently goes nowhere (the tab bar looks dead). Load the page afresh at the
+// place that was asked for, which runs the new version. Once per minute at most, so a server that is really down
+// cannot make a reload loop.
+router.onError((error, to) => {
+  if (!/dynamically imported module|Importing a module script failed|Loading chunk|Unable to preload/i.test(String(error?.message ?? error))) return
+  try {
+    const last = Number(sessionStorage.getItem('chunk-reload') ?? 0)
+    if (Date.now() - last < 60000) return
+    sessionStorage.setItem('chunk-reload', String(Date.now()))
+  } catch {
+    // No sessionStorage: reload anyway, once, below
+  }
+  window.location.assign(to?.fullPath ?? '/')
+})
