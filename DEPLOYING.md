@@ -4,7 +4,7 @@
 
 ## What a merge does
 
-1. **Build** (`.github/workflows/deploy.yml`, about ten minutes): the `Dockerfile` builds `web/` and `server/` into one image, pushed to GHCR as `ghcr.io/majster01/firefly-pocket-next:sha-<commit>`.
+1. **Build** (`.github/workflows/deploy.yml`, about ten minutes): the `Dockerfile` builds `web/` and `server/` into one image, pushed to GHCR as `ghcr.io/majster01/firefly-pocket:sha-<commit>`.
 2. **Pin**: the workflow starts *Pin fork image* in [firefly-pocket-stack](https://github.com/Majster01/firefly-pocket-stack) with `component=next`, which writes that tag into `compose/docker-compose.yml` and commits `Bump Next to <commit>` to its `master`.
 3. **Deploy**: the server checks firefly-pocket-stack's `master` every two minutes, pulls the image, restarts only the `next` service and checks that `/` and `/api/test` answer (keep that route: it is the smoke test). A failed step arrives as a push (ntfy and this app); a deploy that changed the image says "Upgrade successful: Firefly Pocket" in the app.
 
@@ -17,7 +17,7 @@ A push that only changes `*.md` or `docs/` builds and deploys nothing.
 - On start it waits for the database, runs the migrations and caches the configuration. `APP_VERSION` (build argument) ends up in `/api/info`.
 - firefly-pocket-stack sets the rest in its compose file: `APP_KEY`, `APP_URL`, `FIREFLY_URL`, the database, the importer API, and the push settings.
 
-Build it locally with `docker build --build-arg APP_VERSION=dev -t firefly-pocket-next .`.
+Build it locally with `docker build --build-arg APP_VERSION=dev -t firefly-pocket .`.
 
 ## Rules
 

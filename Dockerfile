@@ -4,7 +4,7 @@
 # Migrations run on start. Built and deployed by .github/workflows/deploy.yml
 # (DEPLOYING.md).
 #
-#   docker build --build-arg APP_VERSION=dev -t firefly-pocket-next .
+#   docker build --build-arg APP_VERSION=dev -t firefly-pocket .
 
 FROM composer:2.8 AS composer_base
 
