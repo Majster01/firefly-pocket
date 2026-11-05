@@ -24,7 +24,7 @@ class RuleSuggestionTest extends TestCase
             'confidence' => 0.86,
             'low_confidence' => false,
             'basis' => 'description',
-            'company' => 'Hoodburger',
+            'company' => 'Burgerlab',
             'reason' => "Card purchase at a burger restaurant, it's lunch",
         ]), ENT_QUOTES);
 
@@ -33,16 +33,16 @@ class RuleSuggestionTest extends TestCase
             $this->makeRule(10, 3, 'Categorization', 'Category: Food & Drink', 2, [['type' => 'description_contains', 'value' => 'mcdonalds']]),
             $this->makeRule(13, 3, 'Categorization', 'Category: Shopping', 4, [['type' => 'description_contains', 'value' => 'decathlon']]),
             $this->makeRule(12, 3, 'Categorization', 'Category: Bills', 3, [['type' => 'description_contains', 'value' => 'a1 slovenija']]),
-            $this->makeRule(16, 4, 'Suggestions', 'Suggest: Food & Drink · Hoodburger', 1, [['type' => 'description_contains', 'value' => 'HOODBURGER']], "pico-suggestion:v1 $metadata"),
+            $this->makeRule(16, 4, 'Suggestions', 'Suggest: Food & Drink · Burgerlab', 1, [['type' => 'description_contains', 'value' => 'BURGERLAB']], "pico-suggestion:v1 $metadata"),
             $this->makeRule(19, 4, 'Suggestions', 'A manual rule', 2, [['type' => 'description_contains', 'value' => 'lidl']], 'Not a suggestion'),
             $this->makeRule(20, 4, 'Suggestions', 'Suggest: from the future', 3, [['type' => 'description_contains', 'value' => 'spar']], 'pico-suggestion:v1 {&quot;v&quot;: 2}'),
         ];
 
         $this->transactions = [
-            285 => [$this->makeSplit(285, 'HOODBURGER LJ-RUDNIK', null)],
+            285 => [$this->makeSplit(285, 'BURGERLAB LJ-CENTER', null)],
             // Split transaction: only journal 300 is covered by the suggestion
-            300 => [$this->makeSplit(300, 'Hoodburger and cinema', null), $this->makeSplit(301, 'Cinema', null)],
-            400 => [$this->makeSplit(400, 'HOODBURGER BTC', 'Dining')],
+            300 => [$this->makeSplit(300, 'Burgerlab and cinema', null), $this->makeSplit(301, 'Cinema', null)],
+            400 => [$this->makeSplit(400, 'BURGERLAB BTC', 'Dining')],
             500 => [$this->makeSplit(500, 'LIDL', null)],
         ];
 
@@ -178,10 +178,10 @@ class RuleSuggestionTest extends TestCase
         // The HTML-escaped description is decoded before parsing
         $this->assertEquals('Food & Drink', $response->json('data.0.attributes.category'));
         $this->assertEquals("Card purchase at a burger restaurant, it's lunch", $response->json('data.0.attributes.reason'));
-        $this->assertEquals([['type' => 'description_contains', 'value' => 'HOODBURGER']], $response->json('data.0.attributes.triggers'));
-        $this->assertEquals('HOODBURGER LJ-RUDNIK', $response->json('data.0.attributes.transactions.0.description'));
+        $this->assertEquals([['type' => 'description_contains', 'value' => 'BURGERLAB']], $response->json('data.0.attributes.triggers'));
+        $this->assertEquals('BURGERLAB LJ-CENTER', $response->json('data.0.attributes.transactions.0.description'));
         $this->assertEquals('19.40', $response->json('data.0.attributes.transactions.0.amount'));
-        $this->assertEquals('Hoodburger and cinema', $response->json('data.0.attributes.transactions.1.description'));
+        $this->assertEquals('Burgerlab and cinema', $response->json('data.0.attributes.transactions.1.description'));
     }
 
     public function test_get_one_hides_rules_that_are_not_suggestions()
@@ -194,7 +194,7 @@ class RuleSuggestionTest extends TestCase
 
     public function test_preview_counts_uncategorized_and_categorized_matches()
     {
-        $response = $this->postJson('api/rule-suggestions/preview', ['triggers' => [['type' => 'description_contains', 'value' => 'hoodburger']]], $this->headers());
+        $response = $this->postJson('api/rule-suggestions/preview', ['triggers' => [['type' => 'description_contains', 'value' => 'burgerlab']]], $this->headers());
 
         $response->assertOk();
         $this->assertEquals(['uncategorized_count' => 2, 'categorized_count' => 1], $response->json('data'));
@@ -203,8 +203,8 @@ class RuleSuggestionTest extends TestCase
     public function test_approve_merges_only_new_triggers_into_the_existing_rule()
     {
         $triggers = [
-            ['type' => 'description_contains', 'value' => 'HOODBURGER'],
-            ['type' => 'description_contains', 'value' => 'hoodburger '],
+            ['type' => 'description_contains', 'value' => 'BURGERLAB'],
+            ['type' => 'description_contains', 'value' => 'burgerlab '],
             ['type' => 'description_contains', 'value' => 'McDonalds'],
         ];
         $response = $this->postJson('api/rule-suggestions/16/approve', ['category' => 'Food & Drink', 'triggers' => $triggers], $this->headers());
@@ -214,14 +214,14 @@ class RuleSuggestionTest extends TestCase
 
         $updates = $this->recorded('PUT', 'rules/10');
         $this->assertCount(1, $updates);
-        $this->assertEquals([['mcdonalds', true], ['HOODBURGER', true]], array_map(fn($trigger) => [$trigger['value'], $trigger['stop_processing']], $updates[0]->data()['triggers']));
+        $this->assertEquals([['mcdonalds', true], ['BURGERLAB', true]], array_map(fn($trigger) => [$trigger['value'], $trigger['stop_processing']], $updates[0]->data()['triggers']));
         $this->assertCount(0, $this->recorded('POST', 'rules'));
         $this->assertCount(1, $this->recorded('DELETE', 'rules/16'));
     }
 
     public function test_approve_categorizes_only_uncategorized_transactions_and_never_runs_the_rule_group()
     {
-        $this->postJson('api/rule-suggestions/16/approve', ['category' => 'Food & Drink', 'triggers' => [['type' => 'description_contains', 'value' => 'hoodburger']]], $this->headers())->assertOk();
+        $this->postJson('api/rule-suggestions/16/approve', ['category' => 'Food & Drink', 'triggers' => [['type' => 'description_contains', 'value' => 'burgerlab']]], $this->headers())->assertOk();
 
         // 400 is already categorized ("Dining") and must stay as it is
         $this->assertEquals(['285' => 'Food & Drink', '300' => 'Food & Drink'], $this->categorizedJournals());
@@ -232,7 +232,7 @@ class RuleSuggestionTest extends TestCase
 
     public function test_approve_keeps_every_split_of_a_split_transaction()
     {
-        $this->postJson('api/rule-suggestions/16/approve', ['category' => 'Food & Drink', 'triggers' => [['type' => 'description_contains', 'value' => 'HOODBURGER']]], $this->headers())->assertOk();
+        $this->postJson('api/rule-suggestions/16/approve', ['category' => 'Food & Drink', 'triggers' => [['type' => 'description_contains', 'value' => 'BURGERLAB']]], $this->headers())->assertOk();
 
         $update = $this->recorded('PUT', 'transactions/300')->first();
         $this->assertEquals([
@@ -243,7 +243,7 @@ class RuleSuggestionTest extends TestCase
 
     public function test_approve_creates_a_missing_rule_above_the_generic_tail()
     {
-        $response = $this->postJson('api/rule-suggestions/16/approve', ['category' => 'Travel', 'triggers' => [['type' => 'description_contains', 'value' => 'HOODBURGER']]], $this->headers());
+        $response = $this->postJson('api/rule-suggestions/16/approve', ['category' => 'Travel', 'triggers' => [['type' => 'description_contains', 'value' => 'BURGERLAB']]], $this->headers());
 
         $response->assertOk();
         $this->assertEquals(['rule_id' => '50', 'is_rule_created' => true, 'triggers_added_count' => 1, 'transactions_count' => 2], $response->json('data'));
@@ -258,7 +258,7 @@ class RuleSuggestionTest extends TestCase
 
     public function test_approve_appends_a_missing_last_tail_rule_at_the_end()
     {
-        $this->postJson('api/rule-suggestions/16/approve', ['category' => 'Other', 'triggers' => [['type' => 'description_contains', 'value' => 'HOODBURGER']]], $this->headers())->assertOk();
+        $this->postJson('api/rule-suggestions/16/approve', ['category' => 'Other', 'triggers' => [['type' => 'description_contains', 'value' => 'BURGERLAB']]], $this->headers())->assertOk();
 
         $this->assertArrayNotHasKey('order', $this->recorded('POST', 'rules')->first()->data());
     }

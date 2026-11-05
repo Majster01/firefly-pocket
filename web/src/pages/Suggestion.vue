@@ -167,7 +167,7 @@ function listCategories() {
   category.value = item.value.attributes.category
 }
 
-// An account id and a text are not interchangeable: "hoodburger" as an account id would be a garbage condition
+// An account id and a text are not interchangeable: "burgerlab" as an account id would be a garbage condition
 function setType(trigger, type) {
   if (type === 'destination_account_id' || trigger.type === 'destination_account_id') trigger.value = ''
   trigger.type = type

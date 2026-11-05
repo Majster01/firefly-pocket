@@ -9,7 +9,7 @@ const MODEL = 'mock-suggester'
 // description_contains trigger, so it must be a substring of every description it covers (>= 4 characters).
 // person: a private person, so only description triggers are written
 const KNOWN = [
-  { keyword: 'HOODBURGER', category: 'Food & Drink', company: 'Hoodburger — burger restaurant, Ljubljana', reason: 'Card purchase at a burger chain', confidence: 0.91 },
+  { keyword: 'BURGERLAB', category: 'Food & Drink', company: 'Burgerlab — burger restaurant, Ljubljana', reason: 'Card purchase at a burger chain', confidence: 0.91 },
   { keyword: 'KAVARNA', category: 'Food & Drink', company: 'Kavarna Rog — café, Ljubljana', reason: 'Small card purchase at a café', confidence: 0.84 },
   { keyword: 'WOLT', category: 'Food & Drink', company: 'Wolt — food delivery', reason: 'Food delivery order', confidence: 0.88 },
   { keyword: 'BOLT', category: 'Transport', company: 'Bolt — ride hailing', reason: 'Ride hailing trip', confidence: 0.86 },
