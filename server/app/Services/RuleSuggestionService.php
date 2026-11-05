@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Http;
  */
 class RuleSuggestionService
 {
-    const MARKER = 'pico-suggestion:v1 ';
+    const MARKER = 'firefly-pocket-suggestion:v1 ';
     const TRIGGER_TYPES = ['description_contains', 'destination_account_contains', 'destination_account_is', 'destination_account_id'];
     // Catch-all category rules, in this order, that stay at the end of the Categorization group
     const GENERIC_TAIL_CATEGORIES = ['Bills', 'Shopping', 'Other'];

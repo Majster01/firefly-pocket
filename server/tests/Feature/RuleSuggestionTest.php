@@ -33,9 +33,9 @@ class RuleSuggestionTest extends TestCase
             $this->makeRule(10, 3, 'Categorization', 'Category: Food & Drink', 2, [['type' => 'description_contains', 'value' => 'mcdonalds']]),
             $this->makeRule(13, 3, 'Categorization', 'Category: Shopping', 4, [['type' => 'description_contains', 'value' => 'decathlon']]),
             $this->makeRule(12, 3, 'Categorization', 'Category: Bills', 3, [['type' => 'description_contains', 'value' => 'a1 slovenija']]),
-            $this->makeRule(16, 4, 'Suggestions', 'Suggest: Food & Drink · Burgerlab', 1, [['type' => 'description_contains', 'value' => 'BURGERLAB']], "pico-suggestion:v1 $metadata"),
+            $this->makeRule(16, 4, 'Suggestions', 'Suggest: Food & Drink · Burgerlab', 1, [['type' => 'description_contains', 'value' => 'BURGERLAB']], "firefly-pocket-suggestion:v1 $metadata"),
             $this->makeRule(19, 4, 'Suggestions', 'A manual rule', 2, [['type' => 'description_contains', 'value' => 'lidl']], 'Not a suggestion'),
-            $this->makeRule(20, 4, 'Suggestions', 'Suggest: from the future', 3, [['type' => 'description_contains', 'value' => 'spar']], 'pico-suggestion:v1 {&quot;v&quot;: 2}'),
+            $this->makeRule(20, 4, 'Suggestions', 'Suggest: from the future', 3, [['type' => 'description_contains', 'value' => 'spar']], 'firefly-pocket-suggestion:v1 {&quot;v&quot;: 2}'),
         ];
 
         $this->transactions = [
