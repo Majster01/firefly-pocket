@@ -8,7 +8,7 @@ A redesign of [Firefly Pocket](https://github.com/Majster01/firefly-pocket) (a F
 - `server/`: Pocket's Laravel API, carried over from firefly-pocket `back/` (Firefly proxy, transaction templates, bank connections, rule suggestions, EUR/VWCE exchange rates, Web Push, system status)
 - `dev/`: a throwaway local stack with dummy data only: Firefly III 6.6.6, Postgres, and a mock FireflyX importer + category suggester
 
-**`main` is production**: every merge is built (`Dockerfile`) and deployed to FireflyX at https://next.bankparse.dev. See [DEPLOYING.md](DEPLOYING.md).
+**`main` is production**: every merge is built (`Dockerfile`) and deployed to firefly-pocket-stack at https://next.bankparse.dev. See [DEPLOYING.md](DEPLOYING.md).
 
 ## What's in the app
 
@@ -19,7 +19,7 @@ A redesign of [Firefly Pocket](https://github.com/Majster01/firefly-pocket) (a F
 | Accounts | Cash & bank, investments (VWCE), liabilities, payees and payers; per-account feed; create/edit |
 | Budgets, Categories, Tags, Piggy banks, Recurring, Templates | Browse and edit; budgets per month with limits, piggy bank add/take out, recurring pause/resume |
 | Exchange rates | VWCE price and holding, price history stored in Firefly, a converter, rates of your currencies (EUR base) |
-| Suggestions | Review `pico-suggestion:v1` rules: edit category and conditions with a live match count, approve as rule, set category only, or reject ([contract](https://github.com/Majster01/firefly-pocket/blob/main/docs/rule-suggestions.md)) |
+| Suggestions | Review `pico-suggestion:v1` rules: edit category and conditions with a live match count, approve as rule, set category only, or reject ([contract](https://github.com/Majster01/firefly-pocket-archive/blob/main/docs/rule-suggestions.md)) |
 | Rules | Firefly III's own rules, by group: turn on and off, reorder, edit conditions (any or all, "not") and actions, find the transactions its conditions match in a date range, also before they are saved, and run a saved rule on that range. The suggester's Suggestions group stays out of sight (`RULE_GROUP_SUGGESTIONS`) |
 | Bank connections | Connect a bank (consent at the bank), map its accounts, import a date range now, renew or remove consents |
 | System status | Nightly imports, missed nights, connections, bank activity, the suggester's runs and outcomes |
