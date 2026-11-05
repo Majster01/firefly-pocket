@@ -57,7 +57,7 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
     'firefly_url' => env('FIREFLY_URL', ''),
-    // Firefly rule groups (looked up by title) used by rule suggestions, see docs/rule-suggestions.md
+    // Firefly rule groups (looked up by title) used by rule suggestions, see firefly-pocket-stack's docs/rule-suggestions.md
     'rule_group_suggestions' => env('RULE_GROUP_SUGGESTIONS', 'Suggestions'),
     'rule_group_categorization' => env('RULE_GROUP_CATEGORIZATION', 'Categorization'),
     // Bank connections are managed by the FireflyX importer fork; Pico's backend calls its internal API

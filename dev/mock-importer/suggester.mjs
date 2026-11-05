@@ -1,5 +1,5 @@
 // A mock of the FireflyX category suggester: no LLM, a fixed table of counterparties instead.
-// It writes inactive rules in the "Suggestions" group exactly as docs/rule-suggestions.md (pico-suggestion:v1) describes.
+// It writes inactive rules in the "Suggestions" group exactly as firefly-pocket-stack's docs/rule-suggestions.md (pico-suggestion:v1) describes.
 
 export const MARKER = 'pico-suggestion:v1 '
 export const MIN_CONFIDENCE = 0.6

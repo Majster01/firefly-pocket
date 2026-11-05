@@ -13,7 +13,8 @@ use Illuminate\Support\Facades\Http;
 
 /**
  * AI category suggestions, stored by the category-suggester as inactive Firefly rules.
- * The contract between the two is docs/rule-suggestions.md.
+ * The contract between the two is docs/rule-suggestions.md in firefly-pocket-stack:
+ * https://github.com/Majster01/firefly-pocket-stack/blob/master/docs/rule-suggestions.md
  */
 class RuleSuggestionService
 {
