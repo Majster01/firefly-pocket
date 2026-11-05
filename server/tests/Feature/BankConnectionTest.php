@@ -98,6 +98,30 @@ class BankConnectionTest extends TestCase
         $this->assertSame(['date_from' => '2026-09-01', 'date_to' => '2026-09-30'], $this->importerRequests()->first()->data());
     }
 
+    public function test_an_import_passes_on_who_asked_so_the_bank_sees_a_person_not_background_access()
+    {
+        // Caddy is the peer; it puts the client last into X-Forwarded-For (anything a client sent before it stays in front).
+        $this->postJson('api/bank-connections/nlb/import', ['date_from' => '2026-09-01', 'date_to' => '2026-09-30'], $this->headers() + [
+            'X-Forwarded-For' => '198.51.100.99, 203.0.113.7',
+            'User-Agent' => 'Mozilla/5.0 (iPhone)',
+        ])->assertOk();
+
+        $this->assertSame(
+            ['date_from' => '2026-09-01', 'date_to' => '2026-09-30', 'psu' => ['ip_address' => '203.0.113.7', 'user_agent' => 'Mozilla/5.0 (iPhone)']],
+            $this->importerRequests()->first()->data()
+        );
+    }
+
+    public function test_an_address_that_is_not_public_is_left_out()
+    {
+        $this->postJson('api/bank-connections/nlb/import', ['date_from' => '2026-09-01', 'date_to' => '2026-09-30'], $this->headers() + [
+            'X-Forwarded-For' => '172.18.0.4',
+            'User-Agent' => 'Mozilla/5.0 (iPhone)',
+        ])->assertOk();
+
+        $this->assertSame(['user_agent' => 'Mozilla/5.0 (iPhone)'], $this->importerRequests()->first()->data()['psu']);
+    }
+
     public function test_an_import_the_importer_refuses_says_why()
     {
         $this->postJson('api/bank-connections/busy/import', ['date_from' => '2026-09-01', 'date_to' => '2026-09-30'], $this->headers())

@@ -58,10 +58,15 @@ class BankConnectionService
     /**
      * Imports the connection over a time frame now, with the settings of its saved configuration, and then runs the category suggester over the same time frame.
      * The importer answers at once; the progress is the connection's manual_import.
+     * $psu is the person's ip_address and user_agent when known: the importer sends them to the bank as PSU-* headers, so the run counts as attended and is not rate limited like the nightly one.
      */
-    public function startImport($name, $dateFrom, $dateTo)
+    public function startImport($name, $dateFrom, $dateTo, $psu = [])
     {
-        return $this->importer('post', "connections/$name/imports", ['date_from' => $dateFrom, 'date_to' => $dateTo], BaseController::HTTP_CODE_UPDATE)['data'];
+        $data = ['date_from' => $dateFrom, 'date_to' => $dateTo];
+        if ($psu) {
+            $data['psu'] = $psu;
+        }
+        return $this->importer('post', "connections/$name/imports", $data, BaseController::HTTP_CODE_UPDATE)['data'];
     }
 
     public function delete($name)

@@ -49,7 +49,21 @@ class BankConnectionController extends BaseController
     public function import(Request $request)
     {
         BaseAuthorization::checkUser();
-        return $this->respond(['data' => app(BankConnectionService::class)->startImport($request->name, $request->date_from, $request->date_to)]);
+        return $this->respond(['data' => app(BankConnectionService::class)->startImport($request->name, $request->date_from, $request->date_to, $this->psu($request))]);
+    }
+
+    /**
+     * Who is tapping "Import": their public IP and browser, which the importer hands to the bank as PSU-* headers.
+     * A request made by a person is attended, so the bank does not count it against its small daily quota for background access.
+     * Behind Caddy the peer is a container, so the address is the one Caddy put last into X-Forwarded-For; it is only ever used for this user's own import.
+     */
+    private function psu(Request $request): array
+    {
+        $candidates = array_reverse(array_map('trim', explode(',', (string) $request->header('X-Forwarded-For'))));
+        $candidates[] = (string) $request->ip();
+        $ip = collect($candidates)->first(fn($candidate) => filter_var($candidate, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false);
+
+        return array_filter(['ip_address' => $ip, 'user_agent' => $request->userAgent()]);
     }
 
     public function delete(Request $request)
