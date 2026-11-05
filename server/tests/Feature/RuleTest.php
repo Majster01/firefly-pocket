@@ -27,7 +27,7 @@ class RuleTest extends TestCase
         ];
         $this->rules = [
             '10' => $this->makeRule(10, '3', 'Categorization', 'Category: Groceries'),
-            '16' => $this->makeRule(16, '4', 'Suggestions', 'Suggest: Food & Drink · Hoodburger'),
+            '16' => $this->makeRule(16, '4', 'Suggestions', 'Suggest: Food & Drink · Burgerlab'),
             '21' => $this->makeRule(21, '5', 'Tags & notes', 'Tag trips'),
         ];
 

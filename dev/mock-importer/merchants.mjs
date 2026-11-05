@@ -2,7 +2,7 @@
 // category null = the bank feed brings it without one; the Categorization rules or the suggester pick it up.
 
 export const GROCERIES = [
-  { description: 'MERCATOR HM RUDNIK LJUBLJANA', destination: 'Mercator', min: 18, max: 92 },
+  { description: 'MERCATOR HM CENTER LJUBLJANA', destination: 'Mercator', min: 18, max: 92 },
   { description: 'SPAR SLOVENIJA 0412 LJUBLJANA', destination: 'Spar', min: 12, max: 70 },
   { description: 'LIDL SLOVENIJA TRZASKA', destination: 'Lidl', min: 15, max: 65 },
   { description: 'HOFER TRGOVINA 112', destination: 'Hofer', min: 10, max: 55 },
@@ -10,7 +10,7 @@ export const GROCERIES = [
 
 export const EATING_OUT = [
   { description: 'GOSTILNA SESTICA LJUBLJANA', destination: 'Gostilna Šestica', min: 18, max: 46 },
-  { description: 'HOODBURGER RUDNIK LJUBLJANA', destination: 'Hoodburger', min: 11, max: 24 },
+  { description: 'BURGERLAB CENTER LJUBLJANA', destination: 'Burgerlab', min: 11, max: 24 },
   { description: 'KAVARNA ROG LJUBLJANA', destination: 'Kavarna Rog', min: 3.2, max: 9.8 },
   { description: 'WOLT.COM ORDER', destination: 'Wolt', min: 14, max: 32 },
 ]
