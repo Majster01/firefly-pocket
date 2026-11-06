@@ -17,7 +17,12 @@ async function hiddenShell(options) {
   headers.delete('content-length')
   return new Response(html, { status: response.status, statusText: response.statusText, headers })
 }
-registerRoute(new NavigationRoute(hiddenShell, { denylist: [/^\/api\//] }))
+// Every navigation gets the shell, except the paths that are not the app's: its API, and two that Caddy routes elsewhere
+// on the app's host (firefly-pocket-stack, Hostnames and routing). The bank sends the browser back to /eb-callback for
+// the importer, and /legal/* are Caddy's static pages. With the app installed, the shell would answer both, and a bank
+// link would never finish. Workbox matches these against the path and the query.
+const notTheApp = [/^\/api\//, /^\/eb-callback(?:[/?]|$)/, /^\/legal(?:[/?]|$)/]
+registerRoute(new NavigationRoute(hiddenShell, { denylist: notTheApp }))
 
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (event) => event.waitUntil(clients.claim()))
