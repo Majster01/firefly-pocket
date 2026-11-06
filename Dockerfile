@@ -9,8 +9,10 @@
 FROM composer:2.8 AS composer_base
 
 #-----------------------------------------------------------------
-# The web app: a static build, so node stays out of the final image
-FROM node:22-alpine AS web
+# The web app: a static build, so node stays out of the final image. The
+# files are the same for every platform, so it is built once, on the build
+# machine's own (no emulation for the arm64 image).
+FROM --platform=$BUILDPLATFORM node:22-alpine AS web
 
 WORKDIR /web
 COPY web/package.json web/package-lock.json ./
