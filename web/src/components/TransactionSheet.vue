@@ -43,7 +43,18 @@
       <label class="amount-field" :class="form.type">
         <span class="sr-only">Amount</span>
         <span class="amount-sign">{{ form.type === 'withdrawal' ? '−' : form.type === 'deposit' ? '+' : '' }}</span>
-        <input ref="amountInput" v-model="form.amount" :style="{ width: `${Math.max(4, form.amount.length + 1) * 0.65}em` }" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Amount" @keydown.enter="save" />
+        <input
+          ref="amountInput"
+          :value="shownAmount"
+          :readonly="splitOff.open"
+          :style="{ width: `${Math.max(4, shownAmount.length + 1) * 0.65}em` }"
+          inputmode="decimal"
+          autocomplete="off"
+          placeholder="0.00"
+          :aria-label="splitOff.open ? 'Amount left on this split' : 'Amount'"
+          @input="form.amount = $event.target.value"
+          @keydown.enter="save"
+        />
         <span class="amount-code">{{ sourceCurrency }}</span>
       </label>
 
@@ -75,6 +86,7 @@
       </label>
 
       <p v-if="blocker && form.amount" class="small muted blocker" role="status">{{ blocker }}</p>
+      <p v-else-if="totalWarning" class="small blocker total-warning" role="status">{{ totalWarning }}</p>
 
       <div class="field-row">
         <label class="field">
@@ -113,7 +125,31 @@
         <textarea v-model="form.notes" rows="2" />
       </label>
 
-      <p v-if="isSplit" class="small muted">This is one split of {{ composer.split.split_count }}. The others stay as they are.</p>
+      <p v-if="isSplit && !splitOff.open" class="small muted">This is one split of {{ composer.split.split_count }}. The others stay as they are.</p>
+
+      <button v-if="canSplitOff && !splitOff.open" class="btn block" :disabled="saving" @click="openSplitOff"><Icon name="plus" :size="18" /> Split off an amount</button>
+      <div v-if="canSplitOff && splitOff.open" class="card split-off">
+        <div class="field-row">
+          <label class="field">
+            <span>Amount to split off</span>
+            <input v-model="splitOff.amount" inputmode="decimal" autocomplete="off" placeholder="0.00" />
+          </label>
+          <label class="field">
+            <span>Category</span>
+            <select v-model="splitOff.category_name">
+              <option value="">None</option>
+              <option v-for="category in store.categories" :key="category.id" :value="category.attributes.name">{{ category.attributes.name }}</option>
+            </select>
+          </label>
+        </div>
+        <label class="field">
+          <span>Description</span>
+          <SuggestInput v-model="splitOff.description" :options="counterpartyNames" placeholder="What was it?" />
+        </label>
+        <p v-if="splitBlocker && splitOff.amount" class="small muted" role="status">{{ splitBlocker }}</p>
+        <p v-else-if="splitPlan?.ok" class="small muted num blurable" role="status">{{ splitPreview }}</p>
+        <button class="btn small" @click="closeSplitOff">Cancel split</button>
+      </div>
 
       <button v-if="isEdit" class="btn block danger delete" :disabled="saving" @click="remove"><Icon name="trash" :size="18" /> {{ isSplit ? 'Delete this split' : 'Delete transaction' }}</button>
     </template>
@@ -131,7 +167,8 @@ import { accountById, accountsOfType, assetAccounts, invalidate, isBookkeeping, 
 import { del, get, post, put } from '../lib/api.js'
 import { isoDate, money, parseAmount, shortDate } from '../lib/format.js'
 import { settings } from '../lib/settings.js'
-import { toast } from '../lib/toast.js'
+import { toast, toastError } from '../lib/toast.js'
+import { groupPayload, newSplitFrom, planSplitOff, splitOf, totalChange } from '../lib/splits.js'
 
 const TYPES = [
   { value: 'withdrawal', label: 'Expense' },
@@ -155,7 +192,10 @@ const blank = () => ({
   notes: '',
 })
 
+const blankSplitOff = () => ({ open: false, amount: '', description: '', category_name: '' })
+
 const form = reactive(blank())
+const splitOff = reactive(blankSplitOff())
 const saving = ref(false)
 const templates = ref([])
 const amountInput = ref(null)
@@ -193,8 +233,9 @@ const sourceCurrency = computed(() => accountById(form.type === 'deposit' ? form
 const destinationCurrency = computed(() => (form.type === 'transfer' ? accountById(form.destination_id)?.attributes.currency_code : sourceCurrency.value) ?? 'EUR')
 const needsForeign = computed(() => form.type === 'transfer' && sourceCurrency.value !== destinationCurrency.value)
 // VWCE is counted in shares to 4 places: "1.8169" is a share and a bit, not 18,169
-const amountValue = computed(() => parseAmount(form.amount, { maxDecimals: sourceCurrency.value === 'VWCE' ? 4 : 2 }))
-const foreignValue = computed(() => parseAmount(form.foreign_amount, { maxDecimals: destinationCurrency.value === 'VWCE' ? 4 : 2 }))
+const decimalsFor = (code) => (code === 'VWCE' ? 4 : 2)
+const amountValue = computed(() => parseAmount(form.amount, { maxDecimals: decimalsFor(sourceCurrency.value) }))
+const foreignValue = computed(() => parseAmount(form.foreign_amount, { maxDecimals: decimalsFor(destinationCurrency.value) }))
 const foreignHint = computed(() => {
   const price = vwcePrice()
   const amount = amountValue.value
@@ -218,7 +259,38 @@ const blocker = computed(() => {
   if (needsForeign.value && !(foreignValue.value > 0)) return `Enter the amount in ${destinationCurrency.value}`
   return ''
 })
-const canSave = computed(() => !blocker.value)
+// Splitting off: the amount is taken from this split, so the transaction's total stays what it was. Foreign transfers
+// are left out: dividing their other amount needs a rate
+const canSplitOff = computed(() => isEdit.value && !readOnly.value && !needsForeign.value)
+const splitPlan = computed(() => (splitOff.open ? planSplitOff({ amount: amountValue.value, splitAmount: parseAmount(splitOff.amount, { maxDecimals: decimalsFor(sourceCurrency.value) }), decimals: decimalsFor(sourceCurrency.value) }) : null))
+const splitBlocker = computed(() => {
+  if (!splitOff.open) return ''
+  if (!splitPlan.value.ok) return splitPlan.value.reason
+  return splitOff.description.trim() ? '' : 'Add a description to the new split'
+})
+// Read-only while splitting, so the deduction cannot be typed over into a total that no longer adds up
+const shownAmount = computed(() => (splitPlan.value?.ok ? splitPlan.value.remaining.toFixed(decimalsFor(sourceCurrency.value)) : form.amount))
+const splitPreview = computed(() => {
+  const code = sourceCurrency.value
+  return `This split ${money(amountValue.value, code)} → ${money(splitPlan.value.remaining, code)}; new split ${money(splitPlan.value.splitOff, code)}`
+})
+
+// Only a transaction of several splits: for a single one, changing the amount is the edit
+const totalWarning = computed(() => {
+  if (!isSplit.value || splitOff.open || !(amountValue.value > 0) || sourceCurrency.value !== composer.split.currency_code) return ''
+  const change = totalChange({ original: composer.split.amount, edited: amountValue.value, decimals: decimalsFor(sourceCurrency.value) })
+  return change ? `This changes the total of the whole transaction by ${money(change, sourceCurrency.value, { signed: true })}` : ''
+})
+
+const canSave = computed(() => !blocker.value && !splitBlocker.value)
+
+// A transfer switched to another currency takes the panel away: what was typed in it goes too
+watch(canSplitOff, (allowed) => {
+  if (!allowed) closeSplitOff()
+})
+
+const openSplitOff = () => Object.assign(splitOff, { open: true, amount: '', description: form.description, category_name: form.category_name })
+const closeSplitOff = () => Object.assign(splitOff, blankSplitOff())
 
 // Switching type moves the own account and the payee/payer to the fields the new type shows
 function setType(type) {
@@ -250,6 +322,7 @@ watch(
     if (!open) return
     // Reset before anything awaits, so nothing typed while the lists load is thrown away
     Object.assign(form, blank())
+    closeSplitOff()
     if (composer.split) fill(composer.split)
     else if (composer.preset) Object.assign(form, composer.preset)
     await loadAll('accounts', 'categories', 'budgets', 'tags')
@@ -303,7 +376,7 @@ function applyTemplate(template) {
 function toSplit() {
   const split = {
     type: form.type,
-    amount: amountValue.value.toFixed(4),
+    amount: (splitPlan.value?.ok ? splitPlan.value.remaining : amountValue.value).toFixed(4),
     description: form.description.trim(),
     date: `${form.date}T12:00:00`,
     category_name: form.category_name || null,
@@ -333,15 +406,19 @@ async function save() {
     const split = toSplit()
     if (isEdit.value) {
       const current = composer.split
-      // Firefly drops the splits an update leaves out: send the others by id
-      const group = (await get(`transactions/${current.group_id}`)).data
-      const transactions = group.attributes.transactions.map((other) =>
-        String(other.transaction_journal_id) === String(current.transaction_journal_id) ? { transaction_journal_id: other.transaction_journal_id, ...split } : { transaction_journal_id: other.transaction_journal_id },
-      )
-      // Firefly refuses a group of several splits without a title
-      const title = transactions.length > 1 ? { group_title: group.attributes.group_title || split.description } : {}
-      await put(`transactions/${current.group_id}`, { apply_rules: false, ...title, transactions })
-      toast('Saved')
+      // Fresh: the update replaces the whole group, so a split changed elsewhere since it was kept must not be overwritten
+      const group = (await get(`transactions/${current.group_id}`, undefined, { fresh: true })).data
+      const splits = group.attributes.transactions
+      const journalId = current.transaction_journal_id
+      const adding = splitPlan.value?.ok
+      const original = splitOf({ splits, journalId })
+      if (adding && !original) {
+        toastError('This transaction was changed elsewhere. Close it and open it again.')
+        return
+      }
+      const newSplit = adding ? newSplitFrom({ edited: split, externalId: original.external_id, amount: splitPlan.value.splitOff, description: splitOff.description.trim(), categoryName: splitOff.category_name }) : null
+      await put(`transactions/${current.group_id}`, groupPayload({ splits, groupTitle: group.attributes.group_title, journalId, edited: split, newSplit }))
+      toast(adding ? 'Split added' : 'Saved')
     } else {
       await post('transactions', { error_if_duplicate_hash: false, apply_rules: true, transactions: [split] })
       toast('Transaction added')
@@ -431,6 +508,13 @@ async function remove() {
 }
 .blocker {
   margin: -4px 2px 12px;
+}
+.total-warning {
+  color: var(--warn);
+}
+.split-off {
+  margin-bottom: 8px;
+  padding: 12px;
 }
 .readonly-amount {
   padding: 14px 0 18px;
