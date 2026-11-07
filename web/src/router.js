@@ -32,6 +32,7 @@ const routes = [
   { path: '/settings', name: 'settings', component: page('Settings'), meta: { title: 'Settings' } },
   { path: '/more', name: 'more', component: page('More'), meta: { title: 'More' } },
   { path: '/setup', name: 'setup', component: page('Setup'), meta: { bare: true, title: 'Set up' } },
+  { path: '/oauth/callback', name: 'oauth-callback', component: page('OAuthCallback'), meta: { bare: true, title: 'Signing in' } },
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
 
@@ -42,7 +43,7 @@ export const router = createRouter({
 })
 
 router.beforeEach((to) => {
-  if (!settings.token && to.name !== 'setup') return { name: 'setup', query: to.fullPath !== '/' ? { next: to.fullPath } : {} }
+  if (!settings.token && to.name !== 'setup' && to.name !== 'oauth-callback') return { name: 'setup', query: to.fullPath !== '/' ? { next: to.fullPath } : {} }
   // A switched-off section stays closed to bookmarks and old links too
   if (to.meta.feature && !settings.features[to.meta.feature]) return '/'
 })

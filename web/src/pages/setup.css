@@ -1,0 +1,37 @@
+/* The setup page's card, shared with the sign-in callback (OAuthCallback.vue), which can be the first page loaded */
+.setup {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: calc(var(--safe-top) + 24px) 16px calc(var(--safe-bottom) + 24px);
+}
+.setup-card {
+  width: 100%;
+  max-width: 440px;
+  padding: 28px 22px;
+  text-align: center;
+}
+.setup-card .field {
+  text-align: left;
+}
+.setup-logo {
+  border-radius: 18px;
+  box-shadow: var(--card-shadow);
+}
+.setup-card h1 {
+  margin: 12px 0 6px;
+  font-size: 26px;
+}
+.setup-card .banner {
+  text-align: left;
+  margin-bottom: 12px;
+}
+.setup-cancel {
+  color: var(--accent);
+  font-weight: 600;
+}
+.setup-card textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace !important;
+  font-size: 16px !important;
+  word-break: break-all;
+}

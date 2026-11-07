@@ -25,6 +25,17 @@ A redesign of [Firefly Pocket](https://github.com/Majster01/firefly-pocket) (a F
 | System status | Nightly imports, missed nights, connections, bank activity, the suggester's runs and outcomes |
 | Settings | Theme, hide amounts (everywhere in the app), feature switches, **Require passkey** (Face ID or Touch ID to open the app on this device, and again after 1 minute to 4 hours without a touch; locked, the app shows as usual with amounts hidden and an Unlock bar over the navigation bar; [docs/app-lock.md](docs/app-lock.md)), push notifications (per device: import results, problems, the suggestions digest daily or weekly, upgrades; [docs/web-push.md](docs/web-push.md)), the Firefly token |
 
+### Signing in
+
+Pocket has no accounts of its own: it uses a Firefly III token, kept on the device. Where the server offers it, **Sign in with Firefly III** on the setup page gets one without copying anything (firefly-pocket-stack, Setup UI step 11):
+
+- The stack registers a public OAuth client for Pocket inside Firefly III and passes `FIREFLY_CLIENT_ID` and `FIREFLY_PUBLIC_URL` (Firefly III's address in the browser). Without both, the page asks for a pasted Personal Access Token, as before.
+- The browser goes to Firefly III's own login with an authorization code request and a PKCE challenge, and comes back to `/oauth/callback` (`web/src/lib/signin.js`). Firefly III asks for the password, its two-factor code once that is on, and the first time whether to let Firefly Pocket in.
+- Pocket's server swaps the code and the browser's verifier for the token at Firefly III's `/oauth/token` on the internal network (`server/app/Http/Controllers/SignInController.php`), since Firefly III answers that only to its own origin. It keeps nothing.
+- The token lasts a year, as a Personal Access Token does, and shows in Firefly III under Options → Profile → OAuth → Authorized applications, where it is revoked. When it stops working, the app asks to sign in again.
+
+A pasted token still works, and is still the way where the server offers no sign-in.
+
 ### iPhone
 
 Open the app in Safari and use Share → Add to Home Screen. The layout pads for the notch and home indicator (`viewport-fit=cover`, safe-area insets), inputs are 16px so Safari never zooms, sheets slide up from the bottom, and Web Push works from the Home Screen app (iOS 16.4+). From 900px wide the tab bar becomes a floating sidebar and sheets become centered dialogs.
