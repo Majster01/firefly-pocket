@@ -15,7 +15,7 @@ A redesign of [Firefly Pocket](https://github.com/Majster01/firefly-pocket) (a F
 | Section | What it does |
 | --- | --- |
 | Home | A month or a year (switch and step back in time), built from tiles you show, hide, reorder (arrows), resize and set up: net worth, in · out · surplus with the period before, spending by category as bars or a donut (tap a category for its transactions in that period), spending or income over time, budgets, latest transactions, accounts, uncategorized, piggy banks, and the suggestion and bank connection notices. Phone and desktop keep separate layouts, saved in Pocket's profile so they follow you to another browser |
-| Transactions | Day-grouped feed, Firefly search syntax, filters (expenses, income, transfers, uncategorized), totals of a search; add/edit/delete in a sheet with templates, categories, budgets, tags; EUR → VWCE transfers ask for the shares |
+| Transactions | Day-grouped feed, Firefly search syntax, filters (expenses, income, transfers, uncategorized), totals of a search; add/edit/delete in a sheet with templates, categories, budgets, tags; EUR → VWCE transfers ask for the shares; **Split off an amount** in the edit sheet adds a split to the same Firefly transaction and takes the amount from the one you edit, so the total stays; each split is its own row, marked "Split 1/2" ([details](#splitting-a-transaction)) |
 | Accounts | Cash & bank, investments (VWCE), liabilities, payees and payers; per-account feed; create/edit |
 | Budgets, Categories, Tags, Piggy banks, Recurring, Templates | Browse and edit; budgets per month with limits, piggy bank add/take out, recurring pause/resume |
 | Exchange rates | VWCE price and holding, price history stored in Firefly, a converter, rates of your currencies (EUR base) |
@@ -35,6 +35,12 @@ Pocket has no accounts of its own: it uses a Firefly III token, kept on the devi
 - The token lasts a year, as a Personal Access Token does, and shows in Firefly III under Options → Profile → OAuth → Authorized applications, where it is revoked. When it stops working, the app asks to sign in again.
 
 A pasted token still works, and is still the way where the server offers no sign-in.
+
+### Splitting a transaction
+
+Open a transaction, tap **Split off an amount**, and give the amount, description and category of the new split. Pocket sends one update to Firefly III: the split you edit gets the amount minus the new one, the others are untouched, the new split is added to the same transaction (same type, accounts, payee, date and budget; no tags or notes). The total of the transaction never changes by splitting. Editing the amount of one split of a transaction with several shows how much that changes the total (the save is still allowed). Transfers with a foreign amount (EUR → VWCE), opening balances and reconciliations cannot be split.
+
+**The importer.** The new split gets the same external ID as the one it was split from, so every split of the transaction carries the bank's ID. The importer (FireflyX, `duplicate_detection_method: cell` on `external-id`) searches Firefly III for that ID, deleted transactions included, and skips the bank row if it finds any transaction with it, so a re-import neither adds the row again nor touches the splits. No server or importer change is needed.
 
 ### iPhone
 

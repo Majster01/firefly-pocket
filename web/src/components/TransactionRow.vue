@@ -10,6 +10,7 @@
           <span v-if="split.category_name" class="chip good uncat cat-tag" :title="split.category_name">{{ split.category_name }}</span>
           <span v-else class="chip warn uncat">Uncategorized</span>
         </template>
+        <span v-if="split.split_count > 1" class="chip uncat" :title="`One of ${split.split_count} splits of the same transaction`">Split {{ split.split_index + 1 }}/{{ split.split_count }}</span>
       </span>
     </span>
     <span class="item-end">
