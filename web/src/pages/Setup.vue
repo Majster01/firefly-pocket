@@ -3,13 +3,21 @@
     <form class="card setup-card" @submit.prevent="connect">
       <img src="/favicon.svg" alt="" width="64" height="64" class="setup-logo" />
       <h1>Firefly Pocket</h1>
-      <p class="muted">Paste a Personal Access Token from Firefly III (Options → Profile → OAuth → Personal access tokens). It stays on this device.</p>
-      <div v-if="route.query.reason === 'unauthorized'" class="banner warn"><Icon name="alert" :size="18" /> The saved token was refused. Paste a new one.</div>
+      <div v-if="route.query.reason === 'unauthorized'" class="banner warn"><Icon name="alert" :size="18" /> The saved token was refused. {{ offer ? 'Sign in again, or paste a new one.' : 'Paste a new one.' }}</div>
+      <template v-if="offer">
+        <button type="button" class="btn primary block" :disabled="signingIn" @click="signIn">
+          <span v-if="signingIn" class="spinner" />
+          <span v-else>Sign in with Firefly III</span>
+        </button>
+        <p class="small muted">Firefly III asks for your password, its two-factor code if you turned that on, and the first time whether to let Firefly Pocket in.</p>
+        <p class="small muted setup-or">Or paste a Personal Access Token from Firefly III (Options → Profile → OAuth → Personal access tokens). Either stays on this device.</p>
+      </template>
+      <p v-else class="muted">Paste a Personal Access Token from Firefly III (Options → Profile → OAuth → Personal access tokens). It stays on this device.</p>
       <label class="field">
         <span>Personal access token</span>
         <textarea v-model.trim="token" rows="4" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="eyJ0eXAiOiJKV1QiLCJhbGciOi…" />
       </label>
-      <button class="btn primary block" :disabled="!token || checking">
+      <button class="btn block" :class="{ primary: !offer }" :disabled="!token || checking">
         <span v-if="checking" class="spinner" />
         <span v-else>Connect</span>
       </button>
@@ -22,12 +30,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Icon from '../components/Icon.vue'
 import { get } from '../lib/api.js'
 import { settings } from '../lib/settings.js'
 import { store } from '../lib/data.js'
+import { signInOffer, startSignIn } from '../lib/signin.js'
+import './setup.css'
 
 const route = useRoute()
 const router = useRouter()
@@ -38,6 +48,21 @@ const isDev = import.meta.env.DEV
 
 const next = typeof route.query.next === 'string' && route.query.next.startsWith('/') && !route.query.next.startsWith('//') ? route.query.next : ''
 const REFUSED = 'Firefly refused this token.'
+// Sign in with Firefly III, where the server offers it (lib/signin.js)
+const offer = ref(null)
+const signingIn = ref(false)
+onMounted(async () => (offer.value = await signInOffer()))
+
+async function signIn() {
+  signingIn.value = true
+  error.value = ''
+  try {
+    await startSignIn(offer.value, next)
+  } catch (caught) {
+    error.value = caught.message
+    signingIn.value = false
+  }
+}
 
 async function connect() {
   checking.value = true
@@ -60,42 +85,3 @@ async function connect() {
   }
 }
 </script>
-
-<style>
-.setup {
-  min-height: 100dvh;
-  display: grid;
-  place-items: center;
-  padding: calc(var(--safe-top) + 24px) 16px calc(var(--safe-bottom) + 24px);
-}
-.setup-card {
-  width: 100%;
-  max-width: 440px;
-  padding: 28px 22px;
-  text-align: center;
-}
-.setup-card .field {
-  text-align: left;
-}
-.setup-logo {
-  border-radius: 18px;
-  box-shadow: var(--card-shadow);
-}
-.setup-card h1 {
-  margin: 12px 0 6px;
-  font-size: 26px;
-}
-.setup-card .banner {
-  text-align: left;
-  margin-bottom: 12px;
-}
-.setup-cancel {
-  color: var(--accent);
-  font-weight: 600;
-}
-.setup-card textarea {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace !important;
-  font-size: 16px !important;
-  word-break: break-all;
-}
-</style>

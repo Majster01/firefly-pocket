@@ -16,6 +16,7 @@ use App\Http\Controllers\PushController;
 use App\Http\Controllers\RecurrenceController;
 use App\Http\Controllers\RuleController;
 use App\Http\Controllers\RuleSuggestionController;
+use App\Http\Controllers\SignInController;
 use App\Http\Controllers\BankConnectionController;
 use App\Http\Controllers\BatchController;
 use App\Http\Controllers\SystemStatusController;
@@ -43,6 +44,9 @@ use Illuminate\Support\Facades\Route;
 // Own resources
 Route::get('info', [VersionController::class, 'getInfo']);
 Route::get('user', [UserController::class, 'getUser']);
+// Sign in with Firefly III: no token yet, so no token asked for (SignInController)
+Route::get('signin', [SignInController::class, 'config']);
+Route::post('signin/token', [SignInController::class, 'token']);
 Route::get('data-version', [DataVersionController::class, 'get']);
 Route::post('data-version', [DataVersionController::class, 'renew']);
 Route::post('batch', [BatchController::class, 'read']);

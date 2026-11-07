@@ -57,6 +57,10 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
     'firefly_url' => env('FIREFLY_URL', ''),
+    // Sign in with Firefly III (firefly-pocket-stack, Setup UI step 11): Firefly III's public URL, where the browser
+    // signs in, and the public OAuth client the stack registers for Pocket. Offered only once both are set
+    'firefly_public_url' => env('FIREFLY_PUBLIC_URL', ''),
+    'firefly_client_id' => env('FIREFLY_CLIENT_ID', ''),
     // Firefly rule groups (looked up by title) used by rule suggestions, see firefly-pocket-stack's docs/rule-suggestions.md
     'rule_group_suggestions' => env('RULE_GROUP_SUGGESTIONS', 'Suggestions'),
     'rule_group_categorization' => env('RULE_GROUP_CATEGORIZATION', 'Categorization'),
