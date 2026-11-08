@@ -67,6 +67,9 @@ return [
     // Bank connections are managed by the FireflyX importer fork; Pico's backend calls its internal API
     'importer_api_url' => env('IMPORTER_API_URL', ''),
     'importer_api_token' => env('IMPORTER_API_TOKEN', ''),
+    // Reverse proxies in front of Pocket whose X-Forwarded-For is believed ('*' or a comma separated list of addresses). Needed for the person's
+    // own IP to reach the bank on a manual import; without it request()->ip() is the proxy's address, which the importer leaves out
+    'trusted_proxies' => env('TRUSTED_PROXIES', ''),
     // Local development only: fixed dummy exchange rates (VWCE included) instead of calling the rate APIs
     'exchange_rates_mock' => (bool) env('EXCHANGE_RATES_MOCK', false),
     // Web Push (docs/web-push.md). Generate the VAPID keys once; push is off until both are set

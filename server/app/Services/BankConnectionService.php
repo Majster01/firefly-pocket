@@ -58,10 +58,19 @@ class BankConnectionService
     /**
      * Imports the connection over a time frame now, with the settings of its saved configuration, and then runs the category suggester over the same time frame.
      * The importer answers at once; the progress is the connection's manual_import.
+     * The IP and User-Agent are the person's who started it: the importer sends them to the bank, which then counts the run as theirs
+     * (a person is present) and not as unattended access, which it rate-limits.
      */
-    public function startImport($name, $dateFrom, $dateTo)
+    public function startImport($name, $dateFrom, $dateTo, $psuIp = null, $psuUserAgent = null)
     {
-        return $this->importer('post', "connections/$name/imports", ['date_from' => $dateFrom, 'date_to' => $dateTo], BaseController::HTTP_CODE_UPDATE)['data'];
+        $data = ['date_from' => $dateFrom, 'date_to' => $dateTo];
+        if ($psuIp) {
+            $data['psu_ip'] = $psuIp;
+        }
+        if ($psuUserAgent) {
+            $data['psu_user_agent'] = $psuUserAgent;
+        }
+        return $this->importer('post', "connections/$name/imports", $data, BaseController::HTTP_CODE_UPDATE)['data'];
     }
 
     public function delete($name)
