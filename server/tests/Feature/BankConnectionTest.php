@@ -95,7 +95,50 @@ class BankConnectionTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.status', 'queued');
 
-        $this->assertSame(['date_from' => '2026-09-01', 'date_to' => '2026-09-30'], $this->importerRequests()->first()->data());
+        // Besides the time frame only who asked: the test client's own address and User-Agent, and no other field of the request
+        $this->assertSame(['date_from' => '2026-09-01', 'date_to' => '2026-09-30', 'psu_ip' => '127.0.0.1', 'psu_user_agent' => 'Symfony'], $this->importerRequests()->first()->data());
+    }
+
+    public function test_an_import_passes_on_the_ip_and_user_agent_of_who_started_it()
+    {
+        $this->withServerVariables(['REMOTE_ADDR' => '8.8.8.8'])
+            ->postJson('api/bank-connections/nlb/import', ['date_from' => '2026-09-01', 'date_to' => '2026-09-30'], $this->headers() + ['User-Agent' => 'Pico/1.0'])
+            ->assertOk();
+
+        $this->assertSame(
+            ['date_from' => '2026-09-01', 'date_to' => '2026-09-30', 'psu_ip' => '8.8.8.8', 'psu_user_agent' => 'Pico/1.0'],
+            $this->importerRequests()->first()->data()
+        );
+    }
+
+    public function test_an_import_ignores_an_ip_and_user_agent_the_client_claims_in_its_body()
+    {
+        $this->withServerVariables(['REMOTE_ADDR' => '8.8.8.8'])
+            ->postJson('api/bank-connections/nlb/import', ['date_from' => '2026-09-01', 'date_to' => '2026-09-30', 'psu_ip' => '1.1.1.1', 'psu_user_agent' => 'forged'], $this->headers() + ['User-Agent' => 'Pico/1.0'])
+            ->assertOk();
+
+        $data = $this->importerRequests()->first()->data();
+        $this->assertSame(['8.8.8.8', 'Pico/1.0'], [$data['psu_ip'], $data['psu_user_agent']]);
+    }
+
+    public function test_behind_a_trusted_proxy_the_forwarded_ip_is_the_persons()
+    {
+        config(['app.trusted_proxies' => '10.0.0.1']);
+
+        $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.1'])
+            ->postJson('api/bank-connections/nlb/import', ['date_from' => '2026-09-01', 'date_to' => '2026-09-30'], $this->headers() + ['X-Forwarded-For' => '8.8.8.8'])
+            ->assertOk();
+
+        $this->assertSame('8.8.8.8', $this->importerRequests()->first()->data()['psu_ip']);
+    }
+
+    public function test_without_a_trusted_proxy_a_forwarded_header_is_not_believed()
+    {
+        $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.1'])
+            ->postJson('api/bank-connections/nlb/import', ['date_from' => '2026-09-01', 'date_to' => '2026-09-30'], $this->headers() + ['X-Forwarded-For' => '1.1.1.1'])
+            ->assertOk();
+
+        $this->assertSame('10.0.0.1', $this->importerRequests()->first()->data()['psu_ip']);
     }
 
     public function test_an_import_the_importer_refuses_says_why()
