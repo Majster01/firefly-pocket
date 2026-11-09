@@ -130,6 +130,7 @@ Route::post('internal/notify', [InternalNotifyController::class, 'notify']);
 Route::post('internal/firefly-webhook', [FireflyWebhookController::class, 'receive']);
 
 Route::get('system-status', [SystemStatusController::class, 'get']);
+Route::get('system-status/errors', [SystemStatusController::class, 'errors']);
 
 Route::post('assistant/rambles', [AssistantController::class, 'create']);
 Route::get('assistant/rambles/count', [AssistantController::class, 'getCount']);

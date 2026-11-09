@@ -23,4 +23,11 @@ class SystemStatusController extends BaseController
         }
         return $this->respond(['data' => app(BankConnectionService::class)->getStatus($days)]);
     }
+
+    /** The importer checks the days, the filters and the page, and answers 422 with what is wrong. */
+    public function errors(Request $request)
+    {
+        BaseAuthorization::checkUser();
+        return $this->respond(['data' => app(BankConnectionService::class)->getErrors($request->only(['from', 'to', 'connection', 'source', 'q', 'page', 'limit']))]);
+    }
 }

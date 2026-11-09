@@ -11,6 +11,7 @@
 //   POST   connections/{name}/imports        {date_from, date_to} -> 202 {data: manual_import}
 //   DELETE connections/{name}                204
 //   GET    status?days=30                    {data: status}
+//   GET    errors?from=&to=&connection=&source=&q=&page=&limit=   {data: {from, to, total, page, has_more, connections, items}}
 // Errors are {error: "..."} with a 4xx status.
 
 import http from 'node:http'
@@ -36,6 +37,45 @@ const DAY = 86400000
 const iso = (date) => new Date(date).toISOString().slice(0, 10)
 const addDays = (date, days) => new Date(new Date(date).getTime() + days * DAY)
 const now = () => new Date().toISOString()
+
+// Errors, made up from how long ago the day was; yesterday and nine days ago are the failed nights of the status report, today has a manual import
+const NLB = { connection: 'nlb-d-d-si', bank: 'NLB d.d.' }
+const REVOLUT = { connection: 'revolut-lt', bank: 'Revolut' }
+const errorImports = () => {
+  const day = (daysAgo, time) => `${iso(addDays(Date.now(), -daysAgo))}T${time}Z`
+  const imports = [
+    { at: day(0, '09:41:12'), source: 'manual', ...NLB, messages: [{ message: 'Enable Banking API error: 401 (mock)', count: 1 }], more: 0 },
+    { at: day(1, '03:12:05'), source: 'nightly', ...REVOLUT, messages: [{ message: 'The bank answered 429 Too Many Requests (mock)', count: 1 }], more: 0 },
+    { at: day(1, '03:12:01'), source: 'nightly', ...NLB, messages: [{ message: `Could not create the transaction: the description is too long (mock) ${'x'.repeat(220)}`, count: 2 }, { message: 'Source account not found: SI56…5678 (mock)', count: 1 }], more: 0 },
+    { at: day(4, '03:12:09'), source: 'manual', ...REVOLUT, messages: [{ message: 'The import was interrupted.', count: 1 }], more: 0 },
+    { at: day(9, '03:12:40'), source: 'nightly', ...REVOLUT, messages: Array.from({ length: 50 }, (_, index) => ({ message: `Row ${index + 1} was refused: amount is zero (mock)`, count: 1 })), more: 10 },
+    { at: day(20, '03:12:02'), source: 'nightly', ...NLB, messages: [{ message: 'Bad IBAN: SI56…0001 (mock)', count: 1 }], more: 0 },
+  ]
+  return imports.map((item, index) => ({ ...item, id: index }))
+}
+const errorsFeed = (query) => {
+  const to = query.get('to') ?? iso(Date.now())
+  const from = query.get('from') ?? iso(addDays(Date.parse(to), -29))
+  const days = [from, to]
+  if (days.some((value) => !/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(value))) || from > to) throw new HttpError(422, 'from and to must be days, as 2026-11-09')
+  const only = query.get('connection')
+  const source = query.get('source')
+  const needle = (query.get('q') ?? '').trim().toLowerCase()
+  const page = Math.max(1, Number(query.get('page') ?? 1) || 1)
+  const limit = Math.min(100, Math.max(1, Number(query.get('limit') ?? 50) || 50))
+  const inRange = errorImports().filter((item) => item.at.slice(0, 10) >= from && item.at.slice(0, 10) <= to)
+  const connections = [...new Map(inRange.map((item) => [item.connection, { name: item.connection, bank: item.bank }])).values()].sort((a, b) => a.name.localeCompare(b.name))
+  const entries = inRange
+    .filter((item) => (!only || item.connection === only) && (!source || item.source === source))
+    .sort((a, b) => b.at.localeCompare(a.at))
+    .flatMap((item) => {
+      const entry = (key, message, count) => ({ id: `${item.source}-${item.id}-${key}`, at: item.at, source: item.source, connection: item.connection, bank: item.bank, message, count })
+      const rows = item.messages.map((message, index) => entry(index, message.message, message.count)).filter((row) => !needle || row.message.toLowerCase().includes(needle))
+      return item.more && !needle ? [...rows, entry('more', null, item.more)] : rows
+    })
+  const offset = (page - 1) * limit
+  return { from, to, total: entries.length, page, has_more: entries.length > offset + limit, connections, items: entries.slice(offset, offset + limit) }
+}
 
 // ----------------------------------------------------------------------- banks
 
@@ -102,7 +142,7 @@ function initialState() {
     if (offset === 17 || offset === 31) {
       continue // missed nights
     }
-    const failed = offset === 9 ? 1 : 0
+    const failed = offset === 1 ? 2 : offset === 9 ? 1 : 0
     nightly.push({ date, connections: 2, created: Math.floor(rng.next() * 7), failed, warnings: offset % 11 === 0 ? 1 : 0 })
     if (failed) {
       events.push({ at: `${date}T03:12:40Z`, level: 'error', step: 'import', flow: 'nightly', reason: 'rate_limited', message: 'The bank answered 429 Too Many Requests', bank: 'Revolut', connection: 'revolut-lt' })
@@ -159,7 +199,7 @@ function initialState() {
           { id: 'rev-1', name: 'EUR Main', iban_masked: 'LT32…8901', currency: 'EUR', identification_hash: 'h-rev-1', firefly_account_id: null, match_name: 'Revolut' },
           { id: 'rev-2', name: 'USD Pocket', iban_masked: 'LT11…4402', currency: 'USD', identification_hash: 'h-rev-2', firefly_account_id: null },
         ],
-        last_import: { at: lastNight, ok: true, summary: { messages: 2, first_error: null } },
+        last_import: { at: lastNight, ok: false, summary: { messages: 0, first_error: 'The bank answered 429 Too Many Requests (mock)' } },
         last_error: null,
         manual_import: null,
       },
@@ -512,6 +552,10 @@ async function api(method, route, query, body) {
   if (method === 'GET' && route === 'status') {
     const days = Math.min(365, Math.max(1, Number(query.get('days') ?? 30) || 30))
     return { data: await statusReport(days) }
+  }
+
+  if (method === 'GET' && route === 'errors') {
+    return { data: errorsFeed(query) }
   }
 
   const match = route.match(/^connections\/([a-z0-9-]+)(?:\/(accounts|reauth|imports))?$/)

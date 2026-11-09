@@ -46,17 +46,3 @@ const days = computed(() => {
   return [...groups.values()]
 })
 </script>
-
-<style>
-.day + .day {
-  margin-top: 16px;
-}
-.day-head {
-  display: flex;
-  justify-content: space-between;
-  margin: 0 6px 6px;
-  font-size: 13px;
-  font-weight: 650;
-  color: var(--bare-text);
-}
-</style>

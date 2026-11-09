@@ -42,12 +42,14 @@
         <div v-if="connection.last_import" class="small import-line error-text">
           <span :class="connection.last_import.ok ? 'good' : 'bad'">{{ connection.last_import.ok ? '✓' : '✗' }}</span>
           Last import {{ timeAgo(connection.last_import.at) }}
-          <span class="muted">· {{ connection.last_import.ok ? `${connection.last_import.summary?.messages ?? 0} new` : connection.last_import.summary?.first_error }}</span>
+          <span v-if="connection.last_import.ok" class="muted">· {{ connection.last_import.summary?.messages ?? 0 }} new</span>
+          <RouterLink v-else :to="errorsOf(connection, connection.last_import.at)">· See error</RouterLink>
         </div>
         <div v-if="connection.manual_import" class="small import-line error-text">
           <span v-if="IMPORT_ACTIVE.includes(connection.manual_import.status)" class="spinner" style="width: 14px; height: 14px" />
           <span :class="{ good: connection.manual_import.status === 'done', bad: connection.manual_import.status === 'failed' }">{{ IMPORT_STATUS[connection.manual_import.status] }}</span>
           <span class="muted">· {{ shortDate(connection.manual_import.date_from) }} – {{ shortDate(connection.manual_import.date_to) }}{{ manualDetail(connection.manual_import) }}</span>
+          <RouterLink v-if="connection.manual_import.status === 'failed'" :to="errorsOf(connection, connection.manual_import.started_at)">· See error</RouterLink>
         </div>
 
         <footer class="row wrap connection-actions">
@@ -130,8 +132,9 @@ const expiry = (connection) => {
   if (connection.days_left <= 0) return `Consent ends today`
   return `Consent until ${shortDate(connection.expires_at)} · ${plural(connection.days_left, 'day')} left`
 }
+// The day is the date part of the importer's own timestamp: the errors page groups by the importer's days
+const errorsOf = (connection, at) => ({ path: '/system-status/errors', query: { start: at.slice(0, 10), end: at.slice(0, 10), connection: connection.name } })
 const manualDetail = (manual) => {
-  if (manual.status === 'failed') return ` · ${manual.error}`
   if (manual.status !== 'done') return ''
   if (manual.suggest_error) return ` · suggester failed: ${manual.suggest_error}`
   return ` · ${manual.summary?.messages ?? 0} new · ${plural(manual.suggestions?.written ?? 0, 'suggestion')}`

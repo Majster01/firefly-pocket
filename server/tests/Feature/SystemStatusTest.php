@@ -96,4 +96,42 @@ class SystemStatusTest extends TestCase
 
         $this->getJson('api/system-status', $this->headers())->assertStatus(422)->assertJsonPath('message', 'days must be a number from 1 to 365');
     }
+
+    public function test_the_errors_are_what_the_importer_listed()
+    {
+        $this->fake(fn() => Http::response(['data' => ['total' => 2, 'items' => []]]));
+
+        $this->getJson('api/system-status/errors?from=2026-10-29&to=2026-10-29&connection=nlb&source=nightly&q=iban&page=2&limit=20&other=x', $this->headers())
+            ->assertOk()
+            ->assertJsonPath('data.total', 2);
+
+        $request = $this->importerRequests()->first();
+        $this->assertSame('Bearer importer-secret', $request->header('Authorization')[0]);
+        $this->assertStringEndsWith('/errors?from=2026-10-29&to=2026-10-29&connection=nlb&source=nightly&q=iban&page=2&limit=20', $request->url(), 'only the importer\'s own parameters are passed on');
+    }
+
+    public function test_the_errors_are_asked_without_a_filter()
+    {
+        $this->fake(fn() => Http::response(['data' => []]));
+
+        $this->getJson('api/system-status/errors', $this->headers())->assertOk();
+
+        $this->assertStringEndsWith('/errors', $this->importerRequests()->first()->url());
+    }
+
+    public function test_a_range_the_importer_refuses_reaches_the_user()
+    {
+        $this->fake(fn() => Http::response(['error' => 'from and to must be days, as 2026-11-09'], 422));
+
+        $this->getJson('api/system-status/errors?from=x', $this->headers())->assertStatus(422)->assertJsonPath('message', 'from and to must be days, as 2026-11-09');
+    }
+
+    public function test_the_errors_need_a_pico_user_too()
+    {
+        $this->fake(fn() => Http::response(['data' => []]));
+
+        $this->getJson('api/system-status/errors', $this->headers('wrong'))->assertUnauthorized();
+
+        $this->assertCount(0, $this->importerRequests());
+    }
 }
