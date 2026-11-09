@@ -97,6 +97,7 @@ import { isoDate, shortDate, timeAgo } from '../lib/format.js'
 import { toast, toastError } from '../lib/toast.js'
 import { refreshBadges } from '../lib/badges.js'
 import { FAILURE, IMPORT_ACTIVE, IMPORT_STATUS, STATUS } from '../lib/bank.js'
+import { manualDetail } from '../lib/manualImport.js'
 
 const POLL_MS = 3000
 const route = useRoute()
@@ -134,11 +135,6 @@ const expiry = (connection) => {
 }
 // The day is the date part of the importer's own timestamp: the errors page groups by the importer's days
 const errorsOf = (connection, at) => ({ path: '/system-status/errors', query: { start: at.slice(0, 10), end: at.slice(0, 10), connection: connection.name } })
-const manualDetail = (manual) => {
-  if (manual.status !== 'done') return ''
-  if (manual.suggest_error) return ` · suggester failed: ${manual.suggest_error}`
-  return ` · ${manual.summary?.messages ?? 0} new · ${plural(manual.suggestions?.written ?? 0, 'suggestion')}`
-}
 
 // Always quiet: the banner says it, a toast on top would say it twice. A background refresh keeps the last list.
 async function reload({ quiet = false } = {}) {
