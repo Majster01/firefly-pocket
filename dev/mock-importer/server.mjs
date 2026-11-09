@@ -126,7 +126,7 @@ function initialState() {
     if (offset === 17 || offset === 31) {
       continue // missed nights
     }
-    const failed = offset === 9 || offset === 1 ? 1 : 0
+    const failed = offset === 1 ? 2 : offset === 9 ? 1 : 0
     nightly.push({ date, connections: 2, created: Math.floor(rng.next() * 7), failed, warnings: offset % 11 === 0 ? 1 : 0 })
     if (failed) {
       events.push({ at: `${date}T03:12:40Z`, level: 'error', step: 'import', flow: 'nightly', reason: 'rate_limited', message: 'The bank answered 429 Too Many Requests', bank: 'Revolut', connection: 'revolut-lt' })
