@@ -47,7 +47,7 @@
               <span class="item-title" :class="{ muted: entry.message === null }">{{ entry.message ?? `${plural(entry.count, 'more error')}, not kept` }}</span>
               <span class="item-sub error-sub">{{ entry.bank ?? entry.connection ?? 'Unknown bank' }} · {{ entry.source === 'manual' ? 'Import now' : 'Nightly' }} · {{ entry.at.slice(11, 16) }}</span>
             </span>
-            <span v-if="entry.message !== null && entry.count > 1" class="chip uncat" :title="`${entry.count} times in the same import`">×{{ entry.count }}</span>
+            <span v-if="entry.message !== null && entry.count > 1" class="chip error-count" :title="`${entry.count} times in the same import`">×{{ entry.count }}</span>
           </div>
         </div>
       </section>
@@ -205,5 +205,10 @@ onMounted(reload)
 }
 .error-sub {
   display: block;
+}
+.error-count {
+  flex: none;
+  padding: 0 6px;
+  font-size: 11px;
 }
 </style>

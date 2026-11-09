@@ -209,3 +209,18 @@ onMounted(() => {
   if (filter.value !== 'all') showFilter()
 })
 </script>
+
+<style>
+.active-filters {
+  gap: 8px;
+  margin: -4px 2px 12px;
+}
+.filter-chip {
+  font-size: 13px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.total-line {
+  margin: -4px 6px 12px;
+}
+</style>
