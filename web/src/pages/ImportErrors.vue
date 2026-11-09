@@ -24,7 +24,7 @@
       <h2 class="card-title">{{ shortDate(report.date) }} <span class="tiny" :class="{ bad: report.count }">{{ plural(report.count, 'error') }}</span></h2>
       <p v-if="!report.items.length" class="small muted">No import errors on this day.</p>
       <ul class="list">
-        <li v-for="item in report.items" :key="item.at + item.source + item.connection" class="error-item">
+        <li v-for="(item, index) in report.items" :key="index" class="error-item">
           <div class="row">
             <strong class="grow">{{ item.bank ?? item.connection ?? 'Unknown bank' }}</strong>
             <span class="tiny muted">{{ item.source === 'manual' ? 'Import now' : 'Nightly' }} · {{ item.at.slice(11, 16) }}</span>
@@ -87,6 +87,7 @@ async function reload() {
 
 watch([date, connection], () => {
   if (!DAY_PATTERN.test(date.value)) return
+  report.value = null
   router.replace({ query: { date: date.value, ...(connection.value ? { connection: connection.value } : {}) } })
   reload()
 })

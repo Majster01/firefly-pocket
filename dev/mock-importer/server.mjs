@@ -38,7 +38,7 @@ const iso = (date) => new Date(date).toISOString().slice(0, 10)
 const addDays = (date, days) => new Date(new Date(date).getTime() + days * DAY)
 const now = () => new Date().toISOString()
 
-// Errors by day, made up from how long ago the day was: yesterday has a few, nine days ago (the failed night) one, today a manual import
+// Errors by day, made up from how long ago the day was; yesterday and nine days ago are the failed nights of the status report, today has a manual import
 const errorsOn = (date, only) => {
   const daysAgo = Math.round((Date.parse(iso(Date.now())) - Date.parse(date)) / DAY)
   const nlb = { connection: 'nlb-d-d-si', bank: 'NLB d.d.' }
@@ -126,7 +126,7 @@ function initialState() {
     if (offset === 17 || offset === 31) {
       continue // missed nights
     }
-    const failed = offset === 9 ? 1 : 0
+    const failed = offset === 9 || offset === 1 ? 1 : 0
     nightly.push({ date, connections: 2, created: Math.floor(rng.next() * 7), failed, warnings: offset % 11 === 0 ? 1 : 0 })
     if (failed) {
       events.push({ at: `${date}T03:12:40Z`, level: 'error', step: 'import', flow: 'nightly', reason: 'rate_limited', message: 'The bank answered 429 Too Many Requests', bank: 'Revolut', connection: 'revolut-lt' })
