@@ -17,7 +17,7 @@
       </select>
     </label>
 
-    <div v-if="error" class="banner bad error-text"><Icon name="alert" :size="18" /> <span>Unavailable: {{ error }}</span></div>
+    <div v-if="error" class="banner bad error-day-banner"><Icon name="alert" :size="18" /> <span>Unavailable: {{ error }}</span></div>
     <div v-if="!report && !error" class="loading"><span class="spinner" /></div>
 
     <section v-if="report" class="card">
@@ -103,6 +103,11 @@ onMounted(reload)
 }
 .error-item {
   padding: 10px 0;
+}
+/* Importer errors carry URLs and ids without spaces: break them anywhere. Not the other pages' .error-text, whose rule loads only with them */
+.error-item p,
+.error-day-banner {
+  overflow-wrap: anywhere;
 }
 .error-item p {
   margin: 4px 0 0;
