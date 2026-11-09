@@ -4,111 +4,206 @@
       <RefreshButton @click="reload" />
     </PageHeader>
 
-    <div class="row error-day-picker">
-      <button class="btn icon small" aria-label="Previous day" @click="shift(-1)"><Icon name="back" :size="18" /></button>
-      <input v-model="date" class="input grow" type="date" :max="today" aria-label="Day" />
-      <button class="btn icon small" aria-label="Next day" :disabled="date >= today" @click="shift(1)"><Icon name="chevron" :size="18" /></button>
+    <div class="toolbar">
+      <label class="search grow">
+        <Icon name="search" :size="18" />
+        <input v-model="search" class="input" type="search" placeholder="Search the error text" aria-label="Search errors" />
+      </label>
+      <div class="seg filter-seg" role="group" aria-label="Show">
+        <button v-for="option in SOURCES" :key="option.value" :aria-pressed="source === option.value" :class="{ on: source === option.value }" @click="source = option.value">{{ option.label }}</button>
+      </div>
     </div>
-    <label class="field error-filter">
-      <span>Bank connection</span>
-      <select v-model="connection">
-        <option value="">All</option>
-        <option v-for="option in connectionOptions" :key="option.name" :value="option.name">{{ option.bank ?? option.name }}</option>
-      </select>
-    </label>
+
+    <div class="toolbar">
+      <div v-if="banks.length" ref="bankSeg" class="seg filter-seg" role="group" aria-label="Bank connection">
+        <button :aria-pressed="!connection" :class="{ on: !connection }" @click="connection = ''">All banks</button>
+        <button v-for="bank in banks" :key="bank.name" :aria-pressed="connection === bank.name" :class="{ on: connection === bank.name }" @click="connection = bank.name">{{ bank.bank ?? bank.name }}</button>
+      </div>
+    </div>
+
+    <div class="row error-dates">
+      <label class="field grow"><span>From</span><input v-model="start" type="date" :max="end || today" aria-label="From" /></label>
+      <label class="field grow"><span>To</span><input v-model="end" type="date" :min="start" :max="today" aria-label="To" /></label>
+    </div>
 
     <div v-if="error" class="banner bad error-text"><Icon name="alert" :size="18" /> <span>Unavailable: {{ error }}</span></div>
-    <div v-if="!report && !error" class="loading"><span class="spinner" /></div>
-
-    <section v-if="report" class="card">
-      <h2 class="card-title">{{ shortDate(report.date) }} <span class="tiny" :class="{ bad: report.count }">{{ plural(report.count, 'error') }}</span></h2>
-      <p v-if="!report.items.length" class="small muted">No import errors on this day.</p>
-      <ul class="list">
-        <li v-for="(item, index) in report.items" :key="index" class="error-item">
-          <div class="row">
-            <strong class="grow">{{ item.bank ?? item.connection ?? 'Unknown bank' }}</strong>
-            <span class="tiny muted">{{ item.source === 'manual' ? 'Import now' : 'Nightly' }} · {{ item.at.slice(11, 16) }}</span>
+    <div v-else-if="loading && !entries.length" class="loading"><span class="spinner" /></div>
+    <div v-else-if="!entries.length" class="empty card">
+      <h3>No errors</h3>
+      <p>{{ search ? 'No error matches your search.' : 'No import error in these days.' }}</p>
+    </div>
+    <!-- The old rows stay while new ones load, dimmed, so a filter change is visibly working -->
+    <div v-else class="feed-wrap" :class="{ refreshing }" :aria-busy="refreshing">
+      <span v-if="refreshing" class="spinner feed-spinner" />
+      <section v-for="day in days" :key="day.date" class="day">
+        <div class="day-head">
+          <span>{{ dayLabel(day.date) }}</span>
+          <span :class="{ bad: day.errors }">{{ plural(day.errors, 'error') }}</span>
+        </div>
+        <div class="card flush">
+          <div v-for="entry in day.entries" :key="entry.id" class="item error-entry">
+            <span class="avatar">{{ initials(entry.bank ?? entry.connection ?? '?') }}</span>
+            <span class="grow">
+              <span class="item-title" :class="{ muted: entry.message === null }">{{ entry.message ?? `${plural(entry.count, 'more error')}, not kept` }}</span>
+              <span class="item-sub error-sub">{{ entry.bank ?? entry.connection ?? 'Unknown bank' }} · {{ entry.source === 'manual' ? 'Import now' : 'Nightly' }} · {{ entry.at.slice(11, 16) }}</span>
+            </span>
+            <span v-if="entry.message !== null && entry.count > 1" class="chip uncat" :title="`${entry.count} times in the same import`">×{{ entry.count }}</span>
           </div>
-          <p v-for="message in item.messages" :key="message.message" class="small bad error-text">
-            {{ message.message }}<span v-if="message.count > 1" class="muted"> ×{{ message.count }}</span>
-          </p>
-          <p v-if="item.more" class="tiny muted">and {{ plural(item.more, 'more error') }} that are not kept</p>
-        </li>
-      </ul>
-    </section>
+        </div>
+      </section>
+    </div>
+
+    <div v-if="hasMore" class="more">
+      <button class="btn" :disabled="loading" @click="loadPage(page + 1)">
+        <span v-if="loading" class="spinner" />
+        <span v-else>Load more</span>
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import PageHeader from '../components/PageHeader.vue'
 import Icon from '../components/Icon.vue'
 import RefreshButton from '../components/RefreshButton.vue'
 import { get } from '../lib/api.js'
-import { isoDate, shortDate } from '../lib/format.js'
+import { dayLabel, initials, isoDate } from '../lib/format.js'
+
+const SOURCES = [
+  { value: 'all', label: 'All' },
+  { value: 'nightly', label: 'Nightly' },
+  { value: 'manual', label: 'Import now' },
+]
+const PAGE_SIZE = 50
 
 const route = useRoute()
 const router = useRouter()
 const today = isoDate()
-const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/
-
-const date = ref(DAY_PATTERN.test(route.query.date ?? '') ? route.query.date : today)
-const connection = ref(typeof route.query.connection === 'string' ? route.query.connection : '')
-const report = ref(null)
+const isDay = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value ?? '')
+// The page's state as the URL has it; a link from Bank connections brings the day and the bank
+const fromQuery = (query) => ({
+  search: typeof query.q === 'string' ? query.q : '',
+  source: SOURCES.some((option) => option.value === query.filter) ? query.filter : 'all',
+  connection: typeof query.connection === 'string' ? query.connection : '',
+  start: isDay(query.start) ? query.start : '',
+  end: isDay(query.end) ? query.end : '',
+})
+const initial = fromQuery(route.query)
+const search = ref(initial.search)
+const source = ref(initial.source)
+const connection = ref(initial.connection)
+const start = ref(initial.start)
+const end = ref(initial.end)
+const bankSeg = ref(null)
+const entries = ref([])
+// Kept while a bank is chosen, so the filter can be changed back
+const banks = ref([])
+const page = ref(1)
+const hasMore = ref(false)
+const loading = ref(false)
+// Page 1 loading over rows already shown (a filter change), not "Load more"
+const refreshing = ref(false)
 const error = ref('')
-// The connections of the day, kept while one is filtered so the filter can be changed back
-const known = ref([])
-let asked = 0
 
 const plural = (count, word) => `${count} ${count === 1 ? word : `${word}s`}`
-// A connection named in the link that has no error on this day is still shown as the filter
-const connectionOptions = computed(() => (connection.value && !known.value.some((item) => item.name === connection.value) ? [...known.value, { name: connection.value, bank: null }] : known.value))
+const days = computed(() => {
+  const groups = new Map()
+  for (const entry of entries.value) {
+    const date = entry.at.slice(0, 10)
+    if (!groups.has(date)) groups.set(date, { date, entries: [], errors: 0 })
+    const group = groups.get(date)
+    group.entries.push(entry)
+    group.errors += entry.count
+  }
+  return [...groups.values()]
+})
 
-function shift(offset) {
-  const [year, month, day] = date.value.split('-').map(Number)
-  const next = isoDate(new Date(year, month - 1, day + offset, 12))
-  if (next <= today) date.value = next
-}
-
-async function reload() {
-  const request = ++asked
+let requestId = 0
+async function loadPage(number) {
+  const id = ++requestId
+  loading.value = true
+  refreshing.value = number === 1
   try {
-    const result = (await get('system-status/errors', { date: date.value, connection: connection.value }, { quiet: true })).data
-    if (request !== asked) return
-    report.value = result
-    known.value = result.connections
+    const json = await get(
+      'system-status/errors',
+      { from: start.value, to: end.value, connection: connection.value, source: source.value === 'all' ? '' : source.value, q: search.value.trim(), page: number, limit: PAGE_SIZE },
+      { quiet: true },
+    )
+    if (id !== requestId) return
+    const result = json.data
+    entries.value = number === 1 ? result.items : [...entries.value, ...result.items]
+    // A bank named in the link that has no error in these days is still shown as the chosen one
+    banks.value = connection.value && !result.connections.some((bank) => bank.name === connection.value) ? [...result.connections, { name: connection.value, bank: null }] : result.connections
+    page.value = number
+    hasMore.value = result.has_more
     error.value = ''
   } catch (caught) {
-    if (request !== asked) return
-    error.value = caught.message
+    if (id === requestId) error.value = caught.message
+  } finally {
+    if (id === requestId) loading.value = refreshing.value = false
   }
 }
 
-watch([date, connection], () => {
-  if (!DAY_PATTERN.test(date.value)) return
-  report.value = null
-  router.replace({ query: { date: date.value, ...(connection.value ? { connection: connection.value } : {}) } })
-  reload()
+const reload = () => loadPage(1)
+
+const toQuery = () => ({
+  ...(search.value ? { q: search.value } : {}),
+  ...(source.value !== 'all' ? { filter: source.value } : {}),
+  ...(connection.value ? { connection: connection.value } : {}),
+  ...(start.value ? { start: start.value } : {}),
+  ...(end.value ? { end: end.value } : {}),
 })
+const sameState = (a, b) => JSON.stringify(a) === JSON.stringify(b)
+
+let debounce
+let replaced = null // the query we last put in the URL ourselves
+watch([search, source, connection, start, end], ([text], [oldText]) => {
+  clearTimeout(debounce)
+  // Only typing waits; a tapped filter loads at once
+  debounce = setTimeout(
+    () => {
+      replaced = toQuery()
+      router.replace({ query: replaced })
+      reload()
+    },
+    text !== oldText ? 300 : 0,
+  )
+})
+// The page is kept when only the query changes (a link from Bank connections while this page is open): take the URL's state
+watch(
+  () => route.query,
+  (query) => {
+    if (route.name !== 'import-errors') return
+    const next = fromQuery(query)
+    if (replaced && sameState(next, fromQuery(replaced))) return
+    if (sameState(next, { search: search.value, source: source.value, connection: connection.value, start: start.value, end: end.value })) return
+    clearTimeout(debounce)
+    search.value = next.search
+    source.value = next.source
+    connection.value = next.connection
+    start.value = next.start
+    end.value = next.end
+  },
+)
+// On a phone the banks scroll sideways: keep the chosen one in view
+watch(connection, () => nextTick(() => bankSeg.value?.querySelector('.on')?.scrollIntoView({ block: 'nearest', inline: 'nearest' })))
+
 onMounted(reload)
 </script>
 
 <style>
-.error-day-picker {
-  margin-bottom: 12px;
-}
-.error-filter {
-  margin-bottom: 14px;
-}
-.error-item {
-  padding: 10px 0;
-}
 /* Importer errors carry URLs and ids without spaces: break them anywhere rather than widen the page */
 .error-text {
   overflow-wrap: anywhere;
 }
-.error-item p {
-  margin: 4px 0 0;
+.error-dates {
+  gap: 10px;
+  margin-bottom: 6px;
+  align-items: flex-end;
+}
+.error-sub {
+  display: block;
 }
 </style>

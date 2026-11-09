@@ -795,3 +795,61 @@ select.input {
     color: var(--text, #222);
   }
 }
+
+/* ---------------------------------------------------------------- activity lists (Transactions, Import errors) */
+
+.day + .day {
+  margin-top: 16px;
+}
+.day-head {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 6px 6px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--bare-text);
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.toolbar .search {
+  min-width: min(240px, 100%);
+}
+.filter-seg {
+  align-self: center;
+}
+.active-filters {
+  gap: 8px;
+  margin: -4px 2px 12px;
+}
+.filter-chip {
+  font-size: 13px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.total-line {
+  margin: -4px 6px 12px;
+}
+.feed-wrap {
+  position: relative;
+  transition: opacity 0.15s;
+}
+.feed-wrap.refreshing {
+  opacity: 0.55;
+}
+.feed-spinner {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  margin-left: -11px;
+  z-index: 1;
+  color: var(--muted);
+}
+.more {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}

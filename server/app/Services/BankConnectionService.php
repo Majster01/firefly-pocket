@@ -88,11 +88,12 @@ class BankConnectionService
     }
 
     /**
-     * Every error of the nightly and manual imports that started on $date (Y-m-d, the importer's own day), optionally of one connection.
+     * Every error of the nightly and manual imports of a range of days, one entry each, newest first.
+     * $query: from, to, connection, source, q, page, limit; the importer checks them.
      */
-    public function getErrors($date, $connection = null)
+    public function getErrors($query = [])
     {
-        return $this->importer('get', 'errors', array_filter(['date' => $date, 'connection' => $connection]))['data'];
+        return $this->importer('get', 'errors', array_filter($query, fn($value) => $value !== null && $value !== ''))['data'];
     }
 
     private function importer($method, $path, $data = [], $expectedStatus = BaseController::HTTP_CODE_OK)

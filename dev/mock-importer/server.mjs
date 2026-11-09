@@ -11,7 +11,7 @@
 //   POST   connections/{name}/imports        {date_from, date_to} -> 202 {data: manual_import}
 //   DELETE connections/{name}                204
 //   GET    status?days=30                    {data: status}
-//   GET    errors?date=2026-11-09&connection=nlb-d-d-si   {data: {date, count, connections, items}}
+//   GET    errors?from=&to=&connection=&source=&q=&page=&limit=   {data: {from, to, total, page, has_more, connections, items}}
 // Errors are {error: "..."} with a 4xx status.
 
 import http from 'node:http'
@@ -38,27 +38,43 @@ const iso = (date) => new Date(date).toISOString().slice(0, 10)
 const addDays = (date, days) => new Date(new Date(date).getTime() + days * DAY)
 const now = () => new Date().toISOString()
 
-// Errors by day, made up from how long ago the day was; yesterday and nine days ago are the failed nights of the status report, today has a manual import
-const errorsOn = (date, only) => {
-  const daysAgo = Math.round((Date.parse(iso(Date.now())) - Date.parse(date)) / DAY)
-  const nlb = { connection: 'nlb-d-d-si', bank: 'NLB d.d.' }
-  const revolut = { connection: 'revolut-lt', bank: 'Revolut' }
-  const at = (time) => `${date}T${time}Z`
-  const items = []
-  if (daysAgo === 0) {
-    items.push({ at: at('09:41:12'), source: 'manual', ...nlb, messages: [{ message: 'Enable Banking API error: 401 (mock)', count: 1 }], more: 0 })
-  }
-  if (daysAgo === 1) {
-    items.push({ at: at('03:12:05'), source: 'nightly', ...revolut, messages: [{ message: 'The bank answered 429 Too Many Requests (mock)', count: 1 }], more: 0 })
-    items.push({ at: at('03:12:01'), source: 'nightly', ...nlb, messages: [{ message: 'Could not create the transaction: the description is too long (mock) ' + 'x'.repeat(220), count: 2 }, { message: 'Source account not found: SI56…5678 (mock)', count: 1 }], more: 0 })
-  }
-  if (daysAgo === 9) {
-    items.push({ at: at('03:12:40'), source: 'nightly', ...revolut, messages: Array.from({ length: 50 }, (_, index) => ({ message: `Row ${index + 1} was refused: amount is zero (mock)`, count: 1 })), more: 10 })
-  }
-  const connections = [...new Map(items.map((item) => [item.connection, { name: item.connection, bank: item.bank }])).values()].sort((a, b) => a.name.localeCompare(b.name))
-  const shown = items.filter((item) => !only || item.connection === only)
-  const count = shown.reduce((sum, item) => sum + item.more + item.messages.reduce((total, message) => total + message.count, 0), 0)
-  return { date, count, connections, items: shown }
+// Errors, made up from how long ago the day was; yesterday and nine days ago are the failed nights of the status report, today has a manual import
+const NLB = { connection: 'nlb-d-d-si', bank: 'NLB d.d.' }
+const REVOLUT = { connection: 'revolut-lt', bank: 'Revolut' }
+const errorImports = () => {
+  const day = (daysAgo, time) => `${iso(addDays(Date.now(), -daysAgo))}T${time}Z`
+  const imports = [
+    { at: day(0, '09:41:12'), source: 'manual', ...NLB, messages: [{ message: 'Enable Banking API error: 401 (mock)', count: 1 }], more: 0 },
+    { at: day(1, '03:12:05'), source: 'nightly', ...REVOLUT, messages: [{ message: 'The bank answered 429 Too Many Requests (mock)', count: 1 }], more: 0 },
+    { at: day(1, '03:12:01'), source: 'nightly', ...NLB, messages: [{ message: `Could not create the transaction: the description is too long (mock) ${'x'.repeat(220)}`, count: 2 }, { message: 'Source account not found: SI56…5678 (mock)', count: 1 }], more: 0 },
+    { at: day(4, '03:12:09'), source: 'manual', ...REVOLUT, messages: [{ message: 'The import was interrupted.', count: 1 }], more: 0 },
+    { at: day(9, '03:12:40'), source: 'nightly', ...REVOLUT, messages: Array.from({ length: 50 }, (_, index) => ({ message: `Row ${index + 1} was refused: amount is zero (mock)`, count: 1 })), more: 10 },
+    { at: day(20, '03:12:02'), source: 'nightly', ...NLB, messages: [{ message: 'Bad IBAN: SI56…0001 (mock)', count: 1 }], more: 0 },
+  ]
+  return imports.map((item, index) => ({ ...item, id: index }))
+}
+const errorsFeed = (query) => {
+  const to = query.get('to') ?? iso(Date.now())
+  const from = query.get('from') ?? iso(addDays(Date.parse(to), -29))
+  const days = [from, to]
+  if (days.some((value) => !/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(value))) || from > to) throw new HttpError(422, 'from and to must be days, as 2026-11-09')
+  const only = query.get('connection')
+  const source = query.get('source')
+  const needle = (query.get('q') ?? '').trim().toLowerCase()
+  const page = Math.max(1, Number(query.get('page') ?? 1) || 1)
+  const limit = Math.min(100, Math.max(1, Number(query.get('limit') ?? 50) || 50))
+  const inRange = errorImports().filter((item) => item.at.slice(0, 10) >= from && item.at.slice(0, 10) <= to)
+  const connections = [...new Map(inRange.map((item) => [item.connection, { name: item.connection, bank: item.bank }])).values()].sort((a, b) => a.name.localeCompare(b.name))
+  const entries = inRange
+    .filter((item) => (!only || item.connection === only) && (!source || item.source === source))
+    .sort((a, b) => b.at.localeCompare(a.at))
+    .flatMap((item) => {
+      const entry = (key, message, count) => ({ id: `${item.source}-${item.id}-${key}`, at: item.at, source: item.source, connection: item.connection, bank: item.bank, message, count })
+      const rows = item.messages.map((message, index) => entry(index, message.message, message.count)).filter((row) => !needle || row.message.toLowerCase().includes(needle))
+      return item.more && !needle ? [...rows, entry('more', null, item.more)] : rows
+    })
+  const offset = (page - 1) * limit
+  return { from, to, total: entries.length, page, has_more: entries.length > offset + limit, connections, items: entries.slice(offset, offset + limit) }
 }
 
 // ----------------------------------------------------------------------- banks
@@ -539,9 +555,7 @@ async function api(method, route, query, body) {
   }
 
   if (method === 'GET' && route === 'errors') {
-    const date = query.get('date') ?? iso(Date.now())
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date))) throw new HttpError(422, 'date must be a day, as 2026-11-09')
-    return { data: errorsOn(date, query.get('connection')) }
+    return { data: errorsFeed(query) }
   }
 
   const match = route.match(/^connections\/([a-z0-9-]+)(?:\/(accounts|reauth|imports))?$/)

@@ -133,7 +133,7 @@ const expiry = (connection) => {
   return `Consent until ${shortDate(connection.expires_at)} · ${plural(connection.days_left, 'day')} left`
 }
 // The day is the date part of the importer's own timestamp: the errors page groups by the importer's days
-const errorsOf = (connection, at) => ({ path: '/system-status/errors', query: { date: at.slice(0, 10), connection: connection.name } })
+const errorsOf = (connection, at) => ({ path: '/system-status/errors', query: { start: at.slice(0, 10), end: at.slice(0, 10), connection: connection.name } })
 const manualDetail = (manual) => {
   if (manual.status !== 'done') return ''
   if (manual.suggest_error) return ` · suggester failed: ${manual.suggest_error}`

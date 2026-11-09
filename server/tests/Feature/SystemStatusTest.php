@@ -97,20 +97,20 @@ class SystemStatusTest extends TestCase
         $this->getJson('api/system-status', $this->headers())->assertStatus(422)->assertJsonPath('message', 'days must be a number from 1 to 365');
     }
 
-    public function test_the_errors_of_a_day_are_what_the_importer_listed()
+    public function test_the_errors_are_what_the_importer_listed()
     {
-        $this->fake(fn() => Http::response(['data' => ['date' => '2026-10-29', 'count' => 2, 'items' => []]]));
+        $this->fake(fn() => Http::response(['data' => ['total' => 2, 'items' => []]]));
 
-        $this->getJson('api/system-status/errors?date=2026-10-29&connection=nlb', $this->headers())
+        $this->getJson('api/system-status/errors?from=2026-10-29&to=2026-10-29&connection=nlb&source=nightly&q=iban&page=2&limit=20&other=x', $this->headers())
             ->assertOk()
-            ->assertJsonPath('data.count', 2);
+            ->assertJsonPath('data.total', 2);
 
         $request = $this->importerRequests()->first();
         $this->assertSame('Bearer importer-secret', $request->header('Authorization')[0]);
-        $this->assertStringEndsWith('/errors?date=2026-10-29&connection=nlb', $request->url());
+        $this->assertStringEndsWith('/errors?from=2026-10-29&to=2026-10-29&connection=nlb&source=nightly&q=iban&page=2&limit=20', $request->url(), 'only the importer\'s own parameters are passed on');
     }
 
-    public function test_the_errors_of_today_are_asked_without_a_day()
+    public function test_the_errors_are_asked_without_a_filter()
     {
         $this->fake(fn() => Http::response(['data' => []]));
 
@@ -119,11 +119,11 @@ class SystemStatusTest extends TestCase
         $this->assertStringEndsWith('/errors', $this->importerRequests()->first()->url());
     }
 
-    public function test_a_day_the_importer_refuses_reaches_the_user()
+    public function test_a_range_the_importer_refuses_reaches_the_user()
     {
-        $this->fake(fn() => Http::response(['error' => 'date must be a day, as 2026-11-09'], 422));
+        $this->fake(fn() => Http::response(['error' => 'from and to must be days, as 2026-11-09'], 422));
 
-        $this->getJson('api/system-status/errors?date=x', $this->headers())->assertStatus(422)->assertJsonPath('message', 'date must be a day, as 2026-11-09');
+        $this->getJson('api/system-status/errors?from=x', $this->headers())->assertStatus(422)->assertJsonPath('message', 'from and to must be days, as 2026-11-09');
     }
 
     public function test_the_errors_need_a_pico_user_too()
