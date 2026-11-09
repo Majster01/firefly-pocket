@@ -29,6 +29,7 @@ const routes = [
   { path: '/bank-connections/new', name: 'bank-connection-new', component: page('BankConnectionNew'), meta: { title: 'Connect a bank', feature: 'bankConnections' } },
   { path: '/bank-connections/setup', name: 'bank-connection-setup', component: page('BankConnectionSetup'), meta: { title: 'Set up accounts', feature: 'bankConnections' } },
   { path: '/system-status', name: 'system-status', component: page('SystemStatus'), meta: { title: 'System status', feature: 'bankConnections' } },
+  { path: '/system-status/errors', name: 'import-errors', component: page('ImportErrors'), meta: { title: 'Import errors', feature: 'bankConnections' } },
   { path: '/settings', name: 'settings', component: page('Settings'), meta: { title: 'Settings' } },
   { path: '/more', name: 'more', component: page('More'), meta: { title: 'More' } },
   { path: '/setup', name: 'setup', component: page('Setup'), meta: { bare: true, title: 'Set up' } },

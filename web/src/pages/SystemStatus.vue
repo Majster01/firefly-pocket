@@ -36,7 +36,10 @@
             <span class="small" :class="nightClass(day) === 'failed' ? 'bad' : nightClass(day) === 'missed' ? 'bad' : nightClass(day) === 'ok' ? 'good' : 'muted'">{{ nightText(day) }}</span>
           </li>
         </ul>
-        <button v-if="status.imports.days.length > 7" class="btn small" @click="allDays = !allDays">{{ allDays ? 'Show less' : 'Show all days' }}</button>
+        <div class="row wrap">
+          <button v-if="status.imports.days.length > 7" class="btn small" @click="allDays = !allDays">{{ allDays ? 'Show less' : 'Show all days' }}</button>
+          <RouterLink to="/system-status/errors" class="btn small">Show all errors</RouterLink>
+        </div>
       </section>
 
       <section class="card">

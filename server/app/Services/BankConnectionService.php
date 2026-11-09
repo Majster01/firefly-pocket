@@ -87,6 +87,14 @@ class BankConnectionService
         return $this->importer('get', 'status', ['days' => $days])['data'];
     }
 
+    /**
+     * Every error of the nightly and manual imports that started on $date (Y-m-d, the importer's own day), optionally of one connection.
+     */
+    public function getErrors($date, $connection = null)
+    {
+        return $this->importer('get', 'errors', array_filter(['date' => $date, 'connection' => $connection]))['data'];
+    }
+
     private function importer($method, $path, $data = [], $expectedStatus = BaseController::HTTP_CODE_OK)
     {
         if (!config('app.importer_api_url') || !config('app.importer_api_token')) {

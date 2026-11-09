@@ -11,6 +11,7 @@
 //   POST   connections/{name}/imports        {date_from, date_to} -> 202 {data: manual_import}
 //   DELETE connections/{name}                204
 //   GET    status?days=30                    {data: status}
+//   GET    errors?date=2026-11-09&connection=nlb-d-d-si   {data: {date, count, connections, items}}
 // Errors are {error: "..."} with a 4xx status.
 
 import http from 'node:http'
@@ -36,6 +37,29 @@ const DAY = 86400000
 const iso = (date) => new Date(date).toISOString().slice(0, 10)
 const addDays = (date, days) => new Date(new Date(date).getTime() + days * DAY)
 const now = () => new Date().toISOString()
+
+// Errors by day, made up from how long ago the day was: yesterday has a few, nine days ago (the failed night) one, today a manual import
+const errorsOn = (date, only) => {
+  const daysAgo = Math.round((Date.parse(iso(Date.now())) - Date.parse(date)) / DAY)
+  const nlb = { connection: 'nlb-d-d-si', bank: 'NLB d.d.' }
+  const revolut = { connection: 'revolut-lt', bank: 'Revolut' }
+  const at = (time) => `${date}T${time}Z`
+  const items = []
+  if (daysAgo === 0) {
+    items.push({ at: at('09:41:12'), source: 'manual', ...nlb, messages: [{ message: 'Enable Banking API error: 401 (mock)', count: 1 }], more: 0 })
+  }
+  if (daysAgo === 1) {
+    items.push({ at: at('03:12:05'), source: 'nightly', ...revolut, messages: [{ message: 'The bank answered 429 Too Many Requests (mock)', count: 1 }], more: 0 })
+    items.push({ at: at('03:12:01'), source: 'nightly', ...nlb, messages: [{ message: 'Could not create the transaction: the description is too long (mock) ' + 'x'.repeat(220), count: 2 }, { message: 'Source account not found: SI56…5678 (mock)', count: 1 }], more: 0 })
+  }
+  if (daysAgo === 9) {
+    items.push({ at: at('03:12:40'), source: 'nightly', ...revolut, messages: Array.from({ length: 50 }, (_, index) => ({ message: `Row ${index + 1} was refused: amount is zero (mock)`, count: 1 })), more: 10 })
+  }
+  const connections = [...new Map(items.map((item) => [item.connection, { name: item.connection, bank: item.bank }])).values()].sort((a, b) => a.name.localeCompare(b.name))
+  const shown = items.filter((item) => !only || item.connection === only)
+  const count = shown.reduce((sum, item) => sum + item.more + item.messages.reduce((total, message) => total + message.count, 0), 0)
+  return { date, count, connections, items: shown }
+}
 
 // ----------------------------------------------------------------------- banks
 
@@ -159,7 +183,7 @@ function initialState() {
           { id: 'rev-1', name: 'EUR Main', iban_masked: 'LT32…8901', currency: 'EUR', identification_hash: 'h-rev-1', firefly_account_id: null, match_name: 'Revolut' },
           { id: 'rev-2', name: 'USD Pocket', iban_masked: 'LT11…4402', currency: 'USD', identification_hash: 'h-rev-2', firefly_account_id: null },
         ],
-        last_import: { at: lastNight, ok: true, summary: { messages: 2, first_error: null } },
+        last_import: { at: lastNight, ok: false, summary: { messages: 0, first_error: 'The bank answered 429 Too Many Requests (mock)' } },
         last_error: null,
         manual_import: null,
       },
@@ -512,6 +536,12 @@ async function api(method, route, query, body) {
   if (method === 'GET' && route === 'status') {
     const days = Math.min(365, Math.max(1, Number(query.get('days') ?? 30) || 30))
     return { data: await statusReport(days) }
+  }
+
+  if (method === 'GET' && route === 'errors') {
+    const date = query.get('date') ?? iso(Date.now())
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date))) throw new HttpError(422, 'date must be a day, as 2026-11-09')
+    return { data: errorsOn(date, query.get('connection')) }
   }
 
   const match = route.match(/^connections\/([a-z0-9-]+)(?:\/(accounts|reauth|imports))?$/)
