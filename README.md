@@ -8,7 +8,7 @@ A redesign of [Firefly Pocket](https://github.com/Majster01/firefly-pocket) (a F
 - `server/`: Pocket's Laravel API, carried over from firefly-pocket `back/` (Firefly proxy, transaction templates, bank connections, rule suggestions, EUR/VWCE exchange rates, Web Push, system status)
 - `dev/`: a throwaway local stack with dummy data only: Firefly III 6.6.6, Postgres, and a mock FireflyX importer + category suggester
 
-**`main` is production**: every merge is built (`Dockerfile`) and deployed to firefly-pocket-stack at https://next.bankparse.dev. See [DEPLOYING.md](DEPLOYING.md).
+**`main` is production**: every merge is built (`Dockerfile`) and deployed to firefly-pocket-stack. See [DEPLOYING.md](DEPLOYING.md).
 
 ## What's in the app
 
