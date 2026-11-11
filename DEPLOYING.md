@@ -1,6 +1,6 @@
 # Deploying
 
-**`main` is production.** Every push to `main`, in practice every merged PR, is built and deployed to the Firefly Pocket server at https://next.bankparse.dev with nothing else to do. Merge only what you want live; until then it stays on its branch.
+**`main` is production.** Every push to `main`, in practice every merged PR, is built and deployed to the Firefly Pocket server with nothing else to do. Merge only what you want live; until then it stays on its branch.
 
 ## What a merge does
 
