@@ -147,7 +147,9 @@ class PushNotificationTest extends TestCase
     {
         config(['app.vapid_public_key' => '']);
 
-        $this->notify()->assertStatus(503);
+        $this->notify()->assertStatus(503)->assertJsonPath('stored', 1);
+
+        $this->assertDatabaseCount('inbox_notifications', 1);
     }
 
     // ---- notify: validation ----
@@ -192,19 +194,23 @@ class PushNotificationTest extends TestCase
         $this->notify()->assertOk()->assertExactJson(['sent' => 2, 'failed' => 0, 'removed' => 0, 'skipped' => 0]);
 
         $this->assertEqualsCanonicalizing(['https://push.example/1', 'https://push.example/2'], $sender->endpoints);
-        $this->assertSame([['title' => 'Imported', 'body' => '12 new transactions', 'path' => '/']], $sender->payloads);
+        // One push per user, each with that user's own unread count
+        $this->assertSame([
+            ['badge' => 1, 'title' => 'Imported', 'body' => '12 new transactions', 'path' => '/', 'id' => 1],
+            ['badge' => 1, 'title' => 'Imported', 'body' => '12 new transactions', 'path' => '/', 'id' => 1],
+        ], $sender->payloads);
     }
 
-    public function test_notify_passes_the_path_badge_and_tag()
+    public function test_notify_passes_the_path_and_tag_and_ignores_the_senders_badge()
     {
         $sender = $this->fakePushSender();
         $this->subscription('https://push.example/1');
 
         $this->notify(['title' => 'T', 'body' => 'B', 'path' => '/bank-connections/list', 'badge' => 3, 'tag' => 'import'])->assertOk();
-        $this->notify(['title' => 'T', 'body' => 'B', 'badge' => 0])->assertOk();
+        $this->notify(['title' => 'T2', 'body' => 'B', 'badge' => 0])->assertOk();
 
-        $this->assertSame(['title' => 'T', 'body' => 'B', 'path' => '/bank-connections/list', 'badge' => 3, 'tag' => 'import'], $sender->payloads[0]);
-        $this->assertSame(['title' => 'T', 'body' => 'B', 'path' => '/', 'badge' => 0], $sender->payloads[1]);
+        $this->assertSame(['badge' => 1, 'title' => 'T', 'body' => 'B', 'path' => '/bank-connections/list', 'tag' => 'import', 'id' => 1], $sender->payloads[0]);
+        $this->assertSame(['badge' => 2, 'title' => 'T2', 'body' => 'B', 'path' => '/', 'id' => 2], $sender->payloads[1]);
     }
 
     public function test_notify_removes_gone_subscriptions_and_still_reaches_the_others()
@@ -297,7 +303,7 @@ class PushNotificationTest extends TestCase
             ->assertOk()->assertExactJson(['sent' => 1, 'failed' => 0, 'removed' => 0, 'skipped' => 1]);
 
         $this->assertSame(['https://push.example/wants'], $sender->endpoints);
-        $this->assertSame([['title' => 'Upgrade successful', 'body' => 'Firefly III 6.6.6 → 6.7.0', 'path' => '/']], $sender->payloads);
+        $this->assertSame([['badge' => 1, 'title' => 'Upgrade successful', 'body' => 'Firefly III 6.6.6 → 6.7.0', 'path' => '/', 'id' => 1]], $sender->payloads);
     }
 
     public function test_an_import_without_new_transactions_is_only_sent_when_asked_for()

@@ -19,7 +19,7 @@ const MAX_KEPT_CHARS = 1_000_000
 
 // Pocket's own data, never kept: the same list as NOT_CACHED in server/app/Services/ResponseCache.php
 const NOT_KEPT = [
-  'assistant', 'bank-connections', 'currencies/exchange', 'custom-icons', 'data-version', 'info', 'internal', 'profiles', 'push',
+  'assistant', 'bank-connections', 'currencies/exchange', 'custom-icons', 'data-version', 'info', 'internal', 'notifications', 'profiles', 'push',
   'system-status', 'test', 'transaction-templates', 'user', 'accounts/groups',
 ]
 

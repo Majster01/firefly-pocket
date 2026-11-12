@@ -10,6 +10,7 @@ use App\Http\Controllers\DataVersionController;
 use App\Http\Controllers\FireflyProxyController;
 use App\Http\Controllers\FireflyWebhookController;
 use App\Http\Controllers\InternalNotifyController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PiggyBankController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PushController;
@@ -124,6 +125,10 @@ Route::post('push/subscriptions', [PushController::class, 'subscribe']);
 Route::delete('push/subscriptions', [PushController::class, 'unsubscribe']);
 Route::get('push/preferences', [PushController::class, 'getPreferences']);
 Route::put('push/preferences', [PushController::class, 'savePreferences']);
+Route::get('notifications', [NotificationController::class, 'index']);
+Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount']);
+Route::post('notifications/read-all', [NotificationController::class, 'markAllRead']);
+Route::post('notifications/{id}/read', [NotificationController::class, 'markRead'])->where('id', '[0-9]+');
 // Not behind the user login: the FireflyX importer/suggester calls it with NOTIFY_API_TOKEN. The reverse proxy hides /api/internal/*
 Route::post('internal/notify', [InternalNotifyController::class, 'notify']);
 // Not behind the user login either: Firefly's webhook, checked by its signature (FIREFLY_WEBHOOK_SECRET)

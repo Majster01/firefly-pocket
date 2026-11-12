@@ -195,6 +195,18 @@ class ResponseCacheTest extends TestCase
         $this->getJson('api/accounts', $this->headers())->assertHeader('X-Pocket-Cache', 'miss');
     }
 
+    public function test_the_notifications_center_is_neither_kept_nor_a_change_of_firefly()
+    {
+        $this->getJson('api/accounts', $this->headers());
+
+        $this->getJson('api/notifications', $this->headers())->assertOk()->assertHeaderMissing('X-Pocket-Cache');
+        $this->getJson('api/notifications/unread-count', $this->headers())->assertOk()->assertHeaderMissing('X-Pocket-Cache');
+        $this->postJson('api/notifications/read-all', [], $this->headers())->assertOk();
+        $this->postJson('api/notifications/1/read', [], $this->headers())->assertNotFound();
+
+        $this->getJson('api/accounts', $this->headers())->assertHeader('X-Pocket-Cache', 'hit');
+    }
+
     private function webhook($body, $secret = self::WEBHOOK_SECRET, $timestamp = 1793000000)
     {
         $json = json_encode($body);

@@ -23,7 +23,8 @@ export const NAV = [
   {
     title: 'Automation',
     items: [
-      { to: '/bank-connections', label: 'Bank connections', icon: 'bank', feature: 'bankConnections' },
+      { to: '/notifications', label: 'Notifications', icon: 'bell', badge: 'notifications' },
+      { to: '/bank-connections', label: 'Bank connections', icon: 'bank', feature: 'bankConnections', badge: 'connections' },
       { to: '/suggestions', label: 'Suggestions', icon: 'sparkles', feature: 'ruleSuggestions', badge: 'suggestions' },
       { to: '/rules', label: 'Rules', icon: 'bolt', feature: 'rules' },
       { to: '/system-status', label: 'System status', icon: 'pulse', feature: 'bankConnections' },

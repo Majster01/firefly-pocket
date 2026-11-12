@@ -1,6 +1,7 @@
 /* global self, clients */
 import { precacheAndRoute, createHandlerBoundToURL } from 'workbox-precaching'
 import { NavigationRoute, registerRoute } from 'workbox-routing'
+import { applyAppBadge, tappedUrl } from './lib/notifications.js'
 
 // The app shell works offline; /api never comes from the cache
 precacheAndRoute(self.__WB_MANIFEST)
@@ -27,7 +28,8 @@ registerRoute(new NavigationRoute(hiddenShell, { denylist: notTheApp }))
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (event) => event.waitUntil(clients.claim()))
 
-// Payload from Pocket's PushNotificationService: {title, body, path, badge, tag}
+// Payload from Pocket's PushNotificationService: {title, body, path, id, badge, tag}. id: the notification in the center;
+// badge: how many of them this user has unread, which is the number on the app icon
 self.addEventListener('push', (event) => {
   let payload = {}
   try {
@@ -41,18 +43,16 @@ self.addEventListener('push', (event) => {
       tag: payload.tag,
       icon: '/icon-192.png',
       badge: '/icon-192.png',
-      data: { path: payload.path ?? '/' },
+      data: { path: payload.path ?? '/', id: payload.id },
     }),
   ]
-  if (typeof payload.badge === 'number' && self.navigator.setAppBadge) {
-    tasks.push(payload.badge > 0 ? self.navigator.setAppBadge(payload.badge) : self.navigator.clearAppBadge())
-  }
+  if (typeof payload.badge === 'number') tasks.push(applyAppBadge(payload.badge, self.navigator))
   event.waitUntil(Promise.all(tasks))
 })
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const path = event.notification.data?.path ?? '/'
+  const path = tappedUrl(event.notification.data?.path ?? '/', event.notification.data?.id)
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
       const client = list.find((item) => 'focus' in item)

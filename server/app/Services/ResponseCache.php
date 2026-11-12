@@ -26,14 +26,14 @@ class ResponseCache
 
     // Pocket's own data or data that is not Firefly's: never cached here (paths after /api/)
     const NOT_CACHED = [
-        'assistant', 'bank-connections', 'batch', 'currencies/exchange', 'custom-icons', 'data-version', 'info', 'internal', 'profiles', 'push',
+        'assistant', 'bank-connections', 'batch', 'currencies/exchange', 'custom-icons', 'data-version', 'info', 'internal', 'notifications', 'profiles', 'push',
         'system-status', 'test', 'transaction-templates', 'user', 'accounts/groups',
     ];
 
     // Requests other than GET that change nothing in Firefly or in what is cached, or start the new version
     // themselves (data-version): no new version from the middleware
     const NO_CHANGE = [
-        'assistant', 'batch', 'data-version', 'internal', 'profiles', 'push', 'rule-suggestions/preview', 'rules/test', 'transaction-templates',
+        'assistant', 'batch', 'data-version', 'internal', 'notifications', 'profiles', 'push', 'rule-suggestions/preview', 'rules/test', 'transaction-templates',
     ];
 
     // Set on a request whose answers are kept for another token of the same Firefly user (CacheWarmUp)

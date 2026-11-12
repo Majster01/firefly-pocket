@@ -1,6 +1,10 @@
 <template>
   <div>
     <PageHeader :title="greeting" :eyebrow="todayLabel">
+      <RouterLink v-if="!editing" to="/notifications" class="btn icon small dotted" :aria-label="badges.notifications > 0 ? `Notifications, ${badges.notifications} unread` : 'Notifications'">
+        <Icon name="bell" :size="18" />
+        <i v-if="badges.notifications > 0" class="dot corner-dot" />
+      </RouterLink>
       <button v-if="!editing" class="btn icon small" :aria-label="settings.dashboard.hideBalances ? 'Show amounts' : 'Hide amounts'" @click="settings.dashboard.hideBalances = !settings.dashboard.hideBalances">
         <Icon :name="settings.dashboard.hideBalances ? 'eyeOff' : 'eye'" :size="18" />
       </button>
