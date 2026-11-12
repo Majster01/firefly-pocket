@@ -37,7 +37,7 @@
       <RouterLink v-for="tab in tabs.slice(2)" :key="tab.to" :to="tab.to" class="tab" :class="{ on: tabOn(tab) }" :aria-current="tabOn(tab) ? 'page' : null">
         <span class="tab-pill">
           <Icon :name="tab.icon" :size="23" />
-          <i v-if="tab.to === '/more' && moreDot" class="tab-dot" />
+          <i v-if="tab.to === '/more' && moreDot" class="dot tab-dot" />
         </span>
         <span class="tab-label">{{ tab.label }}</span>
       </RouterLink>
@@ -51,7 +51,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Icon from './components/Icon.vue'
 import LockBar from './components/LockBar.vue'
 import Toasts from './components/Toasts.vue'
@@ -59,11 +59,12 @@ import TransactionSheet from './components/TransactionSheet.vue'
 import { NAV } from './nav.js'
 import { settings } from './lib/settings.js'
 import { compose } from './lib/composer.js'
-import { badges, refreshBadges } from './lib/badges.js'
+import { badges, markNotificationRead, refreshBadges } from './lib/badges.js'
 import { load } from './lib/data.js'
 import { lock } from './lib/lock.js'
 
 const route = useRoute()
+const router = useRouter()
 
 const tabs = [
   { to: '/', label: 'Home', icon: 'home' },
@@ -77,9 +78,9 @@ const isActive = (to) => (to === '/' ? route.path === '/' : route.path === to ||
 const inMore = computed(() => !tabs.slice(0, 3).some((tab) => isActive(tab.to)))
 // More stands in for every section without a tab of its own: it is the current tab on those pages too
 const tabOn = (tab) => isActive(tab.to) || (tab.to === '/more' && inMore.value)
-const badgeFor = (item) => (item.badge ? badges[item.badge] : item.to === '/bank-connections' ? badges.connections : 0)
-// Only sections that are switched on can call for attention
-const moreDot = computed(() => (settings.features.ruleSuggestions && badges.suggestions > 0) || (settings.features.bankConnections && badges.connections > 0))
+const badgeFor = (item) => (item.badge ? badges[item.badge] : 0)
+// Only sections that are switched on can call for attention: sections already leaves the others out
+const moreDot = computed(() => sections.value.some((section) => section.items.some((item) => badgeFor(item) > 0)))
 
 // A short window can hide the sidebar's last sections: fade its bottom edge while there is more to scroll to
 const sideNav = ref(null)
@@ -107,6 +108,18 @@ onMounted(() => {
   }
 })
 watch(() => route.path, () => refreshBadges())
+
+// Tapping a notification on the phone opens its page with ?n=<id> (sw.js): that notification is read, and the id leaves the address
+watch(
+  () => route.query.n,
+  (id) => {
+    if (!id || !settings.token) return
+    const { n, ...query } = route.query
+    router.replace({ path: route.path, query, hash: route.hash })
+    if (/^\d+$/.test(id)) markNotificationRead(id)
+  },
+  { immediate: true },
+)
 </script>
 
 <style>
@@ -178,10 +191,6 @@ watch(() => route.path, () => refreshBadges())
   top: 3px;
   /* 11px in from the edge of a full 52px pill, following the icon when the pill narrows */
   right: calc(50% - 15px);
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent);
   box-shadow: 0 0 0 2px var(--glass-base);
 }
 .tab-plus {

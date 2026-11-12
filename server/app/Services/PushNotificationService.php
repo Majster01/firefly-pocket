@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\PushSubscription;
 use App\Services\Push\PushPreferences;
 use App\Services\Push\PushSender;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Web Push: stores the devices that opted in and sends them notifications (and the app badge count).
@@ -58,11 +59,12 @@ class PushNotificationService
 
     /**
      * Sends to the stored subscriptions that want this kind of message. $message: title, body, path, and optionally
-     * badge, tag, and the kind of message (event, with count for the number of new transactions), which only decides who
-     * gets it and is not part of what the device receives.
+     * tag, and the kind of message (event, with count for the number of new transactions), which only decides who
+     * gets it and is not part of what the device receives. $unreadCounts maps user ids to their unread notifications,
+     * which each user's devices get as the app badge; without it no badge is sent.
      * Subscriptions the push service reports gone are deleted.
      */
-    public function notify(array $message): array
+    public function notify(array $message, ?callable $unreadCounts = null): array
     {
         $event = $message['event'] ?? null;
         $count = isset($message['count']) ? (int) $message['count'] : null;
@@ -76,7 +78,14 @@ class PushNotificationService
             return ['sent' => 0, 'failed' => 0, 'removed' => 0, 'skipped' => $skipped];
         }
 
-        $results = collect($this->sender->send($subscriptions, json_encode($message)));
+        $badges = $unreadCounts ? $unreadCounts($subscriptions->pluck('user_id')->unique()->values()->all()) : null;
+        $results = [];
+        foreach ($subscriptions->groupBy('user_id')->sortKeys() as $userId => $devices) {
+            $payload = $badges === null ? $message : ['badge' => $badges[$userId] ?? 0] + $message;
+            Log::info('Push to the devices of a user', ['user_id' => $userId, 'devices' => $devices->count(), 'badge' => $payload['badge'] ?? null]);
+            $results += $this->sender->send($devices, json_encode($payload));
+        }
+        $results = collect($results);
         $gone = $results->filter(fn($result) => $result === PushSender::GONE)->keys();
         PushSubscription::whereIn('endpoint', $gone)->delete();
 

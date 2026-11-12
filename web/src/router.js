@@ -17,6 +17,7 @@ const routes = [
   { path: '/recurring', name: 'recurring', component: page('Recurring'), meta: { title: 'Recurring', feature: 'recurring' } },
   { path: '/templates', name: 'templates', component: page('Templates'), meta: { title: 'Templates', feature: 'templates' } },
   { path: '/currencies', name: 'currencies', component: page('Currencies'), meta: { title: 'Exchange rates' } },
+  { path: '/notifications', name: 'notifications', component: page('Notifications'), meta: { title: 'Notifications' } },
   { path: '/suggestions', name: 'suggestions', component: page('Suggestions'), meta: { title: 'Suggestions', feature: 'ruleSuggestions' } },
   { path: '/suggestions/:id', name: 'suggestion', component: page('Suggestion'), meta: { title: 'Suggestion', feature: 'ruleSuggestions' } },
   { path: '/rules', name: 'rules', component: page('Rules'), meta: { title: 'Rules', feature: 'rules' } },

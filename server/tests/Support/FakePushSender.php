@@ -13,6 +13,8 @@ class FakePushSender implements PushSender
 {
     public array $payloads = [];
     public array $endpoints = [];
+    /** endpoint => the payload it was sent */
+    public array $payloadFor = [];
 
     public function __construct(private array $outcomes = [])
     {
@@ -24,6 +26,7 @@ class FakePushSender implements PushSender
         $results = [];
         foreach ($subscriptions as $subscription) {
             $this->endpoints[] = $subscription->endpoint;
+            $this->payloadFor[$subscription->endpoint] = json_decode($payload, true);
             $results[$subscription->endpoint] = $this->outcomes[$subscription->endpoint] ?? self::SENT;
         }
         return $results;

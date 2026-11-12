@@ -41,6 +41,7 @@ export default defineConfig({
     proxy: { '/api': { target: API_URL, changeOrigin: true } },
   },
   preview: { port: 4173, proxy: { '/api': { target: API_URL, changeOrigin: true } } },
-  // A module that touches the DOM at import cannot be tested yet (no jsdom)
-  test: { environment: 'node', include: ['src/**/*.test.js'] },
+  // A module that touches the DOM at import cannot be tested yet (no jsdom).
+  // TZ is set before a test file loads, so the date formats built at import and the day keys use one zone (notifications.test.js)
+  test: { environment: 'node', include: ['src/**/*.test.js'], env: { TZ: 'Europe/Ljubljana' } },
 })

@@ -39,6 +39,13 @@
 
     <h2 class="section-title">Notifications</h2>
     <div class="card">
+      <RouterLink to="/notifications" class="row setting-row">
+        <span class="grow">
+          Notifications center
+          <span class="tiny muted" style="display: block">Everything Pocket has told you, also what a device chose not to be pushed</span>
+        </span>
+        <Icon name="chevron" class="chev" :size="18" />
+      </RouterLink>
       <div v-if="!pushSupported()" class="small muted">This browser has no Web Push.<template v-if="isIos"> On iPhone, add Pocket to the Home Screen (Share → Add to Home Screen) and open it from there.</template></div>
       <template v-else>
         <label class="row setting-row">

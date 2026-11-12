@@ -392,6 +392,23 @@ a.item:hover {
   color: var(--muted);
   flex-shrink: 0;
 }
+/* The accent dot that says "something is unread"; the tab bar's and the Home bell's add their own place and ring */
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+/* A button with a dot in its corner: the notifications bell of Home */
+.btn.dotted {
+  position: relative;
+}
+.btn.dotted .corner-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  box-shadow: 0 0 0 2px var(--glass-base);
+}
 
 .avatar {
   display: grid;

@@ -28,5 +28,5 @@ const TABS = ['/', '/transactions', '/accounts']
 const sections = computed(() =>
   NAV.map((section) => ({ ...section, items: section.items.filter((item) => !TABS.includes(item.to) && (!item.feature || settings.features[item.feature])) })).filter((section) => section.items.length),
 )
-const badgeFor = (item) => (item.badge ? badges[item.badge] : item.to === '/bank-connections' ? badges.connections : 0)
+const badgeFor = (item) => (item.badge ? badges[item.badge] : 0)
 </script>
