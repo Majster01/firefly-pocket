@@ -166,7 +166,10 @@
         <button class="btn small danger" @click="signOut"><Icon name="logout" :size="17" /> Sign out</button>
       </div>
     </div>
-    <p class="tiny muted about">Firefly Pocket · design language from firefly-money (MIT){{ pocket?.version ? ` · server ${pocket.version}` : '' }}</p>
+    <p class="tiny muted about">
+      Firefly Pocket{{ pocket?.version ? ` · release ${pocket.version}` : '' }}<br />
+      Built for <a href="https://www.firefly-iii.org" target="_blank" rel="noopener">Firefly III</a>, the free and open source personal finance manager. With thanks to its authors and community.
+    </p>
   </div>
 </template>
 
