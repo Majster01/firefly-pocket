@@ -114,7 +114,7 @@ Then open http://localhost:5173 and paste the token from `dev/.web-token.env`. F
 - `dev/scripts/bootstrap.sh --reset` throws the data away and starts over.
 - On a host without IPv6 (some Linux cloud machines), set `POCKET_DEV_IPV4=1`.
 - The seed (`dev/scripts/seed.mjs`) refuses any Firefly that is not on localhost.
-- `npm test` in `web/` runs the web app's unit tests ([Vitest](https://vitest.dev), plain node: `src/lib/foo.js` is tested in `src/lib/foo.test.js`, and only modules that do not touch the DOM at import can be). Nothing runs them automatically: run them before you merge. The server's tests are `php artisan test` in `server/`.
+- `npm test` in `web/` runs the web app's unit tests ([Vitest](https://vitest.dev), plain node: `src/lib/foo.js` is tested in `src/lib/foo.test.js`, and only modules that do not touch the DOM at import can be). The `Tests` workflow runs them on every pull request, together with the server's tests (`php artisan test` in `server/`; set `FIREFLY_URL` to any URL if your `.env` has none).
 
 The dummy data: EUR as primary currency; NLB Current, Revolut, Savings, Wallet, and an IBKR account in VWCE shares with a monthly €400 buy and monthly EUR prices; a car loan; 15 categories with notes; 5 budgets with monthly limits; tags, piggy banks and recurring transactions; the `Categorization` rule group (guard + category rules) and pending suggestions in `Suggestions` for the last ~40 days of bank-fed transactions, which stay uncategorized.
 

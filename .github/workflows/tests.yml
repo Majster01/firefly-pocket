@@ -1,0 +1,86 @@
+# Run the tests on every pull request and every push to main.
+#
+# Make the check "Tests" required in the repository's branch protection (or
+# ruleset) for main: Settings > Branches > Require status checks to pass.
+# Only the final "Tests" job needs to be required; it fails when either suite
+# fails, so adding a suite later doesn't change what is required.
+#
+# No path filters on purpose: a required check that is skipped by a path
+# filter never reports, and blocks the PR forever.
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A newer push to the same PR supersedes a run still going.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    name: Web tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+      # The Docker image builds the web app; catch a broken build here.
+      - run: npm run build
+
+  server:
+    name: Server tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo_sqlite, sqlite3, bcmath, intl
+          coverage: none
+      - uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ hashFiles('server/composer.lock') }}
+          restore-keys: composer-
+      - run: composer install --no-interaction --no-progress --prefer-dist
+      - run: cp -n .env.example .env && php artisan key:generate
+      # Untracked by git, but Laravel needs them (compiled views, sessions).
+      - run: mkdir -p storage/framework/{views,sessions,cache} storage/logs bootstrap/cache
+      # The tests expect a Firefly URL (the HTTP calls are faked); .env.example leaves it empty.
+      - run: vendor/bin/phpunit
+        env:
+          FIREFLY_URL: http://firefly.test
+
+  # The one check to require. It runs even when a suite fails or is cancelled,
+  # and fails unless every suite succeeded.
+  tests:
+    name: Tests
+    if: always()
+    needs: [web, server]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      - env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Suite results: $RESULTS"
+          for r in $RESULTS; do [ "$r" = success ] || exit 1; done
