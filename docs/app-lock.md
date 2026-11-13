@@ -10,7 +10,7 @@ Settings → Security → **Require passkey**. The app asks for Face ID, Touch I
 - **First load.** The service worker (`sw.js`) serves the app shell as `<html data-amounts-pending class="amounts-hidden">`, so the page always starts with its amounts hidden, whether or not the lock is on. `initLock()` clears the flag (`lock.pending`) once it has decided if the app is locked; if it is, it stays hidden, if not the amounts appear. This keeps balances from flashing when the Home Screen app comes back. Without a service worker (first visit, dev server) the page opens as before.
 - **On a wide screen** the sidebar shows through the Unlock bar, heavily blurred.
 - **Unlock** is the button on the lock screen. **Ask automatically** (on by default, Settings → Security) also opens the Face ID or Touch ID prompt by itself, once, when the lock screen comes up and when the app comes back to the screen (never while it is hidden). If the browser refuses a prompt that did not come from a tap, or it is cancelled, nothing is shown and the Unlock button is what is left: there is no retry loop. Some Safari versions may want the tap, and the Home Screen app has had reports of doubled or stalled prompts on launch; switch the setting off if that happens.
-- **Turning it off** needs the passkey too.
+- **Turning it off** needs the passkey too, and so does **showing amounts again** (the eye on Home, the Hide amounts switch in Settings) while the lock is on and they are hidden. Hiding never asks.
 - **Lost passkey** (new phone, iCloud Keychain reset): remove the app from the Home Screen, or clear the site's data, and open it again. That clears the Firefly token too, so paste it again.
 
 What it does not do:
