@@ -107,7 +107,7 @@ html.sheet-open body {
 .sheet-layer {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: var(--z-sheet);
   display: flex;
   align-items: flex-end;
   justify-content: center;

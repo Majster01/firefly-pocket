@@ -130,7 +130,7 @@ function onKey(event) {
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  z-index: 5;
+  z-index: var(--z-dropdown);
   margin: 0;
   padding: 4px;
   list-style: none;

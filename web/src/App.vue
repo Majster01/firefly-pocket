@@ -138,7 +138,7 @@ watch(
 }
 .tabbar {
   position: fixed;
-  z-index: 50;
+  z-index: var(--z-tabbar);
   left: calc(12px + var(--safe-left));
   right: calc(12px + var(--safe-right));
   bottom: calc(var(--safe-bottom) + 10px);
@@ -239,7 +239,7 @@ watch(
     width: 248px;
     padding: 18px 12px;
     border-radius: 26px;
-    z-index: 40;
+    z-index: var(--z-nav);
   }
   .main {
     max-width: 1180px;
