@@ -242,6 +242,16 @@ export function confirmPasskey() {
   })
 }
 
+/**
+ * Sets "Hide amounts". Showing them again needs the passkey when the lock is on, so whoever is handed an unlocked
+ * phone cannot reveal the amounts. Hiding never asks. Resolves true when the setting changed; a refused or cancelled
+ * passkey leaves it as it was and throws.
+ */
+export async function setHideAmounts(hide) {
+  if (!hide && settings.dashboard.hideBalances && settings.lock.enabled && settings.lock.credentialId) await confirmPasskey()
+  settings.dashboard.hideBalances = hide
+}
+
 /** Makes this device's passkey and turns the lock on. Throws when the device or the user refuses. */
 export function enroll() {
   return busy(async () => {

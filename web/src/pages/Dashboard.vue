@@ -5,7 +5,7 @@
         <Icon name="bell" :size="18" />
         <i v-if="badges.notifications > 0" class="dot corner-dot" />
       </RouterLink>
-      <button v-if="!editing" class="btn icon small" :aria-label="settings.dashboard.hideBalances ? 'Show amounts' : 'Hide amounts'" @click="settings.dashboard.hideBalances = !settings.dashboard.hideBalances">
+      <button v-if="!editing" class="btn icon small" :aria-label="settings.dashboard.hideBalances ? 'Show amounts' : 'Hide amounts'" @click="toggleAmounts">
         <Icon :name="settings.dashboard.hideBalances ? 'eyeOff' : 'eye'" :size="18" />
       </button>
       <button v-if="!editing" class="btn small" aria-label="Customize Home" @click="editing = true"><Icon name="grid" :size="17" /><span class="customize-label">Customize</span></button>
@@ -84,6 +84,8 @@ import ConnectionsTile from '../components/home/tiles/ConnectionsTile.vue'
 import { DEVICES, TILES, device, home, optionsOf, periodLabel, periodRange, pullHome, touch } from '../lib/home.js'
 import { load } from '../lib/data.js'
 import { settings } from '../lib/settings.js'
+import { passkeyError, setHideAmounts } from '../lib/lock.js'
+import { toastError } from '../lib/toast.js'
 import { badges, refreshBadges } from '../lib/badges.js'
 import { composer } from '../lib/composer.js'
 
@@ -124,6 +126,14 @@ const layout = computed(() => home[device.value])
 const view = computed(() => (['month', 'year'].includes(route.query.view) ? route.query.view : layout.value.view))
 const offset = computed(() => Math.min(0, Number.parseInt(route.query.offset ?? '0', 10) || 0))
 const range = computed(() => periodRange(view.value, offset.value))
+
+async function toggleAmounts() {
+  try {
+    await setHideAmounts(!settings.dashboard.hideBalances)
+  } catch (error) {
+    toastError(passkeyError(error))
+  }
+}
 
 function setView(value) {
   if (layout.value.view !== value) {

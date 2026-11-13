@@ -22,7 +22,7 @@
           Hide amounts
           <span class="tiny muted" style="display: block">Everywhere in Pocket: the digits turn to dots. Pocket does this by itself while it is locked.</span>
         </span>
-        <input v-model="settings.dashboard.hideBalances" type="checkbox" class="switch" />
+        <input :checked="settings.dashboard.hideBalances" type="checkbox" class="switch" @change="toggleAmounts" />
       </label>
     </div>
 
@@ -181,7 +181,7 @@ import { settings } from '../lib/settings.js'
 import { syncEverything } from '../lib/sync.js'
 import { isStandalone, loadPreferences, pushStatus, pushSupported, savePreferences, subscribePush, unsubscribePush } from '../lib/push.js'
 import { toast, toastError } from '../lib/toast.js'
-import { TIMEOUTS, confirmPasskey, disable as disableLock, enroll, lock, lockNow, passkeyAvailable, passkeyError, passkeySupported } from '../lib/lock.js'
+import { TIMEOUTS, confirmPasskey, disable as disableLock, enroll, lock, lockNow, passkeyAvailable, passkeyError, passkeySupported, setHideAmounts } from '../lib/lock.js'
 
 
 const THEMES = [
@@ -290,6 +290,15 @@ const lockHint = computed(() => {
   if (!lockCanUse.value) return 'This device has no Face ID, Touch ID or screen lock to use.'
   return 'Ask for Face ID or Touch ID to open Pocket, and again after it has been left alone for a while.'
 })
+async function toggleAmounts(event) {
+  const input = event.target
+  try {
+    await setHideAmounts(input.checked)
+  } catch (error) {
+    input.checked = settings.dashboard.hideBalances
+    toastError(passkeyError(error))
+  }
+}
 async function toggleLock(event) {
   const input = event.target
   const turnOn = input.checked
