@@ -25,7 +25,7 @@ onMounted(autoUnlock)
 /* Where the tab bar is, with the same footprint: the app behind looks as it does unlocked, amounts hidden */
 .lockbar {
   position: fixed;
-  z-index: 1000;
+  z-index: var(--z-lock);
   left: calc(12px + var(--safe-left));
   right: calc(12px + var(--safe-right));
   bottom: calc(var(--safe-bottom) + 10px);

@@ -18,7 +18,7 @@ import Icon from './Icon.vue'
 <style>
 .toasts {
   position: fixed;
-  z-index: 200;
+  z-index: var(--z-toast);
   left: 14px;
   right: 14px;
   bottom: calc(var(--safe-bottom) + 92px);

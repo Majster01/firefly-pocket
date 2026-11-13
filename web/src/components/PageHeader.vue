@@ -27,7 +27,7 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
 .page-head {
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: var(--z-sticky);
   margin: 0 -16px 8px;
   padding: calc(var(--safe-top) + 10px) 16px 10px;
   transition: background 0.2s ease, box-shadow 0.2s ease;

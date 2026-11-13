@@ -2,6 +2,19 @@
    warm translucent glass over a soft-focus room, ink pills for the main action, a white pill on the current tab.
    Light and Night; with no data-theme the system decides. */
 
+/* One z-index scale for the whole app. Keep new layers here instead of inventing numbers. */
+:root {
+  --z-card-raised: 1;
+  --z-sticky: 20;
+  --z-dropdown: 30;
+  --z-nav: 40;
+  --z-tabbar: 50;
+  --z-sheet: 100;
+  --z-toast: 200;
+  --z-lock: 1000;
+  --z-overlay: 2147483647;
+}
+
 :root {
   --bg: #d9c7b3;
   --text: #1d1915;
@@ -306,6 +319,14 @@ h3 {
   box-shadow: var(--frost-edge), var(--card-shadow);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
   backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+}
+
+/* Cards and glass panels use backdrop-filter, so each is its own stacking context: a menu inside one
+   can never paint over a later sibling card. Lift the panel that holds a menu above the rest. */
+.card:has(.suggest-list),
+.glass:has(.suggest-list) {
+  position: relative;
+  z-index: var(--z-dropdown);
 }
 
 .card {
@@ -801,7 +822,7 @@ select.input {
     content: 'Rotate your phone to portrait';
     position: fixed;
     inset: 0;
-    z-index: 2147483647;
+    z-index: var(--z-overlay);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -850,7 +871,7 @@ select.input {
   top: 24px;
   left: 50%;
   margin-left: -11px;
-  z-index: 1;
+  z-index: var(--z-card-raised);
   color: var(--muted);
 }
 .more {
