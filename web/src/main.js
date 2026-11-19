@@ -5,7 +5,7 @@ import { applyTheme } from './lib/settings.js'
 import { setUnauthorizedHandler } from './lib/api.js'
 import { registerServiceWorker } from './lib/push.js'
 import { warmUp } from './lib/cache.js'
-import { watchForUpdate } from './lib/update.js'
+import { reloadOnUpgradePush, watchForUpdate } from './lib/update.js'
 import { initLock } from './lib/lock.js'
 import './styles.css'
 
@@ -18,6 +18,7 @@ screen.orientation?.lock?.('portrait').catch(() => {})
 initLock()
 warmUp()
 watchForUpdate()
+reloadOnUpgradePush()
 applyTheme()
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme)
 setUnauthorizedHandler(() => {

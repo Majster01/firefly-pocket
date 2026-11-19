@@ -2,6 +2,8 @@
 // over at once. The page that is open keeps running the code it was loaded with until it is loaded again, though, so a
 // version can be installed and still not running. That is "newer" here.
 
+import { toast } from './toast.js'
+
 const supported = () => 'serviceWorker' in navigator && !import.meta.env.DEV
 
 let newer = false
@@ -55,4 +57,38 @@ export async function checkForUpdate({ wait = 20000 } = {}) {
   if (installing) await settled(installing, wait)
   if (newer) return 'newer'
   return installing && installing.state !== 'activated' ? 'unknown' : 'current'
+}
+
+// The page the user is typing in is not reloaded under them
+const editing = () => {
+  const element = document.activeElement
+  return Boolean(element && (element.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(element.tagName)))
+}
+
+let reloadPending = false
+
+// Right away when nobody is typing; otherwise the next time the app leaves the screen, so it comes back as the newest
+function reloadIntoNewer() {
+  if (reloadPending) return
+  reloadPending = true
+  if (document.hidden || !editing()) {
+    if (!document.hidden) toast('Pocket was updated, reloading…')
+    setTimeout(() => location.reload(), document.hidden ? 0 : 1200)
+    return
+  }
+  document.addEventListener('visibilitychange', () => document.hidden && location.reload())
+}
+
+/**
+ * As the app starts: an upgrade push (sw.js, check_update) asks the open app to look for a newer version of itself. If
+ * one was installed, the app reloads into it. A Firefly III upgrade finds this is the newest and changes nothing.
+ */
+export function reloadOnUpgradePush() {
+  if (!supported()) return
+  navigator.serviceWorker.addEventListener('message', async (event) => {
+    if (event.data?.type !== 'check-update' || reloadPending) return
+    if ((await checkForUpdate()) === 'newer') reloadIntoNewer()
+  })
+  // Messages wait in a queue until this; a push that came while the page was loading is delivered now
+  navigator.serviceWorker.startMessages()
 }
