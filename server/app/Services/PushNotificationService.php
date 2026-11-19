@@ -61,7 +61,8 @@ class PushNotificationService
      * Sends to the stored subscriptions that want this kind of message. $message: title, body, path, and optionally
      * tag, and the kind of message (event, with count for the number of new transactions), which only decides who
      * gets it and is not part of what the device receives. $unreadCounts maps user ids to their unread notifications,
-     * which each user's devices get as the app badge; without it no badge is sent.
+     * which each user's devices get as the app badge; without it no badge is sent. An upgrade.success also carries
+     * check_update: the service worker then fetches the newest app, and an open app reloads into it (web/src/lib/update.js).
      * Subscriptions the push service reports gone are deleted.
      */
     public function notify(array $message, ?callable $unreadCounts = null): array
@@ -69,6 +70,9 @@ class PushNotificationService
         $event = $message['event'] ?? null;
         $count = isset($message['count']) ? (int) $message['count'] : null;
         unset($message['event'], $message['count']);
+        if ($event === PushPreferences::UPGRADE_SUCCESS) {
+            $message['check_update'] = true;
+        }
 
         $now = now(config('app.notify_timezone'));
         $all = PushSubscription::all();

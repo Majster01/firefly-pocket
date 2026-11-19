@@ -13,7 +13,7 @@ Header `Authorization: Bearer <NOTIFY_API_TOKEN>` (32+ characters). JSON body:
 | `path` | optional, the app page a tap opens (default `/`) |
 | `badge` | accepted and ignored: the app badge is the user's unread notifications, which Pocket works out itself (see below). Older senders may keep sending it |
 | `tag` | optional, at most 64; a new notification with the same tag replaces the previous one |
-| `event` | optional, the kind of message: `import.success`, `import.failure`, `suggestions.digest`, `upgrade.success`. Decides which devices get it and is not sent to the device. **No event is an alert** (backup, consent or deploy failure): every device gets it |
+| `event` | optional, the kind of message: `import.success`, `import.failure`, `suggestions.digest`, `upgrade.success`. Decides which devices get it and is not sent to the device; an `upgrade.success` push carries `check_update: true` instead (see below). **No event is an alert** (backup, consent or deploy failure): every device gets it |
 | `count` | optional integer, new transactions of an `import.success` |
 
 Answers: `200 {"sent":n,"failed":n,"removed":n,"skipped":n}` (`skipped`: devices that turned this event off), `401` bad token, `422` invalid body, `503` push not configured (`{"message":…,"stored":id}`: the notification is kept in the center all the same).
@@ -27,6 +27,10 @@ Every valid notification is stored (tables `inbox_notifications`, `inbox_notific
 - **Badge:** each push carries `badge` = that user's unread count and `id` = the stored notification. A tap on the notification opens its `path` with `?n=<id>`, which the app turns into "read". The app also sets or clears the icon badge itself when it opens and whenever something is read. A device that skipped a push gets no new number until the app opens: iOS cannot update a badge without a visible notification.
 - **Retention:** older than 90 days, or beyond the newest 500, is deleted whenever a notification is stored.
 - **API** (signed in): `GET /api/notifications?before=<id>&limit=<1-50>` → `{data, next, unread}`, `GET /api/notifications/unread-count` → `{count}`. These are never kept by the response cache and do not start a new data version.
+
+## Upgrades reload the app
+
+An `upgrade.success` push makes the service worker fetch `sw.js` again, which installs a newer app if one was deployed, so even a closed app opens as the newest. Open windows are told, look for a newer version (`lib/update.js`) and reload into it: right away, with a toast, or, while a text field has focus, the next time the app leaves the screen. A Firefly III upgrade finds the app up to date and changes nothing. A device that switched Upgrades off gets no push and keeps the usual behaviour (a newer app runs from the next load).
 
 ## Settings per device
 

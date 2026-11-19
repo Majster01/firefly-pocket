@@ -303,7 +303,22 @@ class PushNotificationTest extends TestCase
             ->assertOk()->assertExactJson(['sent' => 1, 'failed' => 0, 'removed' => 0, 'skipped' => 1]);
 
         $this->assertSame(['https://push.example/wants'], $sender->endpoints);
-        $this->assertSame([['badge' => 1, 'title' => 'Upgrade successful', 'body' => 'Firefly III 6.6.6 → 6.7.0', 'path' => '/', 'id' => 1]], $sender->payloads);
+        // The event is not sent; an upgrade only tells the app to look for a newer version of itself
+        $this->assertSame([['badge' => 1, 'title' => 'Upgrade successful', 'body' => 'Firefly III 6.6.6 → 6.7.0', 'path' => '/', 'check_update' => true, 'id' => 1]], $sender->payloads);
+    }
+
+    public function test_only_an_upgrade_asks_the_app_to_check_for_an_update()
+    {
+        $sender = $this->fakePushSender();
+        $this->subscriptionWith('https://push.example/1', []);
+
+        $this->notify(['title' => 'NLB import failed', 'body' => 'Consent expired', 'event' => 'import.failure'])->assertOk();
+        $this->notify(['title' => 'Backup failed', 'body' => 'Disk full'])->assertOk();
+
+        $this->assertCount(2, $sender->payloads);
+        foreach ($sender->payloads as $payload) {
+            $this->assertArrayNotHasKey('check_update', $payload);
+        }
     }
 
     public function test_an_import_without_new_transactions_is_only_sent_when_asked_for()

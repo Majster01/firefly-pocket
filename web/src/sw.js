@@ -28,8 +28,9 @@ registerRoute(new NavigationRoute(hiddenShell, { denylist: notTheApp }))
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (event) => event.waitUntil(clients.claim()))
 
-// Payload from Pocket's PushNotificationService: {title, body, path, id, badge, tag}. id: the notification in the center;
-// badge: how many of them this user has unread, which is the number on the app icon
+// Payload from Pocket's PushNotificationService: {title, body, path, id, badge, tag, check_update}. id: the notification in
+// the center; badge: how many of them this user has unread, which is the number on the app icon; check_update: an upgrade
+// was deployed (Pocket's, or Firefly III's, which changes nothing here)
 self.addEventListener('push', (event) => {
   let payload = {}
   try {
@@ -47,8 +48,17 @@ self.addEventListener('push', (event) => {
     }),
   ]
   if (typeof payload.badge === 'number') tasks.push(applyAppBadge(payload.badge, self.navigator))
+  if (payload.check_update) tasks.push(fetchNewerApp())
   event.waitUntil(Promise.all(tasks))
 })
+
+// Installs a newer app if there is one, so the next launch runs it even with no window open, then tells the open
+// windows, which reload into it when they can (lib/update.js). Offline or mid-deploy: the next launch finds it instead.
+async function fetchNewerApp() {
+  await self.registration.update().catch(() => null)
+  const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true })
+  for (const client of windows) client.postMessage({ type: 'check-update' })
+}
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
