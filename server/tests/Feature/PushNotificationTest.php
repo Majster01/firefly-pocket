@@ -304,7 +304,7 @@ class PushNotificationTest extends TestCase
 
         $this->assertSame(['https://push.example/wants'], $sender->endpoints);
         // The event is not sent; an upgrade only tells the app to look for a newer version of itself
-        $this->assertSame([['badge' => 1, 'title' => 'Upgrade successful', 'body' => 'Firefly III 6.6.6 → 6.7.0', 'path' => '/', 'check_update' => true, 'id' => 1]], $sender->payloads);
+        $this->assertSame([['badge' => 1, 'title' => 'Upgrade successful', 'body' => 'Firefly III 6.6.6 → 6.7.0', 'path' => '/', 'id' => 1, 'check_update' => true]], $sender->payloads);
     }
 
     public function test_only_an_upgrade_asks_the_app_to_check_for_an_update()
