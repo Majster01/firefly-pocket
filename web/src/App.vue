@@ -28,7 +28,7 @@
       </RouterView>
     </main>
 
-    <nav class="tabbar" aria-label="Tabs" :inert="lock.locked">
+    <nav class="tabbar" :class="{ away: keyboardOpen }" aria-label="Tabs" :inert="lock.locked || keyboardOpen">
       <RouterLink v-for="tab in tabs.slice(0, 2)" :key="tab.to" :to="tab.to" class="tab" :class="{ on: tabOn(tab) }" :aria-current="tabOn(tab) ? 'page' : null">
         <span class="tab-pill"><Icon :name="tab.icon" :size="23" /></span>
         <span class="tab-label">{{ tab.label }}</span>
@@ -62,6 +62,7 @@ import { compose } from './lib/composer.js'
 import { badges, markNotificationRead, refreshBadges } from './lib/badges.js'
 import { load } from './lib/data.js'
 import { lock } from './lib/lock.js'
+import { keyboardOpen, watchKeyboard } from './lib/keyboard.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -102,6 +103,8 @@ watch(
 onBeforeUnmount(() => sideObserver.disconnect())
 
 onMounted(() => {
+  // The tab bar would sit on top of the keyboard, covering the field being typed into
+  watchKeyboard()
   if (settings.token) {
     refreshBadges()
     load('rates')
@@ -158,6 +161,15 @@ watch(
   box-shadow: var(--frost-edge), var(--float-shadow);
   -webkit-backdrop-filter: blur(30px) saturate(170%);
   backdrop-filter: blur(30px) saturate(170%);
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+/* The on-screen keyboard is up: slide down out of the way */
+.tabbar.away {
+  transform: translateY(calc(100% + 24px));
+  opacity: 0;
+  pointer-events: none;
 }
 .tab {
   display: flex;
