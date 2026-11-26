@@ -1,5 +1,6 @@
 import { reactive } from 'vue'
 import { get, getAll } from './api.js'
+import { leftOf, ratioOf } from './budget.js'
 
 // Lists most pages need, fetched once and refreshed after a change
 export const store = reactive({
@@ -162,7 +163,7 @@ export async function budgetMonth({ start, end }) {
       const own = limits.filter((limit) => String(limit.attributes.budget_id) === String(budget.id))
       const limit = own.reduce((total, item) => total + Number(item.attributes.amount), 0)
       const spent = -sum(budget.attributes.spent)
-      return { id: budget.id, name: budget.attributes.name, limit, spent, left: limit - spent, ratio: limit > 0 ? spent / limit : 0, limits: own }
+      return { id: budget.id, name: budget.attributes.name, limit, spent, left: leftOf(limit, spent), ratio: ratioOf(limit, spent), limits: own }
     })
 }
 

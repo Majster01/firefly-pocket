@@ -14,8 +14,9 @@
       </div>
     </div>
 
-    <div v-if="category || start" class="row wrap active-filters">
+    <div v-if="category || budget || start" class="row wrap active-filters">
       <button v-if="category" class="chip filter-chip" @click="category = ''">{{ category }} <Icon name="x" :size="13" /></button>
+      <button v-if="budget" class="chip filter-chip" @click="budget = ''">Budget: {{ budget }} <Icon name="x" :size="13" /></button>
       <button v-if="start" class="chip filter-chip" @click="clearDates">{{ rangeLabel }} <Icon name="x" :size="13" /></button>
     </div>
 
@@ -54,31 +55,18 @@ import { get } from '../lib/api.js'
 import { flatten, load } from '../lib/data.js'
 import { money, shortDate } from '../lib/format.js'
 import { composer } from '../lib/composer.js'
+import { FILTERS, fromRouteQuery, isFiltered, pageState, searchQuery, showsTotal, toRouteQuery } from '../lib/search.js'
 
-const FILTERS = [
-  { value: 'all', label: 'All' },
-  { value: 'withdrawal', label: 'Expenses' },
-  { value: 'deposit', label: 'Income' },
-  { value: 'transfer', label: 'Transfers' },
-  { value: 'uncategorized', label: 'Uncategorized' },
-]
 const PAGE_SIZE = 50
 
 const route = useRoute()
 const router = useRouter()
-const isDay = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value ?? '')
-// The page's state as the URL has it; category and dates come from Home
-const fromQuery = (query) => ({
-  search: typeof query.q === 'string' ? query.q : '',
-  filter: FILTERS.some((option) => option.value === query.filter) ? query.filter : 'all',
-  category: typeof query.category === 'string' ? query.category : '',
-  start: isDay(query.start) ? query.start : '',
-  end: isDay(query.end) ? query.end : '',
-})
-const initial = fromQuery(route.query)
+// The page's state as the URL has it; category, budget and dates come from Home and Budgets
+const initial = fromRouteQuery(route.query)
 const search = ref(initial.search)
 const filter = ref(initial.filter)
 const category = ref(initial.category)
+const budget = ref(initial.budget)
 const start = ref(initial.start)
 const end = ref(initial.end)
 const filterSeg = ref(null)
@@ -91,18 +79,9 @@ const loading = ref(false)
 const refreshing = ref(false)
 const searchTotal = ref(null)
 const hasMore = computed(() => page.value < totalPages.value)
-const filtered = computed(() => filter.value !== 'all' || Boolean(category.value || start.value))
-
-const query = computed(() => {
-  const parts = []
-  if (search.value.trim()) parts.push(search.value.trim())
-  if (category.value) parts.push(`category_is:"${category.value.replace(/"/g, '\\"')}"`)
-  if (start.value) parts.push(`date_after:${start.value}`)
-  if (end.value) parts.push(`date_before:${end.value}`)
-  if (filter.value === 'uncategorized') parts.push('has_no_category:true type:withdrawal')
-  else if (parts.length && filter.value !== 'all') parts.push(`type:${filter.value}`)
-  return parts.join(' ')
-})
+const state = computed(() => pageState({ search: search.value, filter: filter.value, category: category.value, budget: budget.value, start: start.value, end: end.value }))
+const filtered = computed(() => isFiltered(state.value))
+const query = computed(() => searchQuery(state.value))
 
 const rangeLabel = computed(() => {
   if (!start.value) return ''
@@ -144,7 +123,7 @@ let totalId = 0
 async function loadTotal() {
   const id = ++totalId
   searchTotal.value = null
-  if (!search.value.trim() && !category.value && !start.value) return
+  if (!showsTotal(state.value)) return
   const json = await get('search/transactions/total', { query: query.value }, { quiet: true }).catch(() => null)
   if (id !== totalId) return
   // Pocket sums per currency, spending positive; show the EUR part as money in or out
@@ -157,22 +136,16 @@ const reload = () => {
   loadTotal()
 }
 
-const toQuery = () => ({
-  ...(search.value ? { q: search.value } : {}),
-  ...(filter.value !== 'all' ? { filter: filter.value } : {}),
-  ...(category.value ? { category: category.value } : {}),
-  ...(start.value ? { start: start.value, ...(end.value ? { end: end.value } : {}) } : {}),
-})
 const sameState = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 
 let debounce
 let replaced = null // the query we last put in the URL ourselves
-watch([search, filter, category, start, end], ([text], [oldText]) => {
+watch([search, filter, category, budget, start, end], ([text], [oldText]) => {
   clearTimeout(debounce)
   // Only typing waits; a tapped filter loads at once
   debounce = setTimeout(
     () => {
-      replaced = toQuery()
+      replaced = toRouteQuery(state.value)
       router.replace({ query: replaced })
       reload()
     },
@@ -185,14 +158,15 @@ watch(
   () => route.query,
   (query) => {
     if (route.name !== 'transactions') return
-    const next = fromQuery(query)
+    const next = fromRouteQuery(query)
     // Ours, possibly older than what was typed since: nothing to take
-    if (replaced && sameState(next, fromQuery(replaced))) return
-    if (sameState(next, { search: search.value, filter: filter.value, category: category.value, start: start.value, end: end.value })) return
+    if (replaced && sameState(next, fromRouteQuery(replaced))) return
+    if (sameState(next, state.value)) return
     clearTimeout(debounce)
     search.value = next.search
     filter.value = next.filter
     category.value = next.category
+    budget.value = next.budget
     start.value = next.start
     end.value = next.end
   },

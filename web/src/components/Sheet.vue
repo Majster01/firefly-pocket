@@ -52,6 +52,10 @@ async function activate() {
   await nextTick()
   if (!props.open) return
   mine = layer.value
+  // The layers sit in <body> in the order their components mounted, not opened: lift this one above those already open,
+  // so a transaction opened from a sheet shows on top of it
+  mine.dataset.depth = Number(stack.at(-1)?.dataset.depth ?? 0) + 1
+  mine.style.zIndex = `calc(var(--z-sheet) + ${mine.dataset.depth})`
   stack.push(mine)
   document.documentElement.classList.add('sheet-open')
   // The sheet lives in <body>; everything else (except the toasts, whose Undo must stay reachable) goes inert

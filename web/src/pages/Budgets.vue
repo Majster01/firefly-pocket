@@ -1,8 +1,8 @@
 <template>
   <div>
     <PageHeader title="Budgets" :eyebrow="monthLabel(range.start)">
-      <button class="btn icon small" aria-label="Previous month" @click="offset--"><Icon name="back" :size="18" /></button>
-      <button class="btn icon small" aria-label="Next month" :disabled="offset >= 1" @click="offset++"><Icon name="chevron" :size="18" /></button>
+      <button class="btn icon small" aria-label="Previous month" @click="setOffset(offset - 1)"><Icon name="back" :size="18" /></button>
+      <button class="btn icon small" aria-label="Next month" :disabled="offset >= 1" @click="setOffset(offset + 1)"><Icon name="chevron" :size="18" /></button>
       <button class="btn small" @click="open(null)"><Icon name="plus" :size="18" /> Add</button>
     </PageHeader>
 
@@ -16,7 +16,7 @@
     <div v-if="loadError" class="banner bad"><Icon name="alert" :size="18" /> {{ loadError }}</div>
     <div v-else-if="!budgets" class="loading"><span class="spinner" /></div>
     <div v-else class="budget-grid">
-      <button v-for="budget in budgets" :key="budget.id" class="card budget-card" @click="open(budget)">
+      <button v-for="budget in budgets" :key="budget.id" class="card budget-card" @click="pick(budget)">
         <div class="row">
           <strong class="grow ellipsis">{{ budget.name }}</strong>
           <span v-if="budget.limit" class="chip" :class="budget.ratio > 1 ? 'bad' : budget.ratio > 0.85 ? 'warn' : 'good'">
@@ -31,6 +31,12 @@
         <div v-if="budget.limit" class="small muted budget-left blurable">{{ budget.left >= 0 ? `${money(budget.left)} left` : `${money(-budget.left)} over` }}</div>
       </button>
     </div>
+
+    <BudgetSheet :budget="picked" :range="budgetsRange" :period-name="budgetsRange ? monthLabel(budgetsRange.start) : ''" :version="composer.version" @close="unpick">
+      <template #actions>
+        <button class="btn small grow" @click="editPicked">Edit</button>
+      </template>
+    </BudgetSheet>
 
     <Sheet :open="Boolean(editing)" :title="editing?.id ? 'Edit budget' : 'New budget'" @close="editing = null">
       <template #action>
@@ -50,15 +56,25 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import PageHeader from '../components/PageHeader.vue'
 import Icon from '../components/Icon.vue'
 import Sheet from '../components/Sheet.vue'
+import BudgetSheet from '../components/BudgetSheet.vue'
 import { del, post, put } from '../lib/api.js'
 import { budgetMonth, meterClass } from '../lib/data.js'
 import { money, monthLabel, monthRange, parseAmount } from '../lib/format.js'
 import { toast, toastError } from '../lib/toast.js'
+import { composer } from '../lib/composer.js'
+import { leftOf, ratioOf } from '../lib/budget.js'
+import { parseOffset } from '../lib/period.js'
+import { usePicked } from '../lib/picked.js'
 
-const offset = ref(0)
+const route = useRoute()
+const router = useRouter()
+// The month is in the URL, so Back from a budget's transactions returns to it. Next month is the furthest: limits are set ahead
+const offset = computed(() => parseOffset(route.query.offset, 1))
+const setOffset = (value) => router.replace({ query: value ? { offset: String(value) } : {} })
 const budgets = ref(null)
 // The month the shown budgets belong to: an edit sets that month's limit, even if the arrows moved on meanwhile
 const budgetsRange = ref(null)
@@ -66,12 +82,13 @@ const editing = ref(null)
 const saving = ref(false)
 const loadError = ref('')
 const range = computed(() => monthRange(offset.value))
+const { picked, pick, unpick } = usePicked(budgets)
 
 const totals = computed(() => {
   const list = (budgets.value ?? []).filter((budget) => budget.limit > 0)
   const limit = list.reduce((sum, budget) => sum + budget.limit, 0)
   const spent = list.reduce((sum, budget) => sum + budget.spent, 0)
-  return { limit, spent, left: limit - spent, ratio: limit ? spent / limit : 0 }
+  return { limit, spent, left: leftOf(limit, spent), ratio: ratioOf(limit, spent) }
 })
 const daysLeft = computed(() => {
   if (offset.value !== 0) return offset.value < 0 ? 'month over' : 'not started'
@@ -83,10 +100,11 @@ const daysLeft = computed(() => {
 // Stepping through months quickly: only the last request may fill the page
 let request = 0
 
-async function reload() {
+// keepShown: a refresh of the same month, which leaves the cards and an open sheet until the new ones are in
+async function reload({ keepShown = false } = {}) {
   const mine = ++request
   const shown = range.value
-  budgets.value = null
+  if (!keepShown) budgets.value = null
   loadError.value = ''
   try {
     const list = (await budgetMonth(shown)).sort((a, b) => b.limit - a.limit)
@@ -94,7 +112,8 @@ async function reload() {
     budgets.value = list
     budgetsRange.value = shown
   } catch (error) {
-    if (mine === request) loadError.value = error.message
+    // Rows still shown stay; the error toast comes from api()
+    if (mine === request && !budgets.value) loadError.value = error.message
   }
 }
 
@@ -102,6 +121,13 @@ const open = (budget) =>
   (editing.value = budget
     ? { id: budget.id, name: budget.name, limit: budget.limit ? String(budget.limit) : '', limits: budget.limits, range: budgetsRange.value ?? range.value }
     : { id: null, name: '', limit: '', limits: [], range: budgetsRange.value ?? range.value })
+
+function editPicked() {
+  const budget = picked.value
+  unpick()
+  // Once the details sheet has closed, so the two do not animate over each other
+  setTimeout(() => open(budget), 300)
+}
 
 async function save() {
   if (saving.value) return
@@ -150,8 +176,12 @@ async function remove() {
   }
 }
 
-watch(offset, reload)
-onMounted(reload)
+watch(offset, () => route.name === 'budgets' && reload())
+watch(
+  () => composer.version,
+  () => reload({ keepShown: true }),
+)
+onMounted(() => reload())
 </script>
 
 <style>

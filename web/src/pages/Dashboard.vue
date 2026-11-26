@@ -83,6 +83,7 @@ import SuggestionsTile from '../components/home/tiles/SuggestionsTile.vue'
 import ConnectionsTile from '../components/home/tiles/ConnectionsTile.vue'
 import { DEVICES, TILES, device, home, optionsOf, periodLabel, periodRange, pullHome, touch } from '../lib/home.js'
 import { load } from '../lib/data.js'
+import { parseOffset } from '../lib/period.js'
 import { settings } from '../lib/settings.js'
 import { passkeyError, setHideAmounts } from '../lib/lock.js'
 import { toastError } from '../lib/toast.js'
@@ -124,7 +125,7 @@ const version = ref(0)
 // Without one, Home opens on the view this layout last used.
 const layout = computed(() => home[device.value])
 const view = computed(() => (['month', 'year'].includes(route.query.view) ? route.query.view : layout.value.view))
-const offset = computed(() => Math.min(0, Number.parseInt(route.query.offset ?? '0', 10) || 0))
+const offset = computed(() => parseOffset(route.query.offset, 0))
 const range = computed(() => periodRange(view.value, offset.value))
 
 async function toggleAmounts() {
