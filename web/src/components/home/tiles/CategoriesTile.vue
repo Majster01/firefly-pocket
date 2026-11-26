@@ -24,7 +24,7 @@
         </button>
       </li>
     </ul>
-    <CategorySheet :category="picked" :range="range" :period-name="periodName" @close="picked = null" @pick="select" />
+    <CategorySheet :category="folded ?? picked" :range="range" :period-name="periodName" :version="version" @close="close" @pick="select" />
   </div>
 </template>
 
@@ -36,20 +36,27 @@ import { get } from '../../../lib/api.js'
 import { insightTotal } from '../../../lib/data.js'
 import { money } from '../../../lib/format.js'
 import { periodLabel } from '../../../lib/home.js'
+import { usePicked } from '../../../lib/picked.js'
 
 const props = defineProps({ view: String, offset: Number, range: Object, options: Object, version: Number })
 const rows = ref(null)
-const picked = ref(null)
+// Insight rows carry the category's id; "Uncategorized" is the one without
+const { picked, pick, unpick } = usePicked(rows, (row) => row.id ?? 'uncategorized')
+// "Other" is no category of its own, so no row to follow: its list is kept as it was tapped
+const folded = ref(null)
 
 const periodName = computed(() => periodLabel(props.view, props.offset))
 const shown = computed(() => (Number(props.options.limit) ? rows.value.slice(0, Number(props.options.limit)) : rows.value))
 
+const periodKey = computed(() => `${props.range.start} ${props.view} ${props.options.uncategorized}`)
+
 watch(
-  [() => props.range.start, () => props.view, () => props.version, () => props.options.uncategorized],
-  async (_, __, onCleanup) => {
+  [periodKey, () => props.version],
+  async ([key], [oldKey], onCleanup) => {
     let stale = false
     onCleanup(() => (stale = true))
-    rows.value = null
+    // A refresh keeps the rows, and an open sheet, until the new ones are in
+    if (key !== oldKey) rows.value = null
     const [byCategory, none] = await Promise.all([get('insight/expense/category', props.range), get('insight/expense/no-category', props.range).catch(() => [])])
     if (stale) return
     const list = (byCategory ?? []).filter((row) => row.currency_code === 'EUR').map((row) => ({ id: row.id, name: row.name, amount: Math.abs(Number(row.difference_float)) }))
@@ -61,7 +68,16 @@ watch(
   { immediate: true },
 )
 
-const select = (row) => (picked.value = row)
+function select(row) {
+  folded.value = row.others ? row : null
+  if (row.others) unpick()
+  else pick(row)
+}
+
+function close() {
+  folded.value = null
+  unpick()
+}
 </script>
 
 <style>
